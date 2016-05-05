@@ -1,0 +1,9 @@
+package: github.com/jtblin/kube2iam
+import:
+- package: github.com/Sirupsen/logrus
+- package: github.com/gorilla/mux
+- package: github.com/spf13/pflag
+- package: k8s.io/kubernetes
+  subpackages:
+  - pkg/client/restclient
+  - pkg/client/unversioned

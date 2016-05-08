@@ -59,7 +59,7 @@ func (s *Server) securityCredentialsHandler(w http.ResponseWriter, r *http.Reque
 func (s *Server) roleHandler(w http.ResponseWriter, r *http.Request) {
 	remoteIP := parseRemoteAddr(r.RemoteAddr)
 	roleARN := s.iam.roleARN(s.store.Get(remoteIP))
-	credentials, err := s.iam.assumeRole(roleARN)
+	credentials, err := s.iam.assumeRole(roleARN, remoteIP)
 	if err != nil {
 		log.Errorf("Error assuming role %+v", err)
 		http.Error(w, err.Error(), 500)

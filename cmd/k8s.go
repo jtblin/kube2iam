@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/cache"
+	kcache "k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
 	"k8s.io/kubernetes/pkg/controller/framework"
@@ -21,12 +21,12 @@ type k8s struct {
 	*client.Client
 }
 
-// Returns a cache.ListWatch that gets all changes to ingresses.
-func (k8s *k8s) createPodLW() *cache.ListWatch {
-	return cache.NewListWatchFromClient(k8s, "pods", api.NamespaceAll, selector.Everything())
+// Returns a cache.ListWatch that gets all changes to pods.
+func (k8s *k8s) createPodLW() *kcache.ListWatch {
+	return kcache.NewListWatchFromClient(k8s, "pods", api.NamespaceAll, selector.Everything())
 }
 
-func (k8s *k8s) watchForPods(podManager framework.ResourceEventHandler) cache.Store {
+func (k8s *k8s) watchForPods(podManager framework.ResourceEventHandler) kcache.Store {
 	podStore, podController := framework.NewInformer(
 		k8s.createPodLW(),
 		&api.Pod{},

@@ -60,23 +60,15 @@ junit-test: build
 check:
 	go install
 	gometalinter --concurrency=$(METALINTER_CONCURRENCY) --deadline=180s ./... --vendor --linter='errcheck:errcheck:-ignore=net:Close' --cyclo-over=20 \
-		--linter='vet:go tool vet -composites=false {paths}:PATH:LINE:MESSAGE' --disable=interfacer --dupl-threshold=200
+		--linter='vet:go tool vet -composites=false {paths}:PATH:LINE:MESSAGE' --disable=interfacer --dupl-threshold=50
 
 check-all:
 	go install
-	go install ./tester
 	gometalinter --concurrency=$(METALINTER_CONCURRENCY) --deadline=600s ./... --vendor --cyclo-over=20 \
-		--linter='vet:go tool vet {paths}:PATH:LINE:MESSAGE' --dupl-threshold=65
-
-profile:
-	./build/bin/$(ARCH)/$(BINARY_NAME) --backends=stdout --cpu-profile=./profile.out --flush-interval=1s
-	go tool pprof build/bin/$(ARCH)/$(BINARY_NAME) profile.out
+		--linter='vet:go tool vet {paths}:PATH:LINE:MESSAGE' --dupl-threshold=50
 
 watch:
 	CompileDaemon -color=true -build "make test"
-
-git-hook:
-	cp dev/push-hook.sh .git/hooks/pre-push
 
 cross:
 	CGO_ENABLED=0 GOOS=linux go build -o build/bin/linux/$(BINARY_NAME) $(GOBUILD_VERSION_ARGS) -a -installsuffix cgo  github.com/jtblin/$(BINARY_NAME)
@@ -90,17 +82,6 @@ release: check test docker
 	docker push $(IMAGE_NAME):latest
 	docker tag -f $(IMAGE_NAME):$(GIT_HASH) $(IMAGE_NAME):$(REPO_VERSION)
 	docker push $(IMAGE_NAME):$(REPO_VERSION)
-
-run: build
-	./build/bin/$(ARCH)/$(BINARY_NAME) --backends=stdout --verbose --flush-interval=1s
-
-run-docker: cross
-	cd build/ && docker-compose rm -f gostatsd
-	docker-compose -f build/docker-compose.yml build
-	docker-compose -f build/docker-compose.yml up -d
-
-stop-docker:
-	cd build/ && docker-compose stop
 
 version:
 	@echo $(REPO_VERSION)

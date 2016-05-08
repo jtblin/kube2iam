@@ -110,7 +110,7 @@ the traffic to `169.254.169.254` must be proxied for docker containers.
 
 ### kubernetes annotation
 
-Add an `iam/role` annotation to your containers with the role that you want to assume for this container.
+Add an `iam/role` annotation to your pods with the role that you want to assume for this pod.
 
 ```
 ---
@@ -121,7 +121,7 @@ metadata:
   labels:
 	name: aws-cli
   annotations:
-	iam/role: role-name
+	iam.amazonaws.com/role: role-name
 spec:
   containers:
   - image: fstab/aws-cli
@@ -135,9 +135,9 @@ spec:
 
 ### Options
 
-By default, `kube2iam` will use the in-cluster method to connect to the kubernetes master, and use the `iam/role`
+By default, `kube2iam` will use the in-cluster method to connect to the kubernetes master, and use the `iam.amazonaws.com/role`
 annotation to retrieve the role for the container. Either set the `base-role-arn` option to apply to all roles
-and only pass the role name in the `iam/role` annotation, otherwise pass the full role ARN in the annotation.
+and only pass the role name in the `iam.amazonaws.com/role` annotation, otherwise pass the full role ARN in the annotation.
 
 ```
 $ kube2iam --help
@@ -146,8 +146,7 @@ Usage of kube2iam:
       --api-token string               Token to authenticate with the api server
       --app-port string                Http port (default "8181")
       --base-role-arn string           Base role ARN
-      --default-role string            Default IAM role (default "default")
-      --iam-role-key string            Pod annotation key used to retrieve the IAM role (default "iam/role")
+      --iam-role-key string            Pod annotation key used to retrieve the IAM role (default "iam.amazonaws.com/role")
       --insecure                       Kubernetes server should be accessed without verifying the TLS. Testing only
       --log-flush-frequency duration   Maximum number of seconds between log flushes (default 5s)
       --metadata-addr string           Address for the ec2 metadata (default "169.254.169.254")

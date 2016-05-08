@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"sync"
 
 	"k8s.io/kubernetes/pkg/api"
@@ -8,27 +9,26 @@ import (
 
 // store implements the k8s framework ResourceEventHandler interface.
 type store struct {
-	defaultRole string
 	iamRoleKey  string
 	mutex       sync.RWMutex
 	rolesByIP   map[string]string
 }
 
 // Get returns the iam role based on IP address.
-func (s *store) Get(IP string) string {
+func (s *store) Get(IP string) (string, error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 	if role, ok := s.rolesByIP[IP]; ok {
-		return role
+		return role, nil
 	}
-	return s.defaultRole
+	return "", fmt.Errorf("Unable to find role for IP %s", IP)
 }
 
 // OnAdd is called when a pod is added.
 func (s *store) OnAdd(obj interface{}) {
 	if pod, ok := obj.(*api.Pod); ok {
-		if role, ok := pod.Annotations[s.iamRoleKey]; ok {
-			if pod.Status.PodIP != "" {
+		if pod.Status.PodIP != "" {
+			if role, ok := pod.Annotations[s.iamRoleKey]; ok {
 				s.mutex.Lock()
 				s.rolesByIP[pod.Status.PodIP] = role
 				s.mutex.Unlock()
@@ -66,9 +66,8 @@ func (s *store) OnDelete(obj interface{}) {
 	}
 }
 
-func newStore(key, defaultRole string) *store {
+func newStore(key string) *store {
 	return &store{
-		defaultRole: defaultRole,
 		iamRoleKey:  key,
 		rolesByIP:   make(map[string]string),
 	}

@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/cenk/backoff"
 	"github.com/gorilla/mux"
 )
 
@@ -18,7 +19,6 @@ type Server struct {
 	APIToken        string
 	AppPort         string
 	BaseRoleARN     string
-	DefaultRole     string
 	IAMRoleKey      string
 	MetadataAddress string
 	Insecure        bool
@@ -50,26 +50,53 @@ func parseRemoteAddr(addr string) string {
 	return hostname
 }
 
+func (s *Server)  getRole(IP string) (string, error) {
+	var role string
+	var err error
+	operation := func() error {
+		role, err = s.store.Get(IP)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	err = backoff.Retry(operation, backoff.NewExponentialBackOff())
+	if err != nil {
+		return "", err
+	}
+
+	return role, nil
+}
+
 func (s *Server) securityCredentialsHandler(w http.ResponseWriter, r *http.Request) {
 	remoteIP := parseRemoteAddr(r.RemoteAddr)
-	roleARN := s.iam.roleARN(s.store.Get(remoteIP))
+	role, err := s.getRole(remoteIP)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+	}
+	roleARN := s.iam.roleARN(role)
 	idx := strings.LastIndex(roleARN, "/")
 	write(w, roleARN[idx+1:])
 }
 
 func (s *Server) roleHandler(w http.ResponseWriter, r *http.Request) {
 	remoteIP := parseRemoteAddr(r.RemoteAddr)
-	roleARN := s.iam.roleARN(s.store.Get(remoteIP))
+	role, err := s.store.Get(remoteIP)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+	}
+	roleARN := s.iam.roleARN(role)
 	credentials, err := s.iam.assumeRole(roleARN, remoteIP)
 	if err != nil {
 		log.Errorf("Error assuming role %+v", err)
-		http.Error(w, err.Error(), 500)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	if err := json.NewEncoder(w).Encode(credentials); err != nil {
 		log.Errorf("Error sending json %+v", err)
-		http.Error(w, err.Error(), 500)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
@@ -97,7 +124,7 @@ func (s *Server) Run(host, token string, insecure bool) error {
 		return err
 	}
 	s.k8s = k8s
-	s.store = newStore(s.IAMRoleKey, s.DefaultRole)
+	s.store = newStore(s.IAMRoleKey)
 	s.k8s.watchForPods(s.store)
 	s.iam = newIAM(s.BaseRoleARN)
 	r := mux.NewRouter()
@@ -116,8 +143,7 @@ func (s *Server) Run(host, token string, insecure bool) error {
 func NewServer() *Server {
 	return &Server{
 		AppPort:         "8181",
-		DefaultRole:     "default",
-		IAMRoleKey:      "iam/role",
+		IAMRoleKey:      "iam.amazonaws.com/role",
 		MetadataAddress: "169.254.169.254",
 	}
 }

@@ -1,5 +1,5 @@
-hash: 7191ecd3d9dedfaabdb26fb016575801818a8b8092f63b86e28064c9f9889081
-updated: 2016-05-08T17:40:04.166880144+10:00
+hash: 5a9b642ddab69c6e19128a8008a43a636c4ef84c2687eb9315bcfe58fdb336f4
+updated: 2016-05-09T06:55:47.655252909+10:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c
@@ -31,6 +31,8 @@ imports:
   - quantile
 - name: github.com/blang/semver
   version: 31b736133b98f26d5e078ec9eb591666edfd091f
+- name: github.com/cenk/backoff
+  version: c29158af31815ccc31ca29c86c121bc39e00d3d8
 - name: github.com/davecgh/go-spew
   version: 3e6e67c4dcea3ac2f25fd4731abc0e1deaf36216
   subpackages:

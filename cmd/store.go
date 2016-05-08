@@ -3,7 +3,6 @@ package cmd
 import (
 	"sync"
 
-	log "github.com/Sirupsen/logrus"
 	"k8s.io/kubernetes/pkg/api"
 )
 
@@ -11,17 +10,17 @@ const (
 	iamRoleKey = "iam/role"
 )
 
-// store implements the k8s framework ResourceEventHandler interface
+// store implements the k8s framework ResourceEventHandler interface.
 type store struct {
 	iamRoleKey string
 	mutex      sync.RWMutex
 	rolesByIP  map[string]string
 }
 
-// Get returns the iam role based on IP address
+// Get returns the iam role based on IP address.
 func (s *store) Get(IP string) string {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 	if role, ok := s.rolesByIP[IP]; ok {
 		return role
 	}
@@ -32,26 +31,41 @@ func (s *store) Get(IP string) string {
 func (s *store) OnAdd(obj interface{}) {
 	if pod, ok := obj.(*api.Pod); ok {
 		if role, ok := pod.Annotations[s.iamRoleKey]; ok {
-			log.Debugf("Adding IAM role %s for IP %s", role, pod.Status.PodIP)
-			s.mutex.Lock()
-			s.rolesByIP[pod.Status.PodIP] = role
-			s.mutex.Unlock()
+			if pod.Status.PodIP != "" {
+				s.mutex.Lock()
+				s.rolesByIP[pod.Status.PodIP] = role
+				s.mutex.Unlock()
+			}
 		}
 	}
 }
 
 // OnUpdate is called when a pod is modified.
 func (s *store) OnUpdate(oldObj, newObj interface{}) {
-	s.OnDelete(oldObj)
-	s.OnAdd(newObj)
+	oldPod, okOld := oldObj.(*api.Pod)
+	newPod, okNew := newObj.(*api.Pod)
+
+	// Validate that the objects are good
+	if okOld && okNew {
+		if oldPod.Status.PodIP != newPod.Status.PodIP {
+			s.OnDelete(oldPod)
+			s.OnAdd(newPod)
+		}
+	} else if okNew {
+		s.OnAdd(newPod)
+	} else if okOld {
+		s.OnDelete(oldPod)
+	}
 }
 
 // OnDelete is called when a pod is deleted.
 func (s *store) OnDelete(obj interface{}) {
 	if pod, ok := obj.(*api.Pod); ok {
-		s.mutex.Lock()
-		delete(s.rolesByIP, pod.Status.PodIP)
-		s.mutex.Unlock()
+		if pod.Status.PodIP != "" {
+			s.mutex.Lock()
+			delete(s.rolesByIP, pod.Status.PodIP)
+			s.mutex.Unlock()
+		}
 	}
 }
 

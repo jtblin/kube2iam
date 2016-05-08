@@ -35,6 +35,7 @@ func addFlags(s *cmd.Server, fs *pflag.FlagSet) {
 	fs.StringVar(&s.APIToken, "api-token", s.APIToken, "Token to authenticate with the api server")
 	fs.StringVar(&s.AppPort, "app-port", s.AppPort, "Http port")
 	fs.StringVar(&s.BaseRoleARN, "base-role-arn", s.BaseRoleARN, "Base role ARN")
+	fs.StringVar(&s.DefaultRole, "default-role", s.DefaultRole, "Default IAM role")
 	fs.StringVar(&s.IAMRoleKey, "iam-role-key", s.IAMRoleKey, "Pod annotation key used to retrieve the IAM role")
 	fs.BoolVar(&s.Insecure, "insecure", false, "insecure")
 	fs.StringVar(&s.MetadataAddress, "metadata-addr", s.MetadataAddress, "Address for the ec2 metadata")

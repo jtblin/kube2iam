@@ -18,6 +18,7 @@ type Server struct {
 	APIToken        string
 	AppPort         string
 	BaseRoleARN     string
+	DefaultRole     string
 	IAMRoleKey      string
 	MetadataAddress string
 	Insecure        bool
@@ -96,7 +97,7 @@ func (s *Server) Run(host, token string, insecure bool) error {
 		return err
 	}
 	s.k8s = k8s
-	s.store = newStore(s.IAMRoleKey)
+	s.store = newStore(s.IAMRoleKey, s.DefaultRole)
 	s.k8s.watchForPods(s.store)
 	s.iam = newIAM(s.BaseRoleARN)
 	r := mux.NewRouter()
@@ -114,7 +115,9 @@ func (s *Server) Run(host, token string, insecure bool) error {
 // NewServer will create a new Server with default values.
 func NewServer() *Server {
 	return &Server{
-		AppPort:         "8080",
+		AppPort:         "8181",
+		DefaultRole:     "default",
+		IAMRoleKey:      "iam/role",
 		MetadataAddress: "169.254.169.254",
 	}
 }

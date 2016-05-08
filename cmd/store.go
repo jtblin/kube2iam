@@ -6,15 +6,12 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 )
 
-const (
-	iamRoleKey = "iam/role"
-)
-
 // store implements the k8s framework ResourceEventHandler interface.
 type store struct {
-	iamRoleKey string
-	mutex      sync.RWMutex
-	rolesByIP  map[string]string
+	defaultRole string
+	iamRoleKey  string
+	mutex       sync.RWMutex
+	rolesByIP   map[string]string
 }
 
 // Get returns the iam role based on IP address.
@@ -24,7 +21,7 @@ func (s *store) Get(IP string) string {
 	if role, ok := s.rolesByIP[IP]; ok {
 		return role
 	}
-	return "default" // FIXME: hardcoding
+	return s.defaultRole
 }
 
 // OnAdd is called when a pod is added.
@@ -69,12 +66,10 @@ func (s *store) OnDelete(obj interface{}) {
 	}
 }
 
-func newStore(key string) *store {
-	if key == "" {
-		key = iamRoleKey
-	}
+func newStore(key, defaultRole string) *store {
 	return &store{
-		iamRoleKey: key,
-		rolesByIP:  make(map[string]string),
+		defaultRole: defaultRole,
+		iamRoleKey:  key,
+		rolesByIP:   make(map[string]string),
 	}
 }

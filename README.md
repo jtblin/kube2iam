@@ -106,11 +106,11 @@ spec:
 To prevent containers to directly access the ec2 metadata API and gain unwanted access to AWS resources, 
 the traffic to `169.254.169.254` must be proxied for docker containers.
 
-    iptables -t nat -A OUTPUT -p tcp -d 169.254.169.254 -i docker0 -j DNAT --to-destination `curl 169.254.169.254/latest/meta-data/local-ipv4`:8181
+    iptables -t nat -A PREROUTING -p tcp -d 169.254.169.254 --dport 80 -j DNAT --to-destination `curl 169.254.169.254/latest/meta-data/local-ipv4`:8181 -i docker0
 
 ### kubernetes annotation
 
-Add an `iam/role` annotation to your pods with the role that you want to assume for this pod.
+Add an `iam.amazonaws.com/role` annotation to your pods with the role that you want to assume for this pod.
 
 ```
 ---

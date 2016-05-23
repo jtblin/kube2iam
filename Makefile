@@ -87,7 +87,7 @@ version:
 	@echo $(REPO_VERSION)
 
 clean:
-	rm -f build/bin/*
+	rm -rf build/bin/*
 	-docker rm $(docker ps -a -f 'status=exited' -q)
 	-docker rmi $(docker images -f 'dangling=true' -q)
 

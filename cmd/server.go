@@ -51,15 +51,12 @@ func parseRemoteAddr(addr string) string {
 	return hostname
 }
 
-func (s *Server)  getRole(IP string) (string, error) {
+func (s *Server) getRole(IP string) (string, error) {
 	var role string
 	var err error
 	operation := func() error {
 		role, err = s.store.Get(IP)
-		if err != nil {
-			return err
-		}
-		return nil
+		return err
 	}
 
 	err = backoff.Retry(operation, backoff.NewExponentialBackOff())
@@ -75,6 +72,7 @@ func (s *Server) securityCredentialsHandler(w http.ResponseWriter, r *http.Reque
 	role, err := s.getRole(remoteIP)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
+		return
 	}
 	roleARN := s.iam.roleARN(role)
 	idx := strings.LastIndex(roleARN, "/")
@@ -86,6 +84,7 @@ func (s *Server) roleHandler(w http.ResponseWriter, r *http.Request) {
 	role, err := s.store.Get(remoteIP)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
+		return
 	}
 	roleARN := s.iam.roleARN(role)
 	credentials, err := s.iam.assumeRole(roleARN, remoteIP)

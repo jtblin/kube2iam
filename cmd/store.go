@@ -9,9 +9,9 @@ import (
 
 // store implements the k8s framework ResourceEventHandler interface.
 type store struct {
-	iamRoleKey  string
-	mutex       sync.RWMutex
-	rolesByIP   map[string]string
+	iamRoleKey string
+	mutex      sync.RWMutex
+	rolesByIP  map[string]string
 }
 
 // Get returns the iam role based on IP address.
@@ -68,7 +68,7 @@ func (s *store) OnDelete(obj interface{}) {
 
 func newStore(key string) *store {
 	return &store{
-		iamRoleKey:  key,
-		rolesByIP:   make(map[string]string),
+		iamRoleKey: key,
+		rolesByIP:  make(map[string]string),
 	}
 }

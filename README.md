@@ -44,7 +44,7 @@ It is necessary to create an IAM role which can assume other roles and assign it
 }
 ```
 
-The roles that will be assumed must have a Trust Relationship which allows them to be assumed by the `root` role. 
+The roles that will be assumed must have a Trust Relationship which allows them to be assumed by the kubernetes worker role. 
 See this [StackOverflow post](http://stackoverflow.com/a/33850060) for more details.
 
 ```
@@ -63,7 +63,7 @@ See this [StackOverflow post](http://stackoverflow.com/a/33850060) for more deta
       "Sid": "",
       "Effect": "Allow",
       "Principal": {
-        "AWS": "arn:aws:iam::123456789012:root"
+        "AWS": "arn:aws:iam::123456789012:role/kubernetes-worker-role"
       },
       "Action": "sts:AssumeRole"
     }

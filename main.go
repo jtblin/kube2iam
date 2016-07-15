@@ -26,7 +26,7 @@ func main() {
 	}
 
 	if s.AddIPTablesRule {
-		if err := iptables.AddRule(s.AppPort, s.MetadataAddress); err != nil {
+		if err := iptables.AddRule(s.AppPort, s.MetadataAddress, s.HostInterface); err != nil {
 			log.Fatal(err)
 		}
 	}
@@ -46,6 +46,7 @@ func addFlags(s *cmd.Server, fs *pflag.FlagSet) {
 	fs.BoolVar(&s.Insecure, "insecure", false, "Kubernetes server should be accessed without verifying the TLS. Testing only")
 	fs.StringVar(&s.MetadataAddress, "metadata-addr", s.MetadataAddress, "Address for the ec2 metadata")
 	fs.BoolVar(&s.AddIPTablesRule, "add-rule", false, "Add iptables rule (requires HOST_IP environment variable)")
+	fs.StringVar(&s.HostInterface, "host-interface", "docker0", "Host interface for proxying AWS metadata")
 	fs.BoolVar(&s.Verbose, "verbose", false, "Verbose")
 	fs.BoolVar(&s.Version, "version", false, "Print the version and exits")
 }

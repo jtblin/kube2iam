@@ -20,3 +20,7 @@ import:
   - pkg/fields
   - pkg/util/wait
 - package: github.com/cenk/backoff
+- package: github.com/coreos/go-iptables
+  version: v0.1.0
+  subpackages:
+  - iptables

@@ -147,6 +147,5 @@ func NewServer() *Server {
 		AppPort:         "8181",
 		IAMRoleKey:      "iam.amazonaws.com/role",
 		MetadataAddress: "169.254.169.254",
-		HostInterface:   "docker0",
 	}
 }

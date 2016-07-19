@@ -23,6 +23,7 @@ type Server struct {
 	MetadataAddress string
 	AddIPTablesRule bool
 	HostInterface   string
+	HostIP          string
 	Insecure        bool
 	Verbose         bool
 	Version         bool

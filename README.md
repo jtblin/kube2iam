@@ -130,6 +130,7 @@ spec:
           args:
             - "--base-role-arn=arn:aws:iam::123456789012:role/"
             - "--add-rule=true"
+            - "--host-ip=$(HOST_IP)"
           env:
             - name: HOST_IP
               valueFrom:
@@ -177,14 +178,15 @@ and only pass the role name in the `iam.amazonaws.com/role` annotation, otherwis
 ```
 $ kube2iam --help
 Usage of kube2iam:
-      --add-rule                       Add iptables rule (requires HOST_IP environment variable)
       --api-server string              Endpoint for the api server
       --api-token string               Token to authenticate with the api server
       --app-port string                Http port (default "8181")
       --base-role-arn string           Base role ARN
       --host-interface string          Host interface for proxying AWS metadata (default "docker0")
+      --host-ip string                 IP address of host
       --iam-role-key string            Pod annotation key used to retrieve the IAM role (default "iam.amazonaws.com/role")
       --insecure                       Kubernetes server should be accessed without verifying the TLS. Testing only
+      --iptables                       Add iptables rule (also requires --host-ip)
       --log-flush-frequency duration   Maximum number of seconds between log flushes (default 5s)
       --metadata-addr string           Address for the ec2 metadata (default "169.254.169.254")
       --verbose                        Verbose

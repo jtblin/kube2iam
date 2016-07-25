@@ -21,6 +21,9 @@ type Server struct {
 	BaseRoleARN     string
 	IAMRoleKey      string
 	MetadataAddress string
+	AddIPTablesRule bool
+	HostInterface   string
+	HostIP          string
 	Insecure        bool
 	Verbose         bool
 	Version         bool

@@ -10,7 +10,7 @@ import:
 - package: github.com/karlseguin/ccache
 - package: github.com/spf13/pflag
 - package: k8s.io/kubernetes
-  version: v1.2.4
+  version: v1.3.0
   subpackages:
   - pkg/api
   - pkg/client/cache
@@ -20,3 +20,7 @@ import:
   - pkg/fields
   - pkg/util/wait
 - package: github.com/cenk/backoff
+- package: github.com/coreos/go-iptables
+  version: v0.1.0
+  subpackages:
+  - iptables

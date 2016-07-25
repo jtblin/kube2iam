@@ -108,7 +108,7 @@ the traffic to `169.254.169.254` must be proxied for docker containers.
 
     iptables -t nat -A PREROUTING -p tcp -d 169.254.169.254 --dport 80 -j DNAT --to-destination `curl 169.254.169.254/latest/meta-data/local-ipv4`:8181 -i docker0
 
-This rule can be added automatically by setting `--add-rule=true`, setting the `HOST_IP` environment variable, and running the container in a privileged security context.
+This rule can be added automatically by setting `--iptables=true`, setting the `HOST_IP` environment variable, and running the container in a privileged security context.
 ```
 ---
 apiVersion: extensions/v1beta1
@@ -129,7 +129,7 @@ spec:
           name: kube2iam
           args:
             - "--base-role-arn=arn:aws:iam::123456789012:role/"
-            - "--add-rule=true"
+            - "--iptables=true"
             - "--host-ip=$(HOST_IP)"
           env:
             - name: HOST_IP

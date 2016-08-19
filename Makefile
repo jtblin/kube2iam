@@ -78,9 +78,9 @@ docker: cross
 
 release: check test docker
 	docker push $(IMAGE_NAME):$(GIT_HASH)
-	docker tag -f $(IMAGE_NAME):$(GIT_HASH) $(IMAGE_NAME):latest
+	docker tag $(IMAGE_NAME):$(GIT_HASH) $(IMAGE_NAME):latest
 	docker push $(IMAGE_NAME):latest
-	docker tag -f $(IMAGE_NAME):$(GIT_HASH) $(IMAGE_NAME):$(REPO_VERSION)
+	docker tag $(IMAGE_NAME):$(GIT_HASH) $(IMAGE_NAME):$(REPO_VERSION)
 	docker push $(IMAGE_NAME):$(REPO_VERSION)
 
 version:

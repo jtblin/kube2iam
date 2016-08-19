@@ -19,12 +19,13 @@ type Server struct {
 	APIToken        string
 	AppPort         string
 	BaseRoleARN     string
+	DefaultIAMRole  string
 	IAMRoleKey      string
 	MetadataAddress string
 	HostInterface   string
 	HostIP          string
-	Insecure        bool
 	AddIPTablesRule bool
+	Insecure        bool
 	Verbose         bool
 	Version         bool
 	iam             *iam
@@ -84,7 +85,7 @@ func (s *Server) securityCredentialsHandler(w http.ResponseWriter, r *http.Reque
 
 func (s *Server) roleHandler(w http.ResponseWriter, r *http.Request) {
 	remoteIP := parseRemoteAddr(r.RemoteAddr)
-	role, err := s.store.Get(remoteIP)
+	role, err := s.getRole(remoteIP)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -127,7 +128,7 @@ func (s *Server) Run(host, token string, insecure bool) error {
 		return err
 	}
 	s.k8s = k8s
-	s.store = newStore(s.IAMRoleKey)
+	s.store = newStore(s.IAMRoleKey, s.DefaultIAMRole)
 	s.k8s.watchForPods(s.store)
 	s.iam = newIAM(s.BaseRoleARN)
 	r := mux.NewRouter()

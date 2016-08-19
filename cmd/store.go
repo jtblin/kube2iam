@@ -4,14 +4,16 @@ import (
 	"fmt"
 	"sync"
 
+	log "github.com/Sirupsen/logrus"
 	"k8s.io/kubernetes/pkg/api"
 )
 
 // store implements the k8s framework ResourceEventHandler interface.
 type store struct {
-	iamRoleKey string
-	mutex      sync.RWMutex
-	rolesByIP  map[string]string
+	defaultRole string
+	iamRoleKey  string
+	mutex       sync.RWMutex
+	rolesByIP   map[string]string
 }
 
 // Get returns the iam role based on IP address.
@@ -20,6 +22,10 @@ func (s *store) Get(IP string) (string, error) {
 	defer s.mutex.RUnlock()
 	if role, ok := s.rolesByIP[IP]; ok {
 		return role, nil
+	}
+	if s.defaultRole != "" {
+		log.Warnf("Using fallback role for IP %s", IP)
+		return s.defaultRole, nil
 	}
 	return "", fmt.Errorf("Unable to find role for IP %s", IP)
 }
@@ -66,9 +72,10 @@ func (s *store) OnDelete(obj interface{}) {
 	}
 }
 
-func newStore(key string) *store {
+func newStore(key string, defaultRole string) *store {
 	return &store{
-		iamRoleKey: key,
-		rolesByIP:  make(map[string]string),
+		defaultRole: defaultRole,
+		iamRoleKey:  key,
+		rolesByIP:   make(map[string]string),
 	}
 }

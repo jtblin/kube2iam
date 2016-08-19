@@ -169,6 +169,8 @@ spec:
     name: aws-cli
 ```
 
+You can use `--default-role` to set a fallback role to use when annotation is not set.
+
 ### Options
 
 By default, `kube2iam` will use the in-cluster method to connect to the kubernetes master, and use the `iam.amazonaws.com/role`
@@ -178,19 +180,20 @@ and only pass the role name in the `iam.amazonaws.com/role` annotation, otherwis
 ```
 $ kube2iam --help
 Usage of kube2iam:
-      --api-server string              Endpoint for the api server
-      --api-token string               Token to authenticate with the api server
-      --app-port string                Http port (default "8181")
-      --base-role-arn string           Base role ARN
-      --host-interface string          Host interface for proxying AWS metadata (default "docker0")
-      --host-ip string                 IP address of host
-      --iam-role-key string            Pod annotation key used to retrieve the IAM role (default "iam.amazonaws.com/role")
-      --insecure                       Kubernetes server should be accessed without verifying the TLS. Testing only
-      --iptables                       Add iptables rule (also requires --host-ip)
-      --log-flush-frequency duration   Maximum number of seconds between log flushes (default 5s)
-      --metadata-addr string           Address for the ec2 metadata (default "169.254.169.254")
-      --verbose                        Verbose
-      --version                        Print the version and exits
+      --api-server string       Endpoint for the api server
+      --api-token string        Token to authenticate with the api server
+      --app-port string         Http port (default "8181")
+      --base-role-arn string    Base role ARN
+      --default-role string     Fallback role to use when annotation is not set
+      --host-interface string   Host interface for proxying AWS metadata (default "docker0")
+      --host-ip string          IP address of host
+      --iam-role-key string     Pod annotation key used to retrieve the IAM role (default "iam.amazonaws.com/role")
+      --insecure                Kubernetes server should be accessed without verifying the TLS. Testing only
+      --iptables                Add iptables rule (also requires --host-ip)
+      --metadata-addr string    Address for the ec2 metadata (default "169.254.169.254")
+      --verbose                 Verbose
+      --version                 Print the version and exits
+
 ```
 
 # Author

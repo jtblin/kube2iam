@@ -1,5 +1,5 @@
-hash: 7599b7e5515ba1d630890b0386a5e98af7040e8cae336a29eeed6fae4446bbc7
-updated: 2016-07-15T12:48:49.195232463-05:00
+hash: 778191d1fbdb69e2080fbc0174dd4a0f961c4410ac03ac5bd4239c0ac652f604
+updated: 2016-08-19T19:35:25.242925899+10:00
 imports:
 - name: github.com/aws/aws-sdk-go
   version: c924893c38ecc04b18d7aab8a7aa561cb8b4c4cc
@@ -125,7 +125,7 @@ imports:
   subpackages:
   - proto
 - name: github.com/google/cadvisor
-  version: 4dbefc9b671b81257973a33211fb12370c1a526e
+  version: c2ea32971ae033041f0fb0f309b1dee94fd1d55f
   subpackages:
   - api
   - cache/memory
@@ -267,7 +267,7 @@ imports:
   - urlfetch
   - internal/urlfetch
 - name: google.golang.org/cloud
-  version: eb47ba841d53d93506cfbfbc03927daf9cc48f88
+  version: ""
   subpackages:
   - compute/metadata
   - internal
@@ -276,7 +276,7 @@ imports:
 - name: gopkg.in/yaml.v2
   version: a83829b6f1293c91addabc89d0571c246397bbf4
 - name: k8s.io/kubernetes
-  version: 283137936a498aed572ee22af6774b6fb6e9fd94
+  version: b0deb2eb8f4037421077f77cb163dbb4c0a2a9f5
   subpackages:
   - pkg/api
   - pkg/client/cache

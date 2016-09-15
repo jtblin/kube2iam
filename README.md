@@ -106,7 +106,17 @@ spec:
 To prevent containers from directly accessing the ec2 metadata API and gaining unwanted access to AWS resources,
 the traffic to `169.254.169.254` must be proxied for docker containers.
 
-    iptables -t nat -A PREROUTING -p tcp -d 169.254.169.254 --dport 80 -j DNAT --to-destination `curl 169.254.169.254/latest/meta-data/local-ipv4`:8181 -i docker0
+```
+iptables \
+  --append PREROUTING \
+  --destination 169.254.169.254 \
+  --dport 80 \
+  --in-interface docker0 \
+  --jump DNAT \
+  --protocol tcp \
+  --table nat \
+  --to-destination `curl 169.254.169.254/latest/meta-data/local-ipv4`:8181
+```
 
 This rule can be added automatically by setting `--iptables=true`, setting the `HOST_IP` environment variable, and running the container in a privileged security context.
 ```

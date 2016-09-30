@@ -10,10 +10,11 @@ import (
 
 // store implements the k8s framework ResourceEventHandler interface.
 type store struct {
-	defaultRole string
-	iamRoleKey  string
-	mutex       sync.RWMutex
-	rolesByIP   map[string]string
+	defaultRole      string
+	iamRoleKey       string
+	mutex            sync.RWMutex
+	rolesByIP        map[string]string
+	useNamespaceRole bool
 }
 
 // Get returns the iam role based on IP address.
@@ -32,12 +33,24 @@ func (s *store) Get(IP string) (string, error) {
 
 // OnAdd is called when a pod is added.
 func (s *store) OnAdd(obj interface{}) {
+	var role string
 	if pod, ok := obj.(*api.Pod); ok {
 		if pod.Status.PodIP != "" {
-			if role, ok := pod.Annotations[s.iamRoleKey]; ok {
+			if s.useNamespaceRole {
+				role = pod.GetNamespace()
+			} else {
+				if role, ok = pod.Annotations[s.iamRoleKey]; !ok {
+					log.Debug("No pod annotations were found")
+					return
+				}
+			}
+			if role != "" {
+				log.Infof("Adding Namespace role: %s for Pod: %s", role, pod.GetName())
 				s.mutex.Lock()
 				s.rolesByIP[pod.Status.PodIP] = role
 				s.mutex.Unlock()
+			} else {
+				log.Debugf("No role was found for pod %v", pod.GetName())
 			}
 		}
 	}
@@ -72,10 +85,11 @@ func (s *store) OnDelete(obj interface{}) {
 	}
 }
 
-func newStore(key string, defaultRole string) *store {
+func newStore(key string, defaultRole string, useNamespaceRole bool) *store {
 	return &store{
-		defaultRole: defaultRole,
-		iamRoleKey:  key,
-		rolesByIP:   make(map[string]string),
+		defaultRole:      defaultRole,
+		iamRoleKey:       key,
+		rolesByIP:        make(map[string]string),
+		useNamespaceRole: useNamespaceRole,
 	}
 }

@@ -51,4 +51,5 @@ func addFlags(s *cmd.Server, fs *pflag.FlagSet) {
 	fs.StringVar(&s.HostIP, "host-ip", s.HostIP, "IP address of host")
 	fs.BoolVar(&s.Verbose, "verbose", false, "Verbose")
 	fs.BoolVar(&s.Version, "version", false, "Print the version and exits")
+	fs.BoolVar(&s.UseNameSpaceRole, "use-namespace-role", false, "The pod's role is named by it's namespace name")
 }

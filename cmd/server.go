@@ -15,22 +15,23 @@ import (
 // Server encapsulates all of the parameters necessary for starting up
 // the server. These can either be set via command line or directly.
 type Server struct {
-	APIServer       string
-	APIToken        string
-	AppPort         string
-	BaseRoleARN     string
-	DefaultIAMRole  string
-	IAMRoleKey      string
-	MetadataAddress string
-	HostInterface   string
-	HostIP          string
-	AddIPTablesRule bool
-	Insecure        bool
-	Verbose         bool
-	Version         bool
-	iam             *iam
-	k8s             *k8s
-	store           *store
+	APIServer        string
+	APIToken         string
+	AppPort          string
+	BaseRoleARN      string
+	DefaultIAMRole   string
+	IAMRoleKey       string
+	MetadataAddress  string
+	HostInterface    string
+	HostIP           string
+	AddIPTablesRule  bool
+	Insecure         bool
+	Verbose          bool
+	Version          bool
+	iam              *iam
+	k8s              *k8s
+	store            *store
+	UseNameSpaceRole bool
 }
 
 type appHandler func(http.ResponseWriter, *http.Request)
@@ -102,6 +103,8 @@ func (s *Server) roleHandler(w http.ResponseWriter, r *http.Request) {
 		log.Errorf("Error sending json %+v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+
+	log.Debugf("Assuming %v role", roleARN)
 }
 
 func (s *Server) reverseProxyHandler(w http.ResponseWriter, r *http.Request) {
@@ -128,7 +131,7 @@ func (s *Server) Run(host, token string, insecure bool) error {
 		return err
 	}
 	s.k8s = k8s
-	s.store = newStore(s.IAMRoleKey, s.DefaultIAMRole)
+	s.store = newStore(s.IAMRoleKey, s.DefaultIAMRole, s.UseNameSpaceRole)
 	s.k8s.watchForPods(s.store)
 	s.iam = newIAM(s.BaseRoleARN)
 	r := mux.NewRouter()

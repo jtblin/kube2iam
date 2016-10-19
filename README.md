@@ -118,7 +118,16 @@ iptables \
   --to-destination `curl 169.254.169.254/latest/meta-data/local-ipv4`:8181
 ```
 
-This rule can be added automatically by setting `--iptables=true`, setting the `HOST_IP` environment variable, and running the container in a privileged security context.
+This rule can be added automatically by setting `--iptables=true`, setting the `HOST_IP` environment 
+variable, and running the container in a privileged security context.
+
+Note that the interface `--in-interface` above or using the `--host-interface` cli flag may be 
+different than `docker0` depending on which virtual network you use e.g. 
+
+* for Calico, use `cali+` (the interface name is something like cali1234567890
+* for kops (on kubenet), use `cbr0`
+* for CNI, use `cni0`
+
 ```
 ---
 apiVersion: extensions/v1beta1

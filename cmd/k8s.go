@@ -7,7 +7,6 @@ import (
 	kcache "k8s.io/kubernetes/pkg/client/cache"
 	"k8s.io/kubernetes/pkg/client/restclient"
 	client "k8s.io/kubernetes/pkg/client/unversioned"
-	"k8s.io/kubernetes/pkg/controller/framework"
 	selector "k8s.io/kubernetes/pkg/fields"
 	"k8s.io/kubernetes/pkg/util/wait"
 )
@@ -26,12 +25,12 @@ func (k8s *k8s) createPodLW() *kcache.ListWatch {
 	return kcache.NewListWatchFromClient(k8s, "pods", api.NamespaceAll, selector.Everything())
 }
 
-func (k8s *k8s) watchForPods(podManager framework.ResourceEventHandler) kcache.Store {
-	podStore, podController := framework.NewInformer(
+func (k8s *k8s) watchForPods(podManager kcache.ResourceEventHandler) kcache.Store {
+	podStore, podController := kcache.NewInformer(
 		k8s.createPodLW(),
 		&api.Pod{},
 		resyncPeriod,
-		framework.ResourceEventHandlerFuncs{
+		kcache.ResourceEventHandlerFuncs{
 			AddFunc:    podManager.OnAdd,
 			DeleteFunc: podManager.OnDelete,
 			UpdateFunc: podManager.OnUpdate,

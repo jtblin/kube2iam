@@ -109,11 +109,11 @@ the traffic to `169.254.169.254` must be proxied for docker containers.
 ```
 iptables \
   --append PREROUTING \
+  --protocol tcp \
   --destination 169.254.169.254 \
   --dport 80 \
   --in-interface docker0 \
   --jump DNAT \
-  --protocol tcp \
   --table nat \
   --to-destination `curl 169.254.169.254/latest/meta-data/local-ipv4`:8181
 ```

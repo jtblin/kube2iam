@@ -35,7 +35,7 @@ func (s *store) Get(IP string) (string, error) {
 func (s *store) OnAdd(obj interface{}) {
 	pod, ok := obj.(*api.Pod)
 	if !ok {
-		log.Errorf("Bad object in OnAdd %+v", obj)
+		log.Errorf("Expected Pod but OnAdd handler received %+v", obj)
 		return
 	}
 
@@ -53,7 +53,7 @@ func (s *store) OnUpdate(oldObj, newObj interface{}) {
 	oldPod, ok1 := oldObj.(*api.Pod)
 	newPod, ok2 := newObj.(*api.Pod)
 	if !ok1 || !ok2 {
-		log.Errorf("Bad call to OnUpdate %+v %+v", oldObj, newObj)
+		log.Errorf("Expected Pod but OnUpdate handler received %+v %+v", oldObj, newObj)
 		return
 	}
 
@@ -69,12 +69,12 @@ func (s *store) OnDelete(obj interface{}) {
 	if !ok {
 		deletedObj, dok := obj.(kcache.DeletedFinalStateUnknown)
 		if dok {
-			pod, ok = deletedObj.(*api.Pod)
+			pod, ok = deletedObj.Obj.(*api.Pod)
 		}
 	}
 
 	if !ok {
-		log.Errorf("Bad call to OnUpdate %+v %+v", oldObj, newObj)
+		log.Errorf("Expected Pod but OnDelete handler received %+v", obj)
 		return
 	}
 

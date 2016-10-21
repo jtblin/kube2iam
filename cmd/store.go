@@ -33,7 +33,12 @@ func (s *store) Get(IP string) (string, error) {
 
 // OnAdd is called when a pod is added.
 func (s *store) OnAdd(obj interface{}) {
-	pod := obj.(*api.Pod)
+	pod, ok := obj.(*api.Pod)
+	if !ok {
+		log.Errorf("Bad object in OnAdd %+v", obj)
+		return
+	}
+
 	if pod.Status.PodIP != "" {
 		if role, ok := pod.Annotations[s.iamRoleKey]; ok {
 			s.mutex.Lock()
@@ -45,8 +50,12 @@ func (s *store) OnAdd(obj interface{}) {
 
 // OnUpdate is called when a pod is modified.
 func (s *store) OnUpdate(oldObj, newObj interface{}) {
-	oldPod := oldObj.(*api.Pod)
-	newPod := newObj.(*api.Pod)
+	oldPod, ok1 := oldObj.(*api.Pod)
+	newPod, ok2 := newObj.(*api.Pod)
+	if !ok1 || !ok2 {
+		log.Errorf("Bad call to OnUpdate %+v %+v", oldObj, newObj)
+		return
+	}
 
 	if oldPod.Status.PodIP != newPod.Status.PodIP {
 		s.OnDelete(oldPod)
@@ -58,8 +67,14 @@ func (s *store) OnUpdate(oldObj, newObj interface{}) {
 func (s *store) OnDelete(obj interface{}) {
 	pod, ok := obj.(*api.Pod)
 	if !ok {
-		pod = obj.(kcache.DeletedFinalStateUnknown).Obj.(*api.Pod)
+		pod, ok = obj.(kcache.DeletedFinalStateUnknown).Obj.(*api.Pod)
 	}
+
+	if !ok {
+		log.Errorf("Bad call to OnUpdate %+v %+v", oldObj, newObj)
+		return
+	}
+
 	if pod.Status.PodIP != "" {
 		s.mutex.Lock()
 		delete(s.rolesByIP, pod.Status.PodIP)

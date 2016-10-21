@@ -24,8 +24,8 @@ func (s *store) Get(IP string) (string, error) {
 	if role, ok := s.rolesByIP[IP]; ok {
 		return role, nil
 	}
-	log.Warnf("Using fallback role for IP %s", IP)
 	if s.defaultRole != "" {
+		log.Warnf("Using fallback role for IP %s", IP)
 		return s.defaultRole, nil
 	}
 	return "", fmt.Errorf("Unable to find role for IP %s", IP)

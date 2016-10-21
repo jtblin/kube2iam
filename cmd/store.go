@@ -67,7 +67,10 @@ func (s *store) OnUpdate(oldObj, newObj interface{}) {
 func (s *store) OnDelete(obj interface{}) {
 	pod, ok := obj.(*api.Pod)
 	if !ok {
-		pod, ok = obj.(kcache.DeletedFinalStateUnknown).Obj.(*api.Pod)
+		deletedObj, dok := obj.(kcache.DeletedFinalStateUnknown)
+		if dok {
+			pod, ok = deletedObj.(*api.Pod)
+		}
 	}
 
 	if !ok {

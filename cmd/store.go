@@ -6,6 +6,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"k8s.io/kubernetes/pkg/api"
+	kcache "k8s.io/kubernetes/pkg/client/cache"
 )
 
 // store implements the k8s framework ResourceEventHandler interface.
@@ -32,43 +33,55 @@ func (s *store) Get(IP string) (string, error) {
 
 // OnAdd is called when a pod is added.
 func (s *store) OnAdd(obj interface{}) {
-	if pod, ok := obj.(*api.Pod); ok {
-		if pod.Status.PodIP != "" {
-			if role, ok := pod.Annotations[s.iamRoleKey]; ok {
-				s.mutex.Lock()
-				s.rolesByIP[pod.Status.PodIP] = role
-				s.mutex.Unlock()
-			}
+	pod, ok := obj.(*api.Pod)
+	if !ok {
+		log.Errorf("Bad object in OnAdd %+v", obj)
+		return
+	}
+
+	if pod.Status.PodIP != "" {
+		if role, ok := pod.Annotations[s.iamRoleKey]; ok {
+			s.mutex.Lock()
+			s.rolesByIP[pod.Status.PodIP] = role
+			s.mutex.Unlock()
 		}
 	}
 }
 
 // OnUpdate is called when a pod is modified.
 func (s *store) OnUpdate(oldObj, newObj interface{}) {
-	oldPod, okOld := oldObj.(*api.Pod)
-	newPod, okNew := newObj.(*api.Pod)
+	oldPod, ok1 := oldObj.(*api.Pod)
+	newPod, ok2 := newObj.(*api.Pod)
+	if !ok1 || !ok2 {
+		log.Errorf("Bad call to OnUpdate %+v %+v", oldObj, newObj)
+		return
+	}
 
-	// Validate that the objects are good
-	if okOld && okNew {
-		if oldPod.Status.PodIP != newPod.Status.PodIP {
-			s.OnDelete(oldPod)
-			s.OnAdd(newPod)
-		}
-	} else if okNew {
-		s.OnAdd(newPod)
-	} else if okOld {
+	if oldPod.Status.PodIP != newPod.Status.PodIP {
 		s.OnDelete(oldPod)
+		s.OnAdd(newPod)
 	}
 }
 
 // OnDelete is called when a pod is deleted.
 func (s *store) OnDelete(obj interface{}) {
-	if pod, ok := obj.(*api.Pod); ok {
-		if pod.Status.PodIP != "" {
-			s.mutex.Lock()
-			delete(s.rolesByIP, pod.Status.PodIP)
-			s.mutex.Unlock()
+	pod, ok := obj.(*api.Pod)
+	if !ok {
+		deletedObj, dok := obj.(kcache.DeletedFinalStateUnknown)
+		if dok {
+			pod, ok = deletedObj.(*api.Pod)
 		}
+	}
+
+	if !ok {
+		log.Errorf("Bad call to OnUpdate %+v %+v", oldObj, newObj)
+		return
+	}
+
+	if pod.Status.PodIP != "" {
+		s.mutex.Lock()
+		delete(s.rolesByIP, pod.Status.PodIP)
+		s.mutex.Unlock()
 	}
 }
 

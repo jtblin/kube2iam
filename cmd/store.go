@@ -33,12 +33,13 @@ func (s *store) Get(IP string) (string, error) {
 
 // OnAdd is called when a pod is added.
 func (s *store) OnAdd(obj interface{}) {
-	pod, ok := obj.(*api.Pod)
-	if !ok {
-		log.Errorf("Expected Pod but OnAdd handler received %+v", obj)
-		return
-	}
+	pod := obj.(*api.Pod)
+	log.Infof("See add of pod with ip %s: role %s", pod.Status.PodIP, pod.Annotations[s.iamRoleKey])
 
+	s.doAdd(pod)
+}
+
+func (s *store) doAdd(pod *api.Pod) {
 	if pod.Status.PodIP != "" {
 		if role, ok := pod.Annotations[s.iamRoleKey]; ok {
 			s.mutex.Lock()
@@ -48,18 +49,37 @@ func (s *store) OnAdd(obj interface{}) {
 	}
 }
 
-// OnUpdate is called when a pod is modified.
-func (s *store) OnUpdate(oldObj, newObj interface{}) {
-	oldPod, ok1 := oldObj.(*api.Pod)
-	newPod, ok2 := newObj.(*api.Pod)
-	if !ok1 || !ok2 {
-		log.Errorf("Expected Pod but OnUpdate handler received %+v %+v", oldObj, newObj)
-		return
+func (s *store) isMismatch(pod *api.Pod) bool {
+	if pod.Status.PodIP == "" {
+		return false
 	}
 
-	if oldPod.Status.PodIP != newPod.Status.PodIP {
-		s.OnDelete(oldPod)
-		s.OnAdd(newPod)
+	actualRole, ok := pod.Annotations[s.iamRoleKey]
+	if !ok {
+		return false
+	}
+
+	currentRole, _ := s.Get(pod.Status.PodIP)
+	if currentRole == actualRole {
+		return false
+	}
+
+	log.Errorf("Mismatch: ip %s mapped to %s instead of %s", pod.Status.PodIP, currentRole, actualRole)
+	return true
+}
+
+// OnUpdate is called when a pod is modified.
+func (s *store) OnUpdate(oldObj, newObj interface{}) {
+	oldPod := oldObj.(*api.Pod)
+	newPod := newObj.(*api.Pod)
+
+	if oldPod.Status.PodIP != newPod.Status.PodIP ||
+		oldPod.Annotations[s.iamRoleKey] != newPod.Annotations[s.iamRoleKey] ||
+		s.isMismatch(oldPod) || s.isMismatch(newPod) {
+		log.Infof("See update of old pod with ip %s: role %s", oldPod.Status.PodIP, oldPod.Annotations[s.iamRoleKey])
+		log.Infof("See update of new pod with ip %s: role %s", newPod.Status.PodIP, newPod.Annotations[s.iamRoleKey])
+		s.doDelete(oldPod)
+		s.doAdd(newPod)
 	}
 }
 
@@ -67,17 +87,14 @@ func (s *store) OnUpdate(oldObj, newObj interface{}) {
 func (s *store) OnDelete(obj interface{}) {
 	pod, ok := obj.(*api.Pod)
 	if !ok {
-		deletedObj, dok := obj.(kcache.DeletedFinalStateUnknown)
-		if dok {
-			pod, ok = deletedObj.Obj.(*api.Pod)
-		}
+		pod = obj.(kcache.DeletedFinalStateUnknown).Obj.(*api.Pod)
 	}
 
-	if !ok {
-		log.Errorf("Expected Pod but OnDelete handler received %+v", obj)
-		return
-	}
+	log.Infof("See delete of pod with ip %s: role %s", pod.Status.PodIP, pod.Annotations[s.iamRoleKey])
+	s.doDelete(pod)
+}
 
+func (s *store) doDelete(pod *api.Pod) {
 	if pod.Status.PodIP != "" {
 		s.mutex.Lock()
 		delete(s.rolesByIP, pod.Status.PodIP)

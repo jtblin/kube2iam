@@ -26,12 +26,12 @@ type Server struct {
 	HostIP           string
 	AddIPTablesRule  bool
 	Insecure         bool
+	UseNamespaceRole bool
 	Verbose          bool
 	Version          bool
 	iam              *iam
 	k8s              *k8s
 	store            *store
-	UseNameSpaceRole bool
 }
 
 type appHandler func(http.ResponseWriter, *http.Request)

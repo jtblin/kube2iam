@@ -33,20 +33,13 @@ func (s *store) Get(IP string) (string, error) {
 
 // OnAdd is called when a pod is added.
 func (s *store) OnAdd(obj interface{}) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
 	pod := obj.(*api.Pod)
 	log.Infof("See add of pod with ip %s: role %s", pod.Status.PodIP, pod.Annotations[s.iamRoleKey])
 
 	s.doAdd(pod)
-}
-
-func (s *store) doAdd(pod *api.Pod) {
-	if pod.Status.PodIP != "" {
-		if role, ok := pod.Annotations[s.iamRoleKey]; ok {
-			s.mutex.Lock()
-			s.rolesByIP[pod.Status.PodIP] = role
-			s.mutex.Unlock()
-		}
-	}
 }
 
 func (s *store) isMismatch(pod *api.Pod) bool {
@@ -70,10 +63,14 @@ func (s *store) isMismatch(pod *api.Pod) bool {
 
 // OnUpdate is called when a pod is modified.
 func (s *store) OnUpdate(oldObj, newObj interface{}) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
 	oldPod := oldObj.(*api.Pod)
 	newPod := newObj.(*api.Pod)
 
 	if oldPod.Status.PodIP != newPod.Status.PodIP ||
+		oldPod.Status.Phase != newPod.Status.Phase ||
 		oldPod.Annotations[s.iamRoleKey] != newPod.Annotations[s.iamRoleKey] ||
 		s.isMismatch(oldPod) || s.isMismatch(newPod) {
 		log.Infof("See update of old pod with ip %s: role %s", oldPod.Status.PodIP, oldPod.Annotations[s.iamRoleKey])
@@ -85,6 +82,8 @@ func (s *store) OnUpdate(oldObj, newObj interface{}) {
 
 // OnDelete is called when a pod is deleted.
 func (s *store) OnDelete(obj interface{}) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
 	pod, ok := obj.(*api.Pod)
 	if !ok {
 		pod = obj.(kcache.DeletedFinalStateUnknown).Obj.(*api.Pod)
@@ -96,9 +95,15 @@ func (s *store) OnDelete(obj interface{}) {
 
 func (s *store) doDelete(pod *api.Pod) {
 	if pod.Status.PodIP != "" {
-		s.mutex.Lock()
 		delete(s.rolesByIP, pod.Status.PodIP)
-		s.mutex.Unlock()
+	}
+}
+
+func (s *store) doAdd(pod *api.Pod) {
+	if pod.Status.PodIP != "" && (pod.Status.Phase == api.PodPending || pod.Status.Phase == api.PodRunning || pod.Status.Phase == api.PodUnknown) {
+		if role, ok := pod.Annotations[s.iamRoleKey]; ok {
+			s.rolesByIP[pod.Status.PodIP] = role
+		}
 	}
 }
 

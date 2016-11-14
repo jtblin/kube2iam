@@ -21,6 +21,10 @@ type store struct {
 func (s *store) Get(IP string) (string, error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
+	return s.get(IP)
+}
+
+func (s *store) get(IP string) (string, error) {
 	if role, ok := s.rolesByIP[IP]; ok {
 		return role, nil
 	}
@@ -52,7 +56,7 @@ func (s *store) isMismatch(pod *api.Pod) bool {
 		return false
 	}
 
-	currentRole, _ := s.Get(pod.Status.PodIP)
+	currentRole, _ := s.get(pod.Status.PodIP)
 	if currentRole == actualRole {
 		return false
 	}

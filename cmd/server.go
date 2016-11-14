@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"strings"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/cenk/backoff"
@@ -30,7 +31,6 @@ type Server struct {
 	Version         bool
 	iam             *iam
 	k8s             *k8s
-	store           *store
 }
 
 type appHandler func(http.ResponseWriter, *http.Request)
@@ -57,18 +57,28 @@ func parseRemoteAddr(addr string) string {
 
 func (s *Server) getRole(IP string) (string, error) {
 	var role string
-	var err error
 	operation := func() error {
-		role, err = s.store.Get(IP)
-		return err
+		pod, err := s.k8s.PodByIP(IP)
+		if err != nil {
+			if err != errPodNotFound {
+				log.Warnf("Role request from IP %s resulted in error: %s", IP, err.Error())
+			}
+			return err
+		}
+		role = pod.Annotations[s.IAMRoleKey]
+		return nil
 	}
 
-	err = backoff.Retry(operation, backoff.NewExponentialBackOff())
-	if err != nil {
-		return "", err
+	exponential := backoff.NewExponentialBackOff()
+	exponential.MaxElapsedTime = 1 * time.Second
+	exponential.MaxInterval = 30 * time.Millisecond
+
+	err := backoff.Retry(operation, exponential)
+	if role == "" && err == nil {
+		err = errPodNotFound
 	}
 
-	return role, nil
+	return role, err
 }
 
 func (s *Server) securityCredentialsHandler(w http.ResponseWriter, r *http.Request) {
@@ -128,8 +138,7 @@ func (s *Server) Run(host, token string, insecure bool) error {
 		return err
 	}
 	s.k8s = k8s
-	s.store = newStore(s.IAMRoleKey, s.DefaultIAMRole)
-	s.k8s.watchForPods(s.store)
+	go k8s.Run()
 	s.iam = newIAM(s.BaseRoleARN)
 	r := mux.NewRouter()
 	r.Handle("/{version}/meta-data/iam/security-credentials/", appHandler(s.securityCredentialsHandler))

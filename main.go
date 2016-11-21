@@ -12,6 +12,10 @@ import (
 )
 
 func main() {
+	log.SetFormatter(&log.TextFormatter{
+		TimestampFormat: "2006-01-02T15:04:05Z07:00:.000",
+		FullTimestamp: true,
+	})
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	s := cmd.NewServer()
 	addFlags(s, pflag.CommandLine)

@@ -43,6 +43,7 @@ func (fn appHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Debugf("RemoteAddr %s", parseRemoteAddr(r.RemoteAddr))
 	w.Header().Set("Server", "EC2ws")
 	fn(w, r)
+	log.Infof("Responding %s", r.RequestURI)
 }
 
 func parseRemoteAddr(addr string) string {

@@ -15,22 +15,24 @@ import (
 // Server encapsulates all of the parameters necessary for starting up
 // the server. These can either be set via command line or directly.
 type Server struct {
-	APIServer       string
-	APIToken        string
-	AppPort         string
-	BaseRoleARN     string
-	DefaultIAMRole  string
-	IAMRoleKey      string
-	MetadataAddress string
-	HostInterface   string
-	HostIP          string
-	AddIPTablesRule bool
-	Insecure        bool
-	Verbose         bool
-	Version         bool
-	iam             *iam
-	k8s             *k8s
-	store           *store
+	APIServer           string
+	APIToken            string
+	AppPort             string
+	BaseRoleARN         string
+	DefaultIAMRole      string
+	IAMRoleKey          string
+	MetadataAddress     string
+	HostInterface       string
+	HostIP              string
+	CredentialsDuration int
+	AddIPTablesRule     bool
+	Insecure            bool
+	Verbose             bool
+	Version             bool
+	iam                 *iam
+	k8s                 *k8s
+	store               *store
+	refreshers          *refreshers
 }
 
 type appHandler func(http.ResponseWriter, *http.Request)
@@ -41,6 +43,7 @@ func (fn appHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Debugf("RemoteAddr %s", parseRemoteAddr(r.RemoteAddr))
 	w.Header().Set("Server", "EC2ws")
 	fn(w, r)
+	log.Infof("Responding %s", r.RequestURI)
 }
 
 func parseRemoteAddr(addr string) string {
@@ -128,9 +131,10 @@ func (s *Server) Run(host, token string, insecure bool) error {
 		return err
 	}
 	s.k8s = k8s
-	s.store = newStore(s.IAMRoleKey, s.DefaultIAMRole)
+	s.iam = newIAM(s.BaseRoleARN, s.CredentialsDuration)
+	s.refreshers = newRefreshers(s.iam)
+	s.store = newStore(s.IAMRoleKey, s.DefaultIAMRole, s.HostIP, s.refreshers.startRefresher, s.refreshers.stopRefresher)
 	s.k8s.watchForPods(s.store)
-	s.iam = newIAM(s.BaseRoleARN)
 	r := mux.NewRouter()
 	r.Handle("/{version}/meta-data/iam/security-credentials/", appHandler(s.securityCredentialsHandler))
 	r.Handle("/{version}/meta-data/iam/security-credentials/{role}", appHandler(s.roleHandler))

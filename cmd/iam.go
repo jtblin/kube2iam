@@ -12,14 +12,11 @@ import (
 	"github.com/karlseguin/ccache"
 )
 
-var cache = ccache.New(ccache.Configure())
-
-const (
-	ttl = time.Minute * 15
-)
-
 type iam struct {
-	baseARN string
+	baseARN    string
+	cache      *ccache.Cache
+	ttl        time.Duration
+	awsSession *session.Session
 }
 
 // credentials represent the security credentials response.
@@ -43,27 +40,39 @@ func getHash(text string) string {
 	return fmt.Sprintf("%x", h.Sum32())
 }
 
+func (iam *iam) cacheCredentials(roleARN, remoteIP string, credentials *credentials) {
+	itemKey := fmt.Sprintf("%s-%s", roleARN, getHash(remoteIP))
+	// Cache for the desired time - 5 minutes.
+	// The refresher will attempt to refresh creds 10 minutes before the creds expire.
+	iam.cache.Set(itemKey, credentials, iam.ttl-(time.Duration(5)*time.Minute))
+}
+
+func (iam *iam) assumeRoleNoCache(roleARN, remoteIP string) (*credentials, error) {
+	idx := strings.LastIndex(roleARN, "/")
+	svc := sts.New(iam.awsSession, &aws.Config{LogLevel: aws.LogLevel(2)})
+	resp, err := svc.AssumeRole(&sts.AssumeRoleInput{
+		DurationSeconds: aws.Int64(int64(iam.ttl.Seconds())),
+		RoleArn:         aws.String(roleARN),
+		RoleSessionName: aws.String(fmt.Sprintf("%s-%s", roleARN[idx+1:], getHash(remoteIP))),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &credentials{
+		AccessKeyID:     *resp.Credentials.AccessKeyId,
+		Code:            "Success",
+		Expiration:      resp.Credentials.Expiration.Format("2006-01-02T15:04:05Z"),
+		LastUpdated:     time.Now().Format("2006-01-02T15:04:05Z"),
+		SecretAccessKey: *resp.Credentials.SecretAccessKey,
+		Token:           *resp.Credentials.SessionToken,
+		Type:            "AWS-HMAC",
+	}, nil
+}
+
 func (iam *iam) assumeRole(roleARN, remoteIP string) (*credentials, error) {
-	item, err := cache.Fetch(roleARN, ttl, func() (interface{}, error) {
-		idx := strings.LastIndex(roleARN, "/")
-		svc := sts.New(session.New(), &aws.Config{LogLevel: aws.LogLevel(2)})
-		resp, err := svc.AssumeRole(&sts.AssumeRoleInput{
-			DurationSeconds: aws.Int64(int64(ttl.Seconds() * 2)),
-			RoleArn:         aws.String(roleARN),
-			RoleSessionName: aws.String(fmt.Sprintf("%s-%s", roleARN[idx+1:], getHash(remoteIP))),
-		})
-		if err != nil {
-			return nil, err
-		}
-		return &credentials{
-			AccessKeyID:     *resp.Credentials.AccessKeyId,
-			Code:            "Success",
-			Expiration:      resp.Credentials.Expiration.Format("2006-01-02T15:04:05Z"),
-			LastUpdated:     time.Now().Format("2006-01-02T15:04:05Z"),
-			SecretAccessKey: *resp.Credentials.SecretAccessKey,
-			Token:           *resp.Credentials.SessionToken,
-			Type:            "AWS-HMAC",
-		}, nil
+	itemKey := fmt.Sprintf("%s-%s", roleARN, getHash(remoteIP))
+	item, err := iam.cache.Fetch(itemKey, iam.ttl, func() (interface{}, error) {
+		return iam.assumeRoleNoCache(roleARN, remoteIP)
 	})
 	if err != nil {
 		return nil, err
@@ -71,6 +80,11 @@ func (iam *iam) assumeRole(roleARN, remoteIP string) (*credentials, error) {
 	return item.Value().(*credentials), nil
 }
 
-func newIAM(baseARN string) *iam {
-	return &iam{baseARN: baseARN}
+func newIAM(baseARN string, ttl int) *iam {
+	return &iam{
+		baseARN:    baseARN,
+		ttl:        time.Second * time.Duration(ttl),
+		cache:      ccache.New(ccache.Configure()),
+		awsSession: session.New(),
+	}
 }

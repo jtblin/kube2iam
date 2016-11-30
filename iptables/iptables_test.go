@@ -5,14 +5,14 @@ import (
 	"testing"
 )
 
-func TestInterfaceExistsFailWithBogusInterface(t *testing.T) {
+func TestCheckInterfaceExistsFailsWithBogusInterface(t *testing.T) {
 	ifc := "bogus0"
 	if err := CheckInterfaceExists(ifc); err == nil {
-		t.Error("Should fail with interface '%s'", ifc)
+		t.Error("Should fail with invalid interface. Interface received:", ifc)
 	}
 }
 
-func TestInterfaceExistsPassWithValidInterface(t *testing.T) {
+func TestCheckInterfaceExistsPassesWithValidInterface(t *testing.T) {
 	var ifc string
 	switch os := runtime.GOOS; os {
 	case "darwin":
@@ -25,7 +25,7 @@ func TestInterfaceExistsPassWithValidInterface(t *testing.T) {
 		t.Error("%s OS '%s'\n", ifc, os)
 	}
 	if err := CheckInterfaceExists(ifc); err != nil {
-		t.Error("Should pass with interface '%s'", ifc)
+		t.Error("Should pass with valid interface. Interface received:", ifc)
 	}
 }
 

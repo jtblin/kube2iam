@@ -10,8 +10,7 @@ import (
 // AddRule adds the required rule to the host's nat table
 func AddRule(appPort, metadataAddress, hostInterface, hostIP string) error {
 
-	err := InterfaceExists(hostInterface)
-	if err != nil {
+	if err := CheckInterfaceExists(hostInterface); err != nil {
 		return err
 	}
 
@@ -34,7 +33,8 @@ func AddRule(appPort, metadataAddress, hostInterface, hostIP string) error {
 	return nil
 }
 
-func InterfaceExists(hostInterface string) error {
+// CheckInterfaceExists - validates the interface passed exists for the given system
+func CheckInterfaceExists(hostInterface string) error {
 	_, err := net.InterfaceByName(hostInterface)
 	return err
 }

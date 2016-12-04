@@ -2,14 +2,19 @@ package main
 
 import (
 	"runtime"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/spf13/pflag"
 
-	"github.com/cenk/backoff"
 	"github.com/jtblin/kube2iam/cmd"
 	"github.com/jtblin/kube2iam/iptables"
 	"github.com/jtblin/kube2iam/version"
+)
+
+const (
+	defaultMaxInterval    = 1 * time.Second
+	defaultMaxElapsedTime = 2 * time.Second
 )
 
 func main() {
@@ -50,8 +55,8 @@ func addFlags(s *cmd.Server, fs *pflag.FlagSet) {
 	fs.BoolVar(&s.AddIPTablesRule, "iptables", false, "Add iptables rule (also requires --host-ip)")
 	fs.StringVar(&s.HostInterface, "host-interface", "docker0", "Host interface for proxying AWS metadata")
 	fs.StringVar(&s.HostIP, "host-ip", s.HostIP, "IP address of host")
-	fs.DurationVar(&s.BackoffMaxInterval, "backoff-max-interval", backoff.DefaultMaxInterval, "Max interval for backoff when querying for role.")
-	fs.DurationVar(&s.BackoffMaxElapsedTime, "backoff-max-elapsed-time", backoff.DefaultMaxElapsedTime, "Max elapsed time for backoff when querying for role.")
+	fs.DurationVar(&s.BackoffMaxInterval, "backoff-max-interval", defaultMaxInterval, "Max interval for backoff when querying for role.")
+	fs.DurationVar(&s.BackoffMaxElapsedTime, "backoff-max-elapsed-time", defaultMaxElapsedTime, "Max elapsed time for backoff when querying for role.")
 	fs.BoolVar(&s.Verbose, "verbose", false, "Verbose")
 	fs.BoolVar(&s.Version, "version", false, "Print the version and exits")
 }

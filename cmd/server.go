@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"strings"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/cenk/backoff"
@@ -15,22 +16,24 @@ import (
 // Server encapsulates all of the parameters necessary for starting up
 // the server. These can either be set via command line or directly.
 type Server struct {
-	APIServer       string
-	APIToken        string
-	AppPort         string
-	BaseRoleARN     string
-	DefaultIAMRole  string
-	IAMRoleKey      string
-	MetadataAddress string
-	HostInterface   string
-	HostIP          string
-	AddIPTablesRule bool
-	Insecure        bool
-	Verbose         bool
-	Version         bool
-	iam             *iam
-	k8s             *k8s
-	store           *store
+	APIServer             string
+	APIToken              string
+	AppPort               string
+	BaseRoleARN           string
+	DefaultIAMRole        string
+	IAMRoleKey            string
+	MetadataAddress       string
+	HostInterface         string
+	HostIP                string
+	BackoffMaxInterval    time.Duration
+	BackoffMaxElapsedTime time.Duration
+	AddIPTablesRule       bool
+	Insecure              bool
+	Verbose               bool
+	Version               bool
+	iam                   *iam
+	k8s                   *k8s
+	store                 *store
 }
 
 type appHandler func(http.ResponseWriter, *http.Request)
@@ -63,7 +66,11 @@ func (s *Server) getRole(IP string) (string, error) {
 		return err
 	}
 
-	err = backoff.Retry(operation, backoff.NewExponentialBackOff())
+	expBackoff := backoff.NewExponentialBackOff()
+	expBackoff.MaxInterval = s.BackoffMaxInterval
+	expBackoff.MaxElapsedTime = s.BackoffMaxElapsedTime
+
+	err = backoff.Retry(operation, expBackoff)
 	if err != nil {
 		return "", err
 	}

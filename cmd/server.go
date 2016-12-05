@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
+	"fmt"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -97,6 +98,13 @@ func (s *Server) roleHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
+
+	vars := mux.Vars(r)
+	if role != vars["role"] {
+		http.Error(w, fmt.Sprintf("Invalid role %s", vars["role"]), http.StatusForbidden)
+		return
+	}
+
 	roleARN := s.iam.roleARN(role)
 	credentials, err := s.iam.assumeRole(roleARN, remoteIP)
 	if err != nil {

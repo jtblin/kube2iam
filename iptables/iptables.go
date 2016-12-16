@@ -3,6 +3,7 @@ package iptables
 import (
 	"errors"
 	"net"
+	"strings"
 
 	"github.com/coreos/go-iptables/iptables"
 )
@@ -33,8 +34,14 @@ func AddRule(appPort, metadataAddress, hostInterface, hostIP string) error {
 	return nil
 }
 
-// CheckInterfaceExists - validates the interface passed exists for the given system
+// CheckInterfaceExists - validates the interface passed exists for the given system, ignores calico networks
 func CheckInterfaceExists(hostInterface string) error {
+
+	if strings.Contains(hostInterface, "+") {
+		// calico networks ignored
+		return nil
+	}
+
 	_, err := net.InterfaceByName(hostInterface)
 	return err
 }

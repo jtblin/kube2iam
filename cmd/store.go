@@ -6,15 +6,18 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"k8s.io/kubernetes/pkg/api"
-	kcache "k8s.io/kubernetes/pkg/client/cache"
 )
 
 // store implements the k8s framework ResourceEventHandler interface.
 type store struct {
-	defaultRole string
-	iamRoleKey  string
-	mutex       sync.RWMutex
-	rolesByIP   map[string]string
+	defaultRole          string
+	iamRoleKey           string
+	namespaceKey         string
+	namespaceRestriction bool
+	mutex                sync.RWMutex
+	rolesByIP            map[string]string
+	rolesByNamespace     map[string][]string
+	namespaceByIP        map[string]string
 }
 
 // Get returns the iam role based on IP address.
@@ -31,64 +34,113 @@ func (s *store) Get(IP string) (string, error) {
 	return "", fmt.Errorf("Unable to find role for IP %s", IP)
 }
 
-// OnAdd is called when a pod is added.
-func (s *store) OnAdd(obj interface{}) {
-	pod, ok := obj.(*api.Pod)
-	if !ok {
-		log.Errorf("Expected Pod but OnAdd handler received %+v", obj)
-		return
+func (s *store) AddRoleToIP(pod *api.Pod, role string) {
+	s.mutex.Lock()
+	s.rolesByIP[pod.Status.PodIP] = role
+	s.mutex.Unlock()
+}
+
+func (s *store) AddNamespaceToIP(pod *api.Pod) {
+	s.mutex.Lock()
+	s.namespaceByIP[pod.Status.PodIP] = pod.GetNamespace()
+	s.mutex.Unlock()
+}
+
+func (s *store) DeleteIP(ip string) {
+	s.mutex.Lock()
+	delete(s.rolesByIP, ip)
+	delete(s.namespaceByIP, ip)
+	s.mutex.Unlock()
+}
+
+// AddRoleToNamespace takes a role name and adds it to our internal state
+func (s *store) AddRoleToNamespace(namespace string, role string) {
+	ar := s.rolesByNamespace[namespace]
+	if ar == nil {
+		ar = []string{}
 	}
 
-	if pod.Status.PodIP != "" {
-		if role, ok := pod.Annotations[s.iamRoleKey]; ok {
-			s.mutex.Lock()
-			s.rolesByIP[pod.Status.PodIP] = role
-			s.mutex.Unlock()
+	// this is a tiny bit troubling, we could go with a the rolesByNamespace
+	// being a map[string]map[string]bool so that deduplication isn't
+	// ever a problem .. but for now...
+	c := true
+	for i := range ar {
+		if ar[i] == role {
+			c = false
+			break
 		}
 	}
+	if c {
+		ar = append(ar, role)
+	}
+	s.mutex.Lock()
+	s.rolesByNamespace[namespace] = ar
+	s.mutex.Unlock()
 }
 
-// OnUpdate is called when a pod is modified.
-func (s *store) OnUpdate(oldObj, newObj interface{}) {
-	oldPod, ok1 := oldObj.(*api.Pod)
-	newPod, ok2 := newObj.(*api.Pod)
-	if !ok1 || !ok2 {
-		log.Errorf("Expected Pod but OnUpdate handler received %+v %+v", oldObj, newObj)
-		return
-	}
-
-	if oldPod.Status.PodIP != newPod.Status.PodIP {
-		s.OnDelete(oldPod)
-		s.OnAdd(newPod)
-	}
-}
-
-// OnDelete is called when a pod is deleted.
-func (s *store) OnDelete(obj interface{}) {
-	pod, ok := obj.(*api.Pod)
-	if !ok {
-		deletedObj, dok := obj.(kcache.DeletedFinalStateUnknown)
-		if dok {
-			pod, ok = deletedObj.Obj.(*api.Pod)
+// RemoveRoleFromNamespace takes a role and removes it from a namespace mapping
+func (s *store) RemoveRoleFromNamespace(namespace string, role string) {
+	ar := s.rolesByNamespace[namespace]
+	for i := range ar {
+		if ar[i] == role {
+			ar = append(ar[:i], ar[i+1:]...)
+			break
 		}
 	}
-
-	if !ok {
-		log.Errorf("Expected Pod but OnDelete handler received %+v", obj)
-		return
-	}
-
-	if pod.Status.PodIP != "" {
-		s.mutex.Lock()
-		delete(s.rolesByIP, pod.Status.PodIP)
-		s.mutex.Unlock()
-	}
+	s.mutex.Lock()
+	s.rolesByNamespace[namespace] = ar
+	s.mutex.Unlock()
 }
 
-func newStore(key string, defaultRole string) *store {
+// DeleteNamespace removes all role mappings from a namespace
+func (s *store) DeleteNamespace(namespace string) {
+	s.mutex.Lock()
+	delete(s.rolesByNamespace, namespace)
+	s.mutex.Unlock()
+}
+
+// checkRoleForNamespace checks the 'database' for a role allowed in a namespace,
+// returns true if the role is found, otheriwse false
+func (s *store) checkRoleForNamespace(role string, namespace string) bool {
+	ar := s.rolesByNamespace[namespace]
+	if ar == nil {
+		log.Printf("Role:%s on namespace:%s not found.\n", role, namespace)
+		return false
+	}
+	for i := range ar {
+		if ar[i] == role {
+			log.Printf("Role:%s on namespace:%s found.\n", role, namespace)
+			return true
+		}
+	}
+	log.Printf("Role:%s on namespace:%s not found.\n", role, namespace)
+	return false
+}
+
+func (s *store) CheckNamespaceRestriction(role string, ip string) bool {
+	// if the namespace restrictions are not in place early out true
+	if !s.namespaceRestriction {
+		return true
+	}
+
+	// if the role is the default role you are also good
+	if role == s.defaultRole {
+		return true
+	}
+
+	ns := s.namespaceByIP[ip]
+
+	return s.checkRoleForNamespace(role, ns)
+}
+
+func newStore(key string, defaultRole string, namespaceRestriction bool, namespaceKey string) *store {
 	return &store{
-		defaultRole: defaultRole,
-		iamRoleKey:  key,
-		rolesByIP:   make(map[string]string),
+		defaultRole:          defaultRole,
+		iamRoleKey:           key,
+		namespaceKey:         namespaceKey,
+		namespaceRestriction: namespaceRestriction,
+		rolesByIP:            make(map[string]string),
+		rolesByNamespace:     make(map[string][]string),
+		namespaceByIP:        make(map[string]string),
 	}
 }

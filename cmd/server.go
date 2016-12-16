@@ -32,6 +32,8 @@ type Server struct {
 	Insecure              bool
 	Verbose               bool
 	Version               bool
+	NamespaceRestriction  bool
+	NamespaceKey          string
 	iam                   *iam
 	k8s                   *k8s
 	store                 *store
@@ -105,6 +107,11 @@ func (s *Server) roleHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !s.store.CheckNamespaceRestriction(role, remoteIP) {
+		http.Error(w, fmt.Sprintf("Role requested %s not valid for namespace of pod at %s", role, remoteIP), http.StatusNotFound)
+		return
+	}
+
 	roleARN := s.iam.roleARN(role)
 	credentials, err := s.iam.assumeRole(roleARN, remoteIP)
 	if err != nil {
@@ -143,8 +150,10 @@ func (s *Server) Run(host, token string, insecure bool) error {
 		return err
 	}
 	s.k8s = k8s
-	s.store = newStore(s.IAMRoleKey, s.DefaultIAMRole)
-	s.k8s.watchForPods(s.store)
+	model := newStore(s.IAMRoleKey, s.DefaultIAMRole, s.NamespaceRestriction, s.NamespaceKey)
+	s.store = model
+	s.k8s.watchForPods(newPodhandler(model))
+	s.k8s.watchForNamespaces(newNamespacehandler(model))
 	s.iam = newIAM(s.BaseRoleARN)
 	r := mux.NewRouter()
 	r.Handle("/{version}/meta-data/iam/security-credentials/", appHandler(s.securityCredentialsHandler))
@@ -164,5 +173,6 @@ func NewServer() *Server {
 		AppPort:         "8181",
 		IAMRoleKey:      "iam.amazonaws.com/role",
 		MetadataAddress: "169.254.169.254",
+		NamespaceKey:    "kube2iam/allowed-roles",
 	}
 }

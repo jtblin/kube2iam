@@ -190,6 +190,23 @@ spec:
 
 You can use `--default-role` to set a fallback role to use when annotation is not set.
 
+### Namespace Restrictions
+
+By using the flag --namespace-restrictions you can enable a mode in which the roles that pods can assume is restricted by an annotation on the pod's namespace. This annotation should be in the form of a json array.
+
+To allow the aws-cli pod specified above to run in the default namespace your namespace would look like the following.
+
+```
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  annotations:
+    kube2iam/allowed-roles: |
+      ["role-name"]
+  name: default
+```
+
 ### Options
 
 By default, `kube2iam` will use the in-cluster method to connect to the kubernetes master, and use the `iam.amazonaws.com/role`
@@ -210,6 +227,8 @@ Usage of kube2iam:
       --insecure                Kubernetes server should be accessed without verifying the TLS. Testing only
       --iptables                Add iptables rule (also requires --host-ip)
       --metadata-addr string    Address for the ec2 metadata (default "169.254.169.254")
+      --namespace-key string    Namespace annotation key used to retrieve the IAM roles allowed (value in annotation should be json array) (default "kube2iam/allowed-roles")
+      --namespace-restrictions  Enable namespace restrictions
       --verbose                 Verbose
       --version                 Print the version and exits
 

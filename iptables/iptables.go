@@ -34,11 +34,11 @@ func AddRule(appPort, metadataAddress, hostInterface, hostIP string) error {
 	return nil
 }
 
-// CheckInterfaceExists - validates the interface passed exists for the given system, ignores calico networks
+// CheckInterfaceExists - validates the interface passed exists for the given system, ignores wildcard networks
 func CheckInterfaceExists(hostInterface string) error {
 
 	if strings.Contains(hostInterface, "+") {
-		// calico networks ignored
+		// wildcard networks ignored
 		return nil
 	}
 

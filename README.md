@@ -127,6 +127,7 @@ different than `docker0` depending on which virtual network you use e.g.
 * for Calico, use `cali+` (the interface name is something like cali1234567890
 * for kops (on kubenet), use `cbr0`
 * for CNI, use `cni0`
+* for weave use `weave`
 
 ```
 ---

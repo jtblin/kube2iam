@@ -104,16 +104,16 @@ func (s *store) DeleteNamespace(namespace string) {
 func (s *store) checkRoleForNamespace(role string, namespace string) bool {
 	ar := s.rolesByNamespace[namespace]
 	if ar == nil {
-		log.Printf("Role:%s on namespace:%s not found.\n", role, namespace)
+		log.Warnf("Role:%s on namespace:%s not found.", role, namespace)
 		return false
 	}
 	for i := range ar {
 		if ar[i] == role {
-			log.Printf("Role:%s on namespace:%s found.\n", role, namespace)
+			log.Debugf("Role:%s on namespace:%s found.", role, namespace)
 			return true
 		}
 	}
-	log.Printf("Role:%s on namespace:%s not found.\n", role, namespace)
+	log.Warnf("Role:%s on namespace:%s not found.", role, namespace)
 	return false
 }
 

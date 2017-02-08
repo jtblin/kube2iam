@@ -23,6 +23,9 @@ func main() {
 	addFlags(s, pflag.CommandLine)
 	pflag.Parse()
 
+	// default to info or above (probably the default anyways)
+	log.SetLevel(log.InfoLevel)
+
 	if s.Verbose {
 		log.SetLevel(log.DebugLevel)
 	}

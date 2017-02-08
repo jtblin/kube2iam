@@ -103,7 +103,7 @@ func (s *Server) roleHandler(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
 	if role != vars["role"] {
-		http.Error(w, fmt.Sprintf("Invalid role %s", vars["role"]), http.StatusForbidden)
+		http.Error(w, fmt.Sprintf("Invalid role %s for %s", vars["role"], remoteIP), http.StatusForbidden)
 		return
 	}
 
@@ -115,7 +115,7 @@ func (s *Server) roleHandler(w http.ResponseWriter, r *http.Request) {
 	roleARN := s.iam.roleARN(role)
 	credentials, err := s.iam.assumeRole(roleARN, remoteIP)
 	if err != nil {
-		log.Errorf("Error assuming role %+v", err)
+		log.Errorf("Error assuming role %+v for pod at %s", err, remoteIP)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

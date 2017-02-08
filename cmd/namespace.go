@@ -69,7 +69,7 @@ func (h *namespacehandler) getRoleAnnotation(ns *api.Namespace) []string {
 	if rolesstring != "" {
 		var decoded []string
 		if err := json.Unmarshal([]byte(rolesstring), &decoded); err != nil {
-			log.Errorf("Unable to decode roles on namespace %s ( role annotation is '%s' )with error: %s", ns.Name, rolesstring, err)
+			log.Errorf("Unable to decode roles on namespace %s ( role annotation is '%s' ) with error: %s", ns.Name, rolesstring, err)
 		}
 		return decoded
 	}

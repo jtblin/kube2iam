@@ -43,7 +43,7 @@ type appHandler func(http.ResponseWriter, *http.Request)
 
 // ServeHTTP implements the net/http server Handler interface.
 func (fn appHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Infof("Requesting %s", r.RequestURI)
+	log.Debugf("Requesting %s", r.RequestURI)
 	log.Debugf("RemoteAddr %s", parseRemoteAddr(r.RemoteAddr))
 	w.Header().Set("Server", "EC2ws")
 	fn(w, r)

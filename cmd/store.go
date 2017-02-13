@@ -133,6 +133,18 @@ func (s *store) CheckNamespaceRestriction(role string, ip string) bool {
 	return s.checkRoleForNamespace(role, ns)
 }
 
+func (s *store) DumpRolesByIP() map[string]string {
+	return s.rolesByIP
+}
+
+func (s *store) DumpRolesByNamespace() map[string][]string {
+	return s.rolesByNamespace
+}
+
+func (s *store) DumpNamespaceByIP() map[string]string {
+	return s.namespaceByIP
+}
+
 func newStore(key string, defaultRole string, namespaceRestriction bool, namespaceKey string) *store {
 	return &store{
 		defaultRole:          defaultRole,

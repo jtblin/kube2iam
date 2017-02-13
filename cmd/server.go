@@ -81,6 +81,23 @@ func (s *Server) getRole(IP string) (string, error) {
 	return role, nil
 }
 
+func (s *Server) debugStoreHandler(w http.ResponseWriter, r *http.Request) {
+	output := make(map[string]interface{})
+
+	output["rolesByIP"] = s.store.DumpRolesByIP()
+	output["rolesByNamespace"] = s.store.DumpRolesByNamespace()
+	output["namespaceByIP"] = s.store.DumpNamespaceByIP()
+
+	o, err := json.Marshal(output)
+	if err != nil {
+		log.Errorf("Error converting debug map to json: %+v", err)
+	}
+
+	if _, err := w.Write(o); err != nil {
+		log.Errorf("Error writing response: %+v", err)
+	}
+}
+
 func (s *Server) securityCredentialsHandler(w http.ResponseWriter, r *http.Request) {
 	remoteIP := parseRemoteAddr(r.RemoteAddr)
 	role, err := s.getRole(remoteIP)
@@ -94,25 +111,32 @@ func (s *Server) securityCredentialsHandler(w http.ResponseWriter, r *http.Reque
 }
 
 func (s *Server) roleHandler(w http.ResponseWriter, r *http.Request) {
+	var roleName string // just the role name
+	var roleARN string  // the full role ARN
+
 	remoteIP := parseRemoteAddr(r.RemoteAddr)
-	role, err := s.getRole(remoteIP)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
+	podRole, err := s.getRole(remoteIP)
+	bits := strings.Split(podRole, "/")
+	if len(bits) > 1 {
+		// is an arn
+		roleName = bits[len(bits)-1]
+		roleARN = podRole
+	} else {
+		roleName = podRole
+		roleARN = s.iam.roleARN(podRole)
 	}
 
 	vars := mux.Vars(r)
-	if role != vars["role"] {
-		http.Error(w, fmt.Sprintf("Invalid role %s for %s", vars["role"], remoteIP), http.StatusForbidden)
+	if roleName != vars["role"] {
+		http.Error(w, fmt.Sprintf("Invalid role %s for %s (%s)", vars["role"], remoteIP, roleName), http.StatusForbidden)
 		return
 	}
 
-	if !s.store.CheckNamespaceRestriction(role, remoteIP) {
-		http.Error(w, fmt.Sprintf("Role requested %s not valid for namespace of pod at %s", role, remoteIP), http.StatusNotFound)
+	if !s.store.CheckNamespaceRestriction(podRole, remoteIP) {
+		http.Error(w, fmt.Sprintf("Role requested %s not valid for namespace of pod at %s", podRole, remoteIP), http.StatusNotFound)
 		return
 	}
 
-	roleARN := s.iam.roleARN(role)
 	credentials, err := s.iam.assumeRole(roleARN, remoteIP)
 	if err != nil {
 		log.Errorf("Error assuming role %+v for pod at %s", err, remoteIP)
@@ -156,6 +180,7 @@ func (s *Server) Run(host, token string, insecure bool) error {
 	s.k8s.watchForNamespaces(newNamespacehandler(model))
 	s.iam = newIAM(s.BaseRoleARN)
 	r := mux.NewRouter()
+	r.Handle("/debug/store", appHandler(s.debugStoreHandler))
 	r.Handle("/{version}/meta-data/iam/security-credentials/", appHandler(s.securityCredentialsHandler))
 	r.Handle("/{version}/meta-data/iam/security-credentials/{role}", appHandler(s.roleHandler))
 	r.Handle("/{path:.*}", appHandler(s.reverseProxyHandler))

@@ -40,8 +40,17 @@ func (iam *iam) roleARN(role string) string {
 
 func getHash(text string) string {
 	h := fnv.New32a()
-	h.Write([]byte(text))
+	_, err := h.Write([]byte(text))
+	if err != nil {
+		return text
+	}
 	return fmt.Sprintf("%x", h.Sum32())
+}
+
+func sessionName(roleARN, remoteIP string) string {
+	idx := strings.LastIndex(roleARN, "/")
+	name := fmt.Sprintf("%s-%s", getHash(remoteIP), roleARN[idx+1:])
+	return fmt.Sprintf("%.[2]*[1]s", name, maxSessNameLength)
 }
 
 func (iam *iam) assumeRole(roleARN, remoteIP string) (*credentials, error) {
@@ -70,12 +79,6 @@ func (iam *iam) assumeRole(roleARN, remoteIP string) (*credentials, error) {
 		return nil, err
 	}
 	return item.Value().(*credentials), nil
-}
-
-func sessionName(roleARN, remoteIP string) string {
-	idx := strings.LastIndex(roleARN, "/")
-	name := fmt.Sprintf("%s-%s", getHash(remoteIP), roleARN[idx+1:])
-	return fmt.Sprintf("%.[2]*[1]s", name, maxSessNameLength)
 }
 
 func newIAM(baseARN string) *iam {

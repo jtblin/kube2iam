@@ -99,8 +99,11 @@ func (s *Server) roleHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Debugf("Got role %s for RemoteAddr %s", role, remoteIP)
+
 	vars := mux.Vars(r)
 	if role != vars["role"] {
+		log.Errorf("Invalid role %s for RemoteAddr %s", role, remoteIP)
 		http.Error(w, fmt.Sprintf("Invalid role %s", vars["role"]), http.StatusForbidden)
 		return
 	}

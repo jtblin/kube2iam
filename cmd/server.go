@@ -99,16 +99,18 @@ func (s *Server) roleHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	wantedRole := mux.Vars(r)["role"]
-	log.Debugf("Pod with RemoteAddr %s is annotated with role '%s', wants role '%s'", remoteIP, allowedRole, wantedRole)
+	wantedRoleARN := s.iam.roleARN(wantedRole)
+	log.Debugf("Pod with RemoteAddr %s is annotated with role '%s', wants role '%s' ('%s')",
+		remoteIP, allowedRole, wantedRole, wantedRoleARN)
 
-	if wantedRole != allowedRole {
-		log.Errorf("Invalid role '%s' for RemoteAddr %s: does not match annotated role '%s'", wantedRole, remoteIP, allowedRole)
+	if wantedRole != allowedRole && wantedRoleARN != allowedRole {
+		log.Errorf("Invalid role '%s' ('%s') for RemoteAddr %s: does not match annotated role '%s'",
+			wantedRole, wantedRoleARN, remoteIP, allowedRole)
 		http.Error(w, fmt.Sprintf("Invalid role %s", wantedRole), http.StatusForbidden)
 		return
 	}
 
-	roleARN := s.iam.roleARN(wantedRole)
-	credentials, err := s.iam.assumeRole(roleARN, remoteIP)
+	credentials, err := s.iam.assumeRole(wantedRoleARN, remoteIP)
 	if err != nil {
 		log.Errorf("Error assuming role %+v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)

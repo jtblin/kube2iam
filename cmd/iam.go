@@ -17,6 +17,7 @@ var cache = ccache.New(ccache.Configure())
 const (
 	ttl               = time.Minute * 15
 	maxSessNameLength = 64
+	fullArnPrefix     = "arn:aws:"
 )
 
 type iam struct {
@@ -35,6 +36,9 @@ type credentials struct {
 }
 
 func (iam *iam) roleARN(role string) string {
+	if strings.HasPrefix(strings.ToLower(role), fullArnPrefix) {
+		return role
+	}
 	return fmt.Sprintf("%s%s", iam.baseARN, role)
 }
 

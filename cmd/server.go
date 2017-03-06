@@ -87,25 +87,31 @@ func (s *Server) securityCredentialsHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	roleARN := s.iam.roleARN(role)
-	idx := strings.LastIndex(roleARN, "/")
-	write(w, roleARN[idx+1:])
+	// If a base ARN has been supplied and this is not cross-account then
+	// return a simple role-name, otherwise return the full ARN
+	if s.iam.baseARN == "" && strings.HasPrefix(roleARN, s.iam.baseARN) {
+		idx := strings.LastIndex(roleARN, "/")
+		write(w, roleARN[idx+1:])
+	}
+	write(w, roleARN)
 }
 
 func (s *Server) roleHandler(w http.ResponseWriter, r *http.Request) {
 	remoteIP := parseRemoteAddr(r.RemoteAddr)
 	allowedRole, err := s.getRole(remoteIP)
+	allowedRoleARN := s.iam.roleARN(allowedRole)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 	wantedRole := mux.Vars(r)["role"]
 	wantedRoleARN := s.iam.roleARN(wantedRole)
-	log.Debugf("Pod with RemoteAddr %s is annotated with role '%s', wants role '%s' ('%s')",
-		remoteIP, allowedRole, wantedRole, wantedRoleARN)
+	log.Debugf("Pod with RemoteAddr %s is annotated with role '%s' ('%s'), wants role '%s' ('%s')",
+		remoteIP, allowedRole, allowedRoleARN, wantedRole, wantedRoleARN)
 
-	if wantedRole != allowedRole && wantedRoleARN != allowedRole {
-		log.Errorf("Invalid role '%s' ('%s') for RemoteAddr %s: does not match annotated role '%s'",
-			wantedRole, wantedRoleARN, remoteIP, allowedRole)
+	if wantedRoleARN != allowedRoleARN {
+		log.Errorf("Invalid role '%s' ('%s') for RemoteAddr %s: does not match annotated role '%s' ('%s')",
+			wantedRole, wantedRoleARN, remoteIP, allowedRole, allowedRoleARN)
 		http.Error(w, fmt.Sprintf("Invalid role %s", wantedRole), http.StatusForbidden)
 		return
 	}
@@ -152,7 +158,7 @@ func (s *Server) Run(host, token string, insecure bool) error {
 	s.iam = newIAM(s.BaseRoleARN)
 	r := mux.NewRouter()
 	r.Handle("/{version}/meta-data/iam/security-credentials/", appHandler(s.securityCredentialsHandler))
-	r.Handle("/{version}/meta-data/iam/security-credentials/{role}", appHandler(s.roleHandler))
+	r.Handle("/{version}/meta-data/iam/security-credentials/{role:.*}", appHandler(s.roleHandler))
 	r.Handle("/{path:.*}", appHandler(s.reverseProxyHandler))
 
 	log.Infof("Listening on port %s", s.AppPort)

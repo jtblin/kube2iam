@@ -92,6 +92,7 @@ func (s *Server) securityCredentialsHandler(w http.ResponseWriter, r *http.Reque
 	if s.iam.baseARN == "" && strings.HasPrefix(roleARN, s.iam.baseARN) {
 		idx := strings.LastIndex(roleARN, "/")
 		write(w, roleARN[idx+1:])
+		return
 	}
 	write(w, roleARN)
 }

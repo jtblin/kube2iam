@@ -15,7 +15,9 @@ import (
 var cache = ccache.New(ccache.Configure())
 
 const (
-	ttl = time.Minute * 15
+	ttl               = time.Minute * 15
+	maxSessNameLength = 64
+	fullArnPrefix     = "arn:aws:"
 )
 
 type iam struct {
@@ -34,27 +36,39 @@ type credentials struct {
 }
 
 func (iam *iam) roleARN(role string) string {
+	if strings.HasPrefix(strings.ToLower(role), fullArnPrefix) {
+		return role
+	}
 	return fmt.Sprintf("%s%s", iam.baseARN, role)
 }
 
 func getHash(text string) string {
 	h := fnv.New32a()
-	h.Write([]byte(text))
+	_, err := h.Write([]byte(text))
+	if err != nil {
+		return text
+	}
 	return fmt.Sprintf("%x", h.Sum32())
+}
+
+func sessionName(roleARN, remoteIP string) string {
+	idx := strings.LastIndex(roleARN, "/")
+	name := fmt.Sprintf("%s-%s", getHash(remoteIP), roleARN[idx+1:])
+	return fmt.Sprintf("%.[2]*[1]s", name, maxSessNameLength)
 }
 
 func (iam *iam) assumeRole(roleARN, remoteIP string) (*credentials, error) {
 	item, err := cache.Fetch(roleARN, ttl, func() (interface{}, error) {
-		idx := strings.LastIndex(roleARN, "/")
 		svc := sts.New(session.New(), &aws.Config{LogLevel: aws.LogLevel(2)})
 		resp, err := svc.AssumeRole(&sts.AssumeRoleInput{
 			DurationSeconds: aws.Int64(int64(ttl.Seconds() * 2)),
 			RoleArn:         aws.String(roleARN),
-			RoleSessionName: aws.String(fmt.Sprintf("%s-%s", roleARN[idx+1:], getHash(remoteIP))),
+			RoleSessionName: aws.String(sessionName(roleARN, remoteIP)),
 		})
 		if err != nil {
 			return nil, err
 		}
+
 		return &credentials{
 			AccessKeyID:     *resp.Credentials.AccessKeyId,
 			Code:            "Success",

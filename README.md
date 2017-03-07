@@ -127,6 +127,7 @@ different than `docker0` depending on which virtual network you use e.g.
 * for Calico, use `cali+` (the interface name is something like cali1234567890
 * for kops (on kubenet), use `cbr0`
 * for CNI, use `cni0`
+* for weave use `weave`
 
 ```
 ---
@@ -241,4 +242,4 @@ Jerome Touffe-Blin, [@jtblin](https://twitter.com/jtblin), [About me](http://abo
 # License
 
 kube2iam is copyright 2016 Jerome Touffe-Blin and contributors.
-It is licensed under the BSD license. See the include LICENSE file for details.
+It is licensed under the BSD license. See the included LICENSE file for details.

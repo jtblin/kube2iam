@@ -11,7 +11,7 @@ import:
 - package: github.com/karlseguin/ccache
 - package: github.com/spf13/pflag
 - package: k8s.io/kubernetes
-  version: v1.4.6
+  version: v1.5.3
   subpackages:
   - pkg/api
   - pkg/client/cache

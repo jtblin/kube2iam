@@ -106,38 +106,44 @@ func (s *Server) securityCredentialsHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	roleARN := s.iam.roleARN(role)
-	idx := strings.LastIndex(roleARN, "/")
-	write(w, roleARN[idx+1:])
+	// If a base ARN has been supplied and this is not cross-account then
+	// return a simple role-name, otherwise return the full ARN
+	if s.iam.baseARN == "" && strings.HasPrefix(roleARN, s.iam.baseARN) {
+		idx := strings.LastIndex(roleARN, "/")
+		write(w, roleARN[idx+1:])
+		return
+	}
+	write(w, roleARN)
 }
 
 func (s *Server) roleHandler(w http.ResponseWriter, r *http.Request) {
-	var roleName string // just the role name
-	var roleARN string  // the full role ARN
-
 	remoteIP := parseRemoteAddr(r.RemoteAddr)
 	podRole, err := s.getRole(remoteIP)
-	bits := strings.Split(podRole, "/")
-	if len(bits) > 1 {
-		// is an arn
-		roleName = bits[len(bits)-1]
-		roleARN = podRole
-	} else {
-		roleName = podRole
-		roleARN = s.iam.roleARN(podRole)
-	}
-
-	vars := mux.Vars(r)
-	if roleName != vars["role"] {
-		http.Error(w, fmt.Sprintf("Invalid role %s for %s (%s)", vars["role"], remoteIP, roleName), http.StatusForbidden)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
+	podRoleARN := s.iam.roleARN(podRole)
 
-	if !s.store.CheckNamespaceRestriction(podRole, remoteIP) {
+	if !s.store.CheckNamespaceRestriction(podRoleARN, remoteIP) {
 		http.Error(w, fmt.Sprintf("Role requested %s not valid for namespace of pod at %s", podRole, remoteIP), http.StatusNotFound)
 		return
 	}
+	allowedRoleARN := podRoleARN
 
-	credentials, err := s.iam.assumeRole(roleARN, remoteIP)
+	wantedRole := mux.Vars(r)["role"]
+	wantedRoleARN := s.iam.roleARN(wantedRole)
+	log.Debugf("Pod with RemoteAddr %s is annotated with role '%s' ('%s'), wants role '%s' ('%s')",
+		remoteIP, allowedRole, allowedRoleARN, wantedRole, wantedRoleARN)
+
+	if wantedRoleARN != allowedRoleARN {
+		log.Errorf("Invalid role '%s' ('%s') for RemoteAddr %s: does not match annotated role '%s' ('%s')",
+			wantedRole, wantedRoleARN, remoteIP, allowedRole, allowedRoleARN)
+		http.Error(w, fmt.Sprintf("Invalid role %s", wantedRole), http.StatusForbidden)
+		return
+	}
+
+	credentials, err := s.iam.assumeRole(wantedRoleARN, remoteIP)
 	if err != nil {
 		log.Errorf("Error assuming role %+v for pod at %s", err, remoteIP)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -182,7 +188,7 @@ func (s *Server) Run(host, token string, insecure bool) error {
 	r := mux.NewRouter()
 	r.Handle("/debug/store", appHandler(s.debugStoreHandler))
 	r.Handle("/{version}/meta-data/iam/security-credentials/", appHandler(s.securityCredentialsHandler))
-	r.Handle("/{version}/meta-data/iam/security-credentials/{role}", appHandler(s.roleHandler))
+	r.Handle("/{version}/meta-data/iam/security-credentials/{role:.*}", appHandler(s.roleHandler))
 	r.Handle("/{path:.*}", appHandler(s.reverseProxyHandler))
 
 	log.Infof("Listening on port %s", s.AppPort)

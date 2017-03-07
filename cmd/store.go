@@ -18,6 +18,7 @@ type store struct {
 	rolesByIP            map[string]string
 	rolesByNamespace     map[string][]string
 	namespaceByIP        map[string]string
+	iam                  *iam
 }
 
 // Get returns the iam role based on IP address.
@@ -55,6 +56,9 @@ func (s *store) DeleteIP(ip string) {
 
 // AddRoleToNamespace takes a role name and adds it to our internal state
 func (s *store) AddRoleToNamespace(namespace string, role string) {
+	// Make sure to add the full ARN of roles to ensure string matching works
+	roleARN := s.iam.roleARN(role)
+
 	ar := s.rolesByNamespace[namespace]
 	if ar == nil {
 		ar = []string{}
@@ -65,13 +69,13 @@ func (s *store) AddRoleToNamespace(namespace string, role string) {
 	// ever a problem .. but for now...
 	c := true
 	for i := range ar {
-		if ar[i] == role {
+		if ar[i] == roleARN {
 			c = false
 			break
 		}
 	}
 	if c {
-		ar = append(ar, role)
+		ar = append(ar, roleARN)
 	}
 	s.mutex.Lock()
 	s.rolesByNamespace[namespace] = ar
@@ -80,9 +84,12 @@ func (s *store) AddRoleToNamespace(namespace string, role string) {
 
 // RemoveRoleFromNamespace takes a role and removes it from a namespace mapping
 func (s *store) RemoveRoleFromNamespace(namespace string, role string) {
+	// Make sure to remove the full ARN of roles to ensure string matching works
+	roleARN := s.iam.roleARN(role)
+
 	ar := s.rolesByNamespace[namespace]
 	for i := range ar {
-		if ar[i] == role {
+		if ar[i] == roleARN {
 			ar = append(ar[:i], ar[i+1:]...)
 			break
 		}
@@ -145,7 +152,7 @@ func (s *store) DumpNamespaceByIP() map[string]string {
 	return s.namespaceByIP
 }
 
-func newStore(key string, defaultRole string, namespaceRestriction bool, namespaceKey string) *store {
+func newStore(key string, defaultRole string, namespaceRestriction bool, namespaceKey string, iamInstance *iam) *store {
 	return &store{
 		defaultRole:          defaultRole,
 		iamRoleKey:           key,
@@ -154,5 +161,6 @@ func newStore(key string, defaultRole string, namespaceRestriction bool, namespa
 		rolesByIP:            make(map[string]string),
 		rolesByNamespace:     make(map[string][]string),
 		namespaceByIP:        make(map[string]string),
+		iam:                  iamInstance,
 	}
 }

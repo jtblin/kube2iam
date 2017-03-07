@@ -51,6 +51,7 @@ func addFlags(s *cmd.Server, fs *pflag.FlagSet) {
 	fs.StringVar(&s.APIToken, "api-token", s.APIToken, "Token to authenticate with the api server")
 	fs.StringVar(&s.AppPort, "app-port", s.AppPort, "Http port")
 	fs.StringVar(&s.BaseRoleARN, "base-role-arn", s.BaseRoleARN, "Base role ARN")
+	fs.BoolVar(&s.Debug, "debug", s.Debug, "Enable debug features")
 	fs.StringVar(&s.DefaultIAMRole, "default-role", s.DefaultIAMRole, "Fallback role to use when annotation is not set")
 	fs.StringVar(&s.IAMRoleKey, "iam-role-key", s.IAMRoleKey, "Pod annotation key used to retrieve the IAM role")
 	fs.BoolVar(&s.Insecure, "insecure", false, "Kubernetes server should be accessed without verifying the TLS. Testing only")

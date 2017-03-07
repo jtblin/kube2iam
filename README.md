@@ -118,11 +118,11 @@ iptables \
   --to-destination `curl 169.254.169.254/latest/meta-data/local-ipv4`:8181
 ```
 
-This rule can be added automatically by setting `--iptables=true`, setting the `HOST_IP` environment 
+This rule can be added automatically by setting `--iptables=true`, setting the `HOST_IP` environment
 variable, and running the container in a privileged security context.
 
-Note that the interface `--in-interface` above or using the `--host-interface` cli flag may be 
-different than `docker0` depending on which virtual network you use e.g. 
+Note that the interface `--in-interface` above or using the `--host-interface` cli flag may be
+different than `docker0` depending on which virtual network you use e.g.
 
 * for Calico, use `cali+` (the interface name is something like cali1234567890
 * for kops (on kubenet), use `cbr0`
@@ -208,6 +208,12 @@ metadata:
   name: default
 ```
 
+### Debug
+
+By using the --debug flag you can enable some extra features making debugging easier:
+
+- `/debug/store` endpoint enabled to dump knowledge of namespaces and role association.
+
 ### Options
 
 By default, `kube2iam` will use the in-cluster method to connect to the kubernetes master, and use the `iam.amazonaws.com/role`
@@ -221,6 +227,7 @@ Usage of kube2iam:
       --api-token string        Token to authenticate with the api server
       --app-port string         Http port (default "8181")
       --base-role-arn string    Base role ARN
+      --debug                   Enable some debug features
       --default-role string     Fallback role to use when annotation is not set
       --host-interface string   Host interface for proxying AWS metadata (default "docker0")
       --host-ip string          IP address of host

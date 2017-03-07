@@ -29,6 +29,7 @@ type Server struct {
 	BackoffMaxInterval    time.Duration
 	BackoffMaxElapsedTime time.Duration
 	AddIPTablesRule       bool
+	Debug                 bool
 	Insecure              bool
 	Verbose               bool
 	Version               bool
@@ -129,6 +130,7 @@ func (s *Server) roleHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("Role requested %s not valid for namespace of pod at %s", podRole, remoteIP), http.StatusNotFound)
 		return
 	}
+	allowedRole := podRole
 	allowedRoleARN := podRoleARN
 
 	wantedRole := mux.Vars(r)["role"]
@@ -180,13 +182,16 @@ func (s *Server) Run(host, token string, insecure bool) error {
 		return err
 	}
 	s.k8s = k8s
-	model := newStore(s.IAMRoleKey, s.DefaultIAMRole, s.NamespaceRestriction, s.NamespaceKey)
+	s.iam = newIAM(s.BaseRoleARN)
+	model := newStore(s.IAMRoleKey, s.DefaultIAMRole, s.NamespaceRestriction, s.NamespaceKey, s.iam)
 	s.store = model
 	s.k8s.watchForPods(newPodhandler(model))
 	s.k8s.watchForNamespaces(newNamespacehandler(model))
-	s.iam = newIAM(s.BaseRoleARN)
 	r := mux.NewRouter()
-	r.Handle("/debug/store", appHandler(s.debugStoreHandler))
+	if s.Debug {
+		// This is a potential security risk if enabled in some clusters, hence the flag
+		r.Handle("/debug/store", appHandler(s.debugStoreHandler))
+	}
 	r.Handle("/{version}/meta-data/iam/security-credentials/", appHandler(s.securityCredentialsHandler))
 	r.Handle("/{version}/meta-data/iam/security-credentials/{role:.*}", appHandler(s.roleHandler))
 	r.Handle("/{path:.*}", appHandler(s.reverseProxyHandler))

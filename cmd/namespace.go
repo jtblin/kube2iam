@@ -63,7 +63,7 @@ func (h *namespacehandler) OnDelete(obj interface{}) {
 }
 
 // getRoleAnnotations reads the "kube2iam/roles" annotation off a namespace
-// and splits them on comma
+// and splits them as a JSON list (["role1", "role2", "role3"])
 func (h *namespacehandler) getRoleAnnotation(ns *api.Namespace) []string {
 	rolesstring := ns.Annotations[h.storage.namespaceKey]
 	if rolesstring != "" {

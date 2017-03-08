@@ -17,7 +17,7 @@ var cache = ccache.New(ccache.Configure())
 const (
 	ttl               = time.Minute * 15
 	maxSessNameLength = 64
-	fullArnPrefix     = "arn:aws:"
+	fullArnPrefix     = "arn:"
 )
 
 type iam struct {

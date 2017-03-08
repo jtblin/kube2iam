@@ -109,7 +109,7 @@ func (s *Server) securityCredentialsHandler(w http.ResponseWriter, r *http.Reque
 	roleARN := s.iam.roleARN(role)
 	// If a base ARN has been supplied and this is not cross-account then
 	// return a simple role-name, otherwise return the full ARN
-	if s.iam.baseARN == "" && strings.HasPrefix(roleARN, s.iam.baseARN) {
+	if s.iam.baseARN != "" && strings.HasPrefix(roleARN, s.iam.baseARN) {
 		idx := strings.LastIndex(roleARN, "/")
 		write(w, roleARN[idx+1:])
 		return
@@ -137,7 +137,6 @@ func (s *Server) roleHandler(w http.ResponseWriter, r *http.Request) {
 	wantedRoleARN := s.iam.roleARN(wantedRole)
 	log.Debugf("Pod with RemoteAddr %s is annotated with role '%s' ('%s'), wants role '%s' ('%s')",
 		remoteIP, allowedRole, allowedRoleARN, wantedRole, wantedRoleARN)
-
 	if wantedRoleARN != allowedRoleARN {
 		log.Errorf("Invalid role '%s' ('%s') for RemoteAddr %s: does not match annotated role '%s' ('%s')",
 			wantedRole, wantedRoleARN, remoteIP, allowedRole, allowedRoleARN)

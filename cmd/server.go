@@ -92,11 +92,10 @@ func (s *Server) debugStoreHandler(w http.ResponseWriter, r *http.Request) {
 	o, err := json.Marshal(output)
 	if err != nil {
 		log.Errorf("Error converting debug map to json: %+v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
-	if _, err := w.Write(o); err != nil {
-		log.Errorf("Error writing response: %+v", err)
-	}
+	w.Write(o)
 }
 
 func (s *Server) securityCredentialsHandler(w http.ResponseWriter, r *http.Request) {
@@ -126,8 +125,9 @@ func (s *Server) roleHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	podRoleARN := s.iam.roleARN(podRole)
 
-	if !s.store.CheckNamespaceRestriction(podRoleARN, remoteIP) {
-		http.Error(w, fmt.Sprintf("Role requested %s not valid for namespace of pod at %s", podRole, remoteIP), http.StatusNotFound)
+	isRestricted, namespace := s.store.CheckNamespaceRestriction(podRoleARN, remoteIP)
+	if !isRestricted {
+		http.Error(w, fmt.Sprintf("Role requested %s not valid for namespace of pod at %s with namespace %s", podRole, remoteIP, namespace), http.StatusNotFound)
 		return
 	}
 	allowedRole := podRole
@@ -146,7 +146,7 @@ func (s *Server) roleHandler(w http.ResponseWriter, r *http.Request) {
 
 	credentials, err := s.iam.assumeRole(wantedRoleARN, remoteIP)
 	if err != nil {
-		log.Errorf("Error assuming role %+v for pod at %s", err, remoteIP)
+		log.Errorf("Error assuming role %+v for pod at %s with namespace %s", err, remoteIP, namespace)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -184,8 +184,8 @@ func (s *Server) Run(host, token string, insecure bool) error {
 	s.iam = newIAM(s.BaseRoleARN)
 	model := newStore(s.IAMRoleKey, s.DefaultIAMRole, s.NamespaceRestriction, s.NamespaceKey, s.iam)
 	s.store = model
-	s.k8s.watchForPods(newPodhandler(model))
-	s.k8s.watchForNamespaces(newNamespacehandler(model))
+	s.k8s.watchForPods(newPodHandler(model))
+	s.k8s.watchForNamespaces(newNamespaceHandler(model))
 	r := mux.NewRouter()
 	if s.Debug {
 		// This is a potential security risk if enabled in some clusters, hence the flag
@@ -208,6 +208,6 @@ func NewServer() *Server {
 		AppPort:         "8181",
 		IAMRoleKey:      "iam.amazonaws.com/role",
 		MetadataAddress: "169.254.169.254",
-		NamespaceKey:    "kube2iam/allowed-roles",
+		NamespaceKey:    "iam.amazonaws.com/allowed-roles",
 	}
 }

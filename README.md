@@ -203,7 +203,7 @@ apiVersion: v1
 kind: Namespace
 metadata:
   annotations:
-    kube2iam/allowed-roles: |
+    iam.amazonaws.com/allowed-roles: |
       ["role-name"]
   name: default
 ```
@@ -235,7 +235,7 @@ Usage of kube2iam:
       --insecure                Kubernetes server should be accessed without verifying the TLS. Testing only
       --iptables                Add iptables rule (also requires --host-ip)
       --metadata-addr string    Address for the ec2 metadata (default "169.254.169.254")
-      --namespace-key string    Namespace annotation key used to retrieve the IAM roles allowed (value in annotation should be json array) (default "kube2iam/allowed-roles")
+      --namespace-key string    Namespace annotation key used to retrieve the IAM roles allowed (value in annotation should be json array) (default "iam.amazonaws.com/allowed-roles")
       --namespace-restrictions  Enable namespace restrictions
       --verbose                 Verbose
       --version                 Print the version and exits

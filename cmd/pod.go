@@ -6,12 +6,12 @@ import (
 	kcache "k8s.io/kubernetes/pkg/client/cache"
 )
 
-type podhandler struct {
+type podHandler struct {
 	storage *store
 }
 
 // OnAdd is called when a pod is added.
-func (p *podhandler) OnAdd(obj interface{}) {
+func (p *podHandler) OnAdd(obj interface{}) {
 	pod, ok := obj.(*api.Pod)
 	if !ok {
 		log.Errorf("Expected Pod but OnAdd handler received %+v", obj)
@@ -30,7 +30,7 @@ func (p *podhandler) OnAdd(obj interface{}) {
 }
 
 // OnUpdate is called when a pod is modified.
-func (p *podhandler) OnUpdate(oldObj, newObj interface{}) {
+func (p *podHandler) OnUpdate(oldObj, newObj interface{}) {
 	oldPod, ok1 := oldObj.(*api.Pod)
 	newPod, ok2 := newObj.(*api.Pod)
 	if !ok1 || !ok2 {
@@ -46,7 +46,7 @@ func (p *podhandler) OnUpdate(oldObj, newObj interface{}) {
 }
 
 // OnDelete is called when a pod is deleted.
-func (p *podhandler) OnDelete(obj interface{}) {
+func (p *podHandler) OnDelete(obj interface{}) {
 	pod, ok := obj.(*api.Pod)
 	if !ok {
 		deletedObj, dok := obj.(kcache.DeletedFinalStateUnknown)
@@ -67,8 +67,8 @@ func (p *podhandler) OnDelete(obj interface{}) {
 	}
 }
 
-func newPodhandler(s *store) *podhandler {
-	return &podhandler{
+func newPodHandler(s *store) *podHandler {
+	return &podHandler{
 		storage: s,
 	}
 }

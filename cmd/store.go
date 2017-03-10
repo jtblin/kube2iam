@@ -42,8 +42,9 @@ func (s *store) AddRoleToIP(pod *api.Pod, role string) {
 }
 
 func (s *store) AddNamespaceToIP(pod *api.Pod) {
+	namespace := pod.GetNamespace()
 	s.mutex.Lock()
-	s.namespaceByIP[pod.Status.PodIP] = pod.GetNamespace()
+	s.namespaceByIP[pod.Status.PodIP] = namespace
 	s.mutex.Unlock()
 }
 
@@ -124,20 +125,20 @@ func (s *store) checkRoleForNamespace(role string, namespace string) bool {
 	return false
 }
 
-func (s *store) CheckNamespaceRestriction(role string, ip string) bool {
+func (s *store) CheckNamespaceRestriction(role string, ip string) (bool, string) {
+	ns := s.namespaceByIP[ip]
+
 	// if the namespace restrictions are not in place early out true
 	if !s.namespaceRestriction {
-		return true
+		return true, ns
 	}
 
 	// if the role is the default role you are also good
-	if role == s.defaultRole {
-		return true
+	if role == s.iam.roleARN(s.defaultRole) {
+		return true, ns
 	}
 
-	ns := s.namespaceByIP[ip]
-
-	return s.checkRoleForNamespace(role, ns)
+	return s.checkRoleForNamespace(role, ns), ns
 }
 
 func (s *store) DumpRolesByIP() map[string]string {

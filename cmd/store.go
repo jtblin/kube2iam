@@ -61,9 +61,6 @@ func (s *store) AddRoleToNamespace(namespace string, role string) {
 	roleARN := s.iam.roleARN(role)
 
 	ar := s.rolesByNamespace[namespace]
-	if ar == nil {
-		ar = []string{}
-	}
 
 	// this is a tiny bit troubling, we could go with a the rolesByNamespace
 	// being a map[string]map[string]bool so that deduplication isn't
@@ -111,12 +108,8 @@ func (s *store) DeleteNamespace(namespace string) {
 // returns true if the role is found, otheriwse false
 func (s *store) checkRoleForNamespace(role string, namespace string) bool {
 	ar := s.rolesByNamespace[namespace]
-	if ar == nil {
-		log.Warnf("Role:%s on namespace:%s not found.", role, namespace)
-		return false
-	}
-	for i := range ar {
-		if ar[i] == role {
+	for _, r := range ar {
+		if r == role {
 			log.Debugf("Role:%s on namespace:%s found.", role, namespace)
 			return true
 		}

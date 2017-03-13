@@ -8,9 +8,13 @@ REPO_VERSION := $$(git describe --abbrev=0 --tags)
 BUILD_DATE := $$(date +%Y-%m-%d-%H:%M)
 GIT_HASH := $$(git rev-parse --short HEAD)
 GOBUILD_VERSION_ARGS := -ldflags "-s -X $(VERSION_VAR)=$(REPO_VERSION) -X $(GIT_VAR)=$(GIT_HASH) -X $(BUILD_DATE_VAR)=$(BUILD_DATE)"
-IMAGE_NAME := jtblin/$(BINARY_NAME)
+# useful for other docker repos
+DOCKER_REPO := jtblin
+IMAGE_NAME := $(DOCKER_REPO)/$(BINARY_NAME)
 ARCH ?= darwin
 METALINTER_CONCURRENCY ?= 4
+# useful for passing --build-arg http_proxy :)
+DOCKER_BUILD_FLAGS := 
 
 setup:
 	go get -v -u github.com/Masterminds/glide
@@ -74,7 +78,7 @@ cross:
 	CGO_ENABLED=0 GOOS=linux go build -o build/bin/linux/$(BINARY_NAME) $(GOBUILD_VERSION_ARGS) -a -installsuffix cgo  github.com/jtblin/$(BINARY_NAME)
 
 docker: cross
-	docker build -t $(IMAGE_NAME):$(GIT_HASH) .
+	docker build -t $(IMAGE_NAME):$(GIT_HASH) . $(DOCKER_BUILD_FLAGS)
 
 release: check test docker
 	docker push $(IMAGE_NAME):$(GIT_HASH)

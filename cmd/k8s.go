@@ -30,14 +30,26 @@ func (k8s *k8s) watchForPods(podManager kcache.ResourceEventHandler) kcache.Stor
 		k8s.createPodLW(),
 		&api.Pod{},
 		resyncPeriod,
-		kcache.ResourceEventHandlerFuncs{
-			AddFunc:    podManager.OnAdd,
-			DeleteFunc: podManager.OnDelete,
-			UpdateFunc: podManager.OnUpdate,
-		},
+		podManager,
 	)
 	go podController.Run(wait.NeverStop)
 	return podStore
+}
+
+// returns a listwatcher of namespaces
+func (k8s *k8s) createNamespaceLW() *kcache.ListWatch {
+	return kcache.NewListWatchFromClient(k8s, "namespaces", api.NamespaceAll, selector.Everything())
+}
+
+func (k8s *k8s) watchForNamespaces(nsManager kcache.ResourceEventHandler) kcache.Store {
+	nsStore, nsController := kcache.NewInformer(
+		k8s.createNamespaceLW(),
+		&api.Namespace{},
+		resyncPeriod,
+		nsManager,
+	)
+	go nsController.Run(wait.NeverStop)
+	return nsStore
 }
 
 func newK8s(host, token string, insecure bool) (*k8s, error) {

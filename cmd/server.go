@@ -29,9 +29,12 @@ type Server struct {
 	BackoffMaxInterval    time.Duration
 	BackoffMaxElapsedTime time.Duration
 	AddIPTablesRule       bool
+	Debug                 bool
 	Insecure              bool
 	Verbose               bool
 	Version               bool
+	NamespaceRestriction  bool
+	NamespaceKey          string
 	iam                   *iam
 	k8s                   *k8s
 	store                 *store
@@ -41,7 +44,7 @@ type appHandler func(http.ResponseWriter, *http.Request)
 
 // ServeHTTP implements the net/http server Handler interface.
 func (fn appHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Infof("Requesting %s", r.RequestURI)
+	log.Debugf("Requesting %s", r.RequestURI)
 	log.Debugf("RemoteAddr %s", parseRemoteAddr(r.RemoteAddr))
 	w.Header().Set("Server", "EC2ws")
 	fn(w, r)
@@ -79,6 +82,23 @@ func (s *Server) getRole(IP string) (string, error) {
 	return role, nil
 }
 
+func (s *Server) debugStoreHandler(w http.ResponseWriter, r *http.Request) {
+	output := make(map[string]interface{})
+
+	output["rolesByIP"] = s.store.DumpRolesByIP()
+	output["rolesByNamespace"] = s.store.DumpRolesByNamespace()
+	output["namespaceByIP"] = s.store.DumpNamespaceByIP()
+
+	o, err := json.Marshal(output)
+	if err != nil {
+		log.Errorf("Error converting debug map to json: %+v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Write(o)
+}
+
 func (s *Server) securityCredentialsHandler(w http.ResponseWriter, r *http.Request) {
 	remoteIP := parseRemoteAddr(r.RemoteAddr)
 	role, err := s.getRole(remoteIP)
@@ -99,17 +119,25 @@ func (s *Server) securityCredentialsHandler(w http.ResponseWriter, r *http.Reque
 
 func (s *Server) roleHandler(w http.ResponseWriter, r *http.Request) {
 	remoteIP := parseRemoteAddr(r.RemoteAddr)
-	allowedRole, err := s.getRole(remoteIP)
-	allowedRoleARN := s.iam.roleARN(allowedRole)
+	podRole, err := s.getRole(remoteIP)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
+	podRoleARN := s.iam.roleARN(podRole)
+
+	isRestricted, namespace := s.store.CheckNamespaceRestriction(podRoleARN, remoteIP)
+	if !isRestricted {
+		http.Error(w, fmt.Sprintf("Role requested %s not valid for namespace of pod at %s with namespace %s", podRole, remoteIP, namespace), http.StatusNotFound)
+		return
+	}
+	allowedRole := podRole
+	allowedRoleARN := podRoleARN
+
 	wantedRole := mux.Vars(r)["role"]
 	wantedRoleARN := s.iam.roleARN(wantedRole)
 	log.Debugf("Pod with RemoteAddr %s is annotated with role '%s' ('%s'), wants role '%s' ('%s')",
 		remoteIP, allowedRole, allowedRoleARN, wantedRole, wantedRoleARN)
-
 	if wantedRoleARN != allowedRoleARN {
 		log.Errorf("Invalid role '%s' ('%s') for RemoteAddr %s: does not match annotated role '%s' ('%s')",
 			wantedRole, wantedRoleARN, remoteIP, allowedRole, allowedRoleARN)
@@ -119,7 +147,7 @@ func (s *Server) roleHandler(w http.ResponseWriter, r *http.Request) {
 
 	credentials, err := s.iam.assumeRole(wantedRoleARN, remoteIP)
 	if err != nil {
-		log.Errorf("Error assuming role %+v", err)
+		log.Errorf("Error assuming role %+v for pod at %s with namespace %s", err, remoteIP, namespace)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -154,10 +182,16 @@ func (s *Server) Run(host, token string, insecure bool) error {
 		return err
 	}
 	s.k8s = k8s
-	s.store = newStore(s.IAMRoleKey, s.DefaultIAMRole)
-	s.k8s.watchForPods(s.store)
 	s.iam = newIAM(s.BaseRoleARN)
+	model := newStore(s.IAMRoleKey, s.DefaultIAMRole, s.NamespaceRestriction, s.NamespaceKey, s.iam)
+	s.store = model
+	s.k8s.watchForPods(newPodHandler(model))
+	s.k8s.watchForNamespaces(newNamespaceHandler(model))
 	r := mux.NewRouter()
+	if s.Debug {
+		// This is a potential security risk if enabled in some clusters, hence the flag
+		r.Handle("/debug/store", appHandler(s.debugStoreHandler))
+	}
 	r.Handle("/{version}/meta-data/iam/security-credentials/", appHandler(s.securityCredentialsHandler))
 	r.Handle("/{version}/meta-data/iam/security-credentials/{role:.*}", appHandler(s.roleHandler))
 	r.Handle("/{path:.*}", appHandler(s.reverseProxyHandler))
@@ -175,5 +209,6 @@ func NewServer() *Server {
 		AppPort:         "8181",
 		IAMRoleKey:      "iam.amazonaws.com/role",
 		MetadataAddress: "169.254.169.254",
+		NamespaceKey:    "iam.amazonaws.com/allowed-roles",
 	}
 }

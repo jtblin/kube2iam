@@ -30,11 +30,7 @@ func (k8s *k8s) watchForPods(podManager kcache.ResourceEventHandler) kcache.Stor
 		k8s.createPodLW(),
 		&api.Pod{},
 		resyncPeriod,
-		kcache.ResourceEventHandlerFuncs{
-			AddFunc:    podManager.OnAdd,
-			DeleteFunc: podManager.OnDelete,
-			UpdateFunc: podManager.OnUpdate,
-		},
+		podManager,
 	)
 	go podController.Run(wait.NeverStop)
 	return podStore
@@ -50,11 +46,7 @@ func (k8s *k8s) watchForNamespaces(nsManager kcache.ResourceEventHandler) kcache
 		k8s.createNamespaceLW(),
 		&api.Namespace{},
 		resyncPeriod,
-		kcache.ResourceEventHandlerFuncs{
-			AddFunc:    nsManager.OnAdd,
-			DeleteFunc: nsManager.OnDelete,
-			UpdateFunc: nsManager.OnUpdate,
-		},
+		nsManager,
 	)
 	go nsController.Run(wait.NeverStop)
 	return nsStore

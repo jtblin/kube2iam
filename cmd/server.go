@@ -93,6 +93,7 @@ func (s *Server) debugStoreHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Errorf("Error converting debug map to json: %+v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	w.Write(o)

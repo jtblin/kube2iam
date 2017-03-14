@@ -6,6 +6,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"k8s.io/kubernetes/pkg/api"
+	"regexp"
 )
 
 // store implements the k8s framework ResourceEventHandler interface.
@@ -109,6 +110,12 @@ func (s *store) DeleteNamespace(namespace string) {
 func (s *store) checkRoleForNamespace(role string, namespace string) bool {
 	ar := s.rolesByNamespace[namespace]
 	for _, r := range ar {
+		re := regexp.MustCompile(r)
+		if re.MatchString(role) {
+			log.Debugf("Role:%s matching regexp %s on namespace:%s found.", role, r, namespace)
+			return true
+		}
+
 		if r == role {
 			log.Debugf("Role:%s on namespace:%s found.", role, namespace)
 			return true

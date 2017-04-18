@@ -42,6 +42,14 @@ func (p *podHandler) OnUpdate(oldObj, newObj interface{}) {
 	if oldPod.Status.PodIP != newPod.Status.PodIP {
 		p.OnDelete(oldPod)
 		p.OnAdd(newPod)
+		return
+	}
+
+	if annotationDiffers(oldPod.Annotations, newPod.Annotations, p.storage.iamRoleKey) {
+		log.Debugf("Updating pod %s due to added/updated annotation value", newPod.GetName())
+		p.OnDelete(oldPod)
+		p.OnAdd(newPod)
+		return
 	}
 }
 
@@ -65,6 +73,15 @@ func (p *podHandler) OnDelete(obj interface{}) {
 	if pod.Status.PodIP != "" {
 		p.storage.DeleteIP(pod.Status.PodIP)
 	}
+}
+
+func annotationDiffers(oldAnnotations, newAnnotations map[string]string, annotationName string) bool {
+	oldValue, oldPresent := oldAnnotations[annotationName]
+	newValue, newPresent := newAnnotations[annotationName]
+	if oldPresent != newPresent || oldValue != newValue {
+		return true
+	}
+	return false
 }
 
 func newPodHandler(s *store) *podHandler {

@@ -45,7 +45,7 @@ func (p *podHandler) OnUpdate(oldObj, newObj interface{}) {
 		return
 	}
 
-	if keysDiffer(oldPod.Annotations, newPod.Annotations, []string{p.storage.iamRoleKey}) {
+	if annotationDiffers(oldPod.Annotations, newPod.Annotations, p.storage.iamRoleKey) {
 		log.Debugf("Updating pod %s due to added/updated annotation value", newPod.GetName())
 		p.OnDelete(oldPod)
 		p.OnAdd(newPod)
@@ -75,13 +75,11 @@ func (p *podHandler) OnDelete(obj interface{}) {
 	}
 }
 
-func keysDiffer(oldAnnotations, newAnnotations map[string]string, keysThatMatter []string) bool {
-	for _, significantKey := range keysThatMatter {
-		oldKey, oldOk := oldAnnotations[significantKey]
-		newKey, newOk := newAnnotations[significantKey]
-		if oldKey != newKey || oldOk != newOk  {
-			return true
-		}
+func annotationDiffers(oldAnnotations, newAnnotations map[string]string, annotationName string) bool {
+	oldValue, oldPresent := oldAnnotations[annotationName]
+	newValue, newPresent := newAnnotations[annotationName]
+	if oldPresent != newPresent || oldValue != newValue {
+		return true
 	}
 	return false
 }

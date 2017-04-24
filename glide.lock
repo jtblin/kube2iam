@@ -1,5 +1,5 @@
-hash: 091638355ac4f6637178c8019dee96c97123045aa651c118f0208742469b304f
-updated: 2016-12-05T12:19:11.85941531+11:00
+hash: 03d78ff654dc6530e0be5e5596e9cbcbe55601d7b9544a29679b84fef3892141
+updated: 2017-04-03T19:02:25.801851518-07:00
 imports:
 - name: cloud.google.com/go
   version: 3b1ae45394a234c385be014e9a488f2bb6eef821
@@ -7,7 +7,7 @@ imports:
   - compute/metadata
   - internal
 - name: github.com/aws/aws-sdk-go
-  version: c924893c38ecc04b18d7aab8a7aa561cb8b4c4cc
+  version: 06d3a0c37ae95ae040548a13952501261cb5fd2b
   subpackages:
   - aws
   - aws/awserr
@@ -17,16 +17,20 @@ imports:
   - aws/corehandlers
   - aws/credentials
   - aws/credentials/ec2rolecreds
+  - aws/credentials/endpointcreds
+  - aws/credentials/stscreds
   - aws/defaults
   - aws/ec2metadata
+  - aws/endpoints
   - aws/request
   - aws/session
-  - private/endpoints
+  - aws/signer/v4
+  - blob/master/aws/ec2metadata
+  - private/protocol
   - private/protocol/query
   - private/protocol/query/queryutil
   - private/protocol/rest
   - private/protocol/xml/xmlutil
-  - private/signer/v4
   - service/sts
 - name: github.com/blang/semver
   version: 31b736133b98f26d5e078ec9eb591666edfd091f

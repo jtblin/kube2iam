@@ -17,27 +17,29 @@ import (
 // Server encapsulates all of the parameters necessary for starting up
 // the server. These can either be set via command line or directly.
 type Server struct {
-	APIServer             string
-	APIToken              string
-	AppPort               string
-	BaseRoleARN           string
-	DefaultIAMRole        string
-	IAMRoleKey            string
-	MetadataAddress       string
-	HostInterface         string
-	HostIP                string
-	BackoffMaxInterval    time.Duration
-	BackoffMaxElapsedTime time.Duration
-	AddIPTablesRule       bool
-	Debug                 bool
-	Insecure              bool
-	Verbose               bool
-	Version               bool
-	NamespaceRestriction  bool
-	NamespaceKey          string
-	iam                   *iam
-	k8s                   *k8s
-	store                 *store
+	APIServer               string
+	APIToken                string
+	AppPort                 string
+	BaseRoleARN             string
+	DefaultIAMRole          string
+	IAMRoleKey              string
+	MetadataAddress         string
+	HostInterface           string
+	HostIP                  string
+	NamespaceKey            string
+	AddIPTablesRule         bool
+	Debug                   bool
+	Insecure                bool
+	Verbose                 bool
+	Version                 bool
+	NamespaceRestriction    bool
+	AutoDiscoverBaseArn     bool
+	AutoDiscoverDefaultRole bool
+	iam                     *iam
+	k8s                     *k8s
+	store                   *store
+	BackoffMaxInterval      time.Duration
+	BackoffMaxElapsedTime   time.Duration
 }
 
 type appHandler func(http.ResponseWriter, *http.Request)

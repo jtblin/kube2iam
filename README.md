@@ -214,6 +214,14 @@ By using the --debug flag you can enable some extra features making debugging ea
 
 - `/debug/store` endpoint enabled to dump knowledge of namespaces and role association.
 
+### Base ARN auto discovery
+
+By using the --auto-discover-base-arn flag, kube2iam will auto discover the base arn via the ec2 metadata service.
+
+### Using ec2 instance role as default role
+
+By using the --auto-discover-default-role flag, kube2iam will auto discover the base arn and the iam role attached to the instance and use it as the fallback role to use when annotation is not set.
+
 ### Options
 
 By default, `kube2iam` will use the in-cluster method to connect to the kubernetes master, and use the `iam.amazonaws.com/role`
@@ -222,24 +230,27 @@ and only pass the role name in the `iam.amazonaws.com/role` annotation, otherwis
 
 ```
 $ kube2iam --help
-Usage of kube2iam:
-      --api-server string       Endpoint for the api server
-      --api-token string        Token to authenticate with the api server
-      --app-port string         Http port (default "8181")
-      --base-role-arn string    Base role ARN
-      --debug                   Enable some debug features
-      --default-role string     Fallback role to use when annotation is not set
-      --host-interface string   Host interface for proxying AWS metadata (default "docker0")
-      --host-ip string          IP address of host
-      --iam-role-key string     Pod annotation key used to retrieve the IAM role (default "iam.amazonaws.com/role")
-      --insecure                Kubernetes server should be accessed without verifying the TLS. Testing only
-      --iptables                Add iptables rule (also requires --host-ip)
-      --metadata-addr string    Address for the ec2 metadata (default "169.254.169.254")
-      --namespace-key string    Namespace annotation key used to retrieve the IAM roles allowed (value in annotation should be json array) (default "iam.amazonaws.com/allowed-roles")
-      --namespace-restrictions  Enable namespace restrictions
-      --verbose                 Verbose
-      --version                 Print the version and exits
-
+Usage of ./build/bin/darwin/kube2iam:
+      --api-server string                   Endpoint for the api server
+      --api-token string                    Token to authenticate with the api server
+      --app-port string                     Http port (default "8181")
+      --auto-discover-base-arn              Queries EC2 Metadata to determine the base ARN
+      --auto-discover-default-role          Queries EC2 Metadata to determine the default Iam Role, can't be used with --default-role
+      --backoff-max-elapsed-time duration   Max elapsed time for backoff when querying for role. (default 2s)
+      --backoff-max-interval duration       Max interval for backoff when querying for role. (default 1s)
+      --base-role-arn string                Base role ARN
+      --debug                               Enable debug features
+      --default-role string                 Fallback role to use when annotation is not set
+      --host-interface string               Host interface for proxying AWS metadata (default "docker0")
+      --host-ip string                      IP address of host
+      --iam-role-key string                 Pod annotation key used to retrieve the IAM role (default "iam.amazonaws.com/role")
+      --insecure                            Kubernetes server should be accessed without verifying the TLS. Testing only
+      --iptables                            Add iptables rule (also requires --host-ip)
+      --metadata-addr string                Address for the ec2 metadata (default "169.254.169.254")
+      --namespace-key string                Namespace annotation key used to retrieve the IAM roles allowed (value in annotation should be json array) (default "iam.amazonaws.com/allowed-roles")
+      --namespace-restrictions              Enable namespace restrictions
+      --verbose                             Verbose
+      --version                             Print the version and exits
 ```
 
 # Author

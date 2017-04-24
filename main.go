@@ -34,6 +34,35 @@ func main() {
 		version.PrintVersionAndExit()
 	}
 
+	if s.AutoDiscoverBaseArn {
+		if s.BaseRoleARN != "" {
+			log.Fatal("--auto-discover-base-arn can't be used if --base-role-arn is specified")
+		}
+		arn, err := cmd.GetBaseArn()
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Infof("base ARN autodetected, %s", arn)
+		s.BaseRoleARN = arn
+	}
+
+	if s.AutoDiscoverDefaultRole {
+		if s.DefaultIAMRole != "" {
+			log.Fatalf("You cant use --default-role and --auto-discover-default-role at the same time")
+		}
+		arn, err := cmd.GetBaseArn()
+		if err != nil {
+			log.Fatal(err)
+		}
+		s.BaseRoleARN = arn
+		instanceIAMRole, err := cmd.GetInstanceIamRole()
+		if err != nil {
+			log.Fatalf("%s", err)
+		}
+		s.DefaultIAMRole = instanceIAMRole
+		log.Infof("Using instance IAMRole %s%s as default", s.BaseRoleARN, s.DefaultIAMRole)
+	}
+
 	if s.AddIPTablesRule {
 		if err := iptables.AddRule(s.AppPort, s.MetadataAddress, s.HostInterface, s.HostIP); err != nil {
 			log.Fatal(err)
@@ -57,6 +86,8 @@ func addFlags(s *cmd.Server, fs *pflag.FlagSet) {
 	fs.BoolVar(&s.Insecure, "insecure", false, "Kubernetes server should be accessed without verifying the TLS. Testing only")
 	fs.StringVar(&s.MetadataAddress, "metadata-addr", s.MetadataAddress, "Address for the ec2 metadata")
 	fs.BoolVar(&s.AddIPTablesRule, "iptables", false, "Add iptables rule (also requires --host-ip)")
+	fs.BoolVar(&s.AutoDiscoverBaseArn, "auto-discover-base-arn", false, "Queries EC2 Metadata to determine the base ARN")
+	fs.BoolVar(&s.AutoDiscoverDefaultRole, "auto-discover-default-role", false, "Queries EC2 Metadata to determine the default Iam Role and base ARN, can't be used with --default-role, overwrites any previous setting for --base-role-arn")
 	fs.StringVar(&s.HostInterface, "host-interface", "docker0", "Host interface for proxying AWS metadata")
 	fs.BoolVar(&s.NamespaceRestriction, "namespace-restrictions", false, "Enable namespace restrictions")
 	fs.StringVar(&s.NamespaceKey, "namespace-key", s.NamespaceKey, "Namespace annotation key used to retrieve the IAM roles allowed (value in annotation should be json array)")

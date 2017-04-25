@@ -16,9 +16,9 @@ import (
 var cache = ccache.New(ccache.Configure())
 
 const (
-	ttl               = time.Minute * 15
-	maxSessNameLength = 64
 	fullArnPrefix     = "arn:"
+	maxSessNameLength = 64
+	ttl               = time.Minute * 15
 )
 
 type iam struct {
@@ -27,13 +27,13 @@ type iam struct {
 
 // credentials represent the security credentials response.
 type credentials struct {
-	Code            string
-	LastUpdated     string
-	Type            string
 	AccessKeyID     string `json:"AccessKeyId"`
+	Code            string
+	Expiration      string
+	LastUpdated     string
 	SecretAccessKey string
 	Token           string
-	Expiration      string
+	Type            string
 }
 
 func (iam *iam) roleARN(role string) string {

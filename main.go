@@ -2,7 +2,6 @@ package main
 
 import (
 	"runtime"
-	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/spf13/pflag"
@@ -12,20 +11,13 @@ import (
 	"github.com/jtblin/kube2iam/version"
 )
 
-const (
-	defaultMaxInterval    = 1 * time.Second
-	defaultMaxElapsedTime = 2 * time.Second
-)
-
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	s := cmd.NewServer()
 	addFlags(s, pflag.CommandLine)
 	pflag.Parse()
 
-	// default to info or above (probably the default anyways)
 	log.SetLevel(log.InfoLevel)
-
 	if s.Verbose {
 		log.SetLevel(log.DebugLevel)
 	}
@@ -40,7 +32,7 @@ func main() {
 		}
 		arn, err := cmd.GetBaseArn()
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalf("%s", err)
 		}
 		log.Infof("base ARN autodetected, %s", arn)
 		s.BaseRoleARN = arn
@@ -52,7 +44,7 @@ func main() {
 		}
 		arn, err := cmd.GetBaseArn()
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalf("%s", err)
 		}
 		s.BaseRoleARN = arn
 		instanceIAMRole, err := cmd.GetInstanceIamRole()
@@ -65,12 +57,12 @@ func main() {
 
 	if s.AddIPTablesRule {
 		if err := iptables.AddRule(s.AppPort, s.MetadataAddress, s.HostInterface, s.HostIP); err != nil {
-			log.Fatal(err)
+			log.Fatalf("%s", err)
 		}
 	}
 
 	if err := s.Run(s.APIServer, s.APIToken, s.Insecure); err != nil {
-		log.Fatal(err)
+		log.Fatalf("%s", err)
 	}
 }
 
@@ -92,8 +84,8 @@ func addFlags(s *cmd.Server, fs *pflag.FlagSet) {
 	fs.BoolVar(&s.NamespaceRestriction, "namespace-restrictions", false, "Enable namespace restrictions")
 	fs.StringVar(&s.NamespaceKey, "namespace-key", s.NamespaceKey, "Namespace annotation key used to retrieve the IAM roles allowed (value in annotation should be json array)")
 	fs.StringVar(&s.HostIP, "host-ip", s.HostIP, "IP address of host")
-	fs.DurationVar(&s.BackoffMaxInterval, "backoff-max-interval", defaultMaxInterval, "Max interval for backoff when querying for role.")
-	fs.DurationVar(&s.BackoffMaxElapsedTime, "backoff-max-elapsed-time", defaultMaxElapsedTime, "Max elapsed time for backoff when querying for role.")
+	fs.DurationVar(&s.BackoffMaxInterval, "backoff-max-interval", s.BackoffMaxInterval, "Max interval for backoff when querying for role.")
+	fs.DurationVar(&s.BackoffMaxElapsedTime, "backoff-max-elapsed-time", s.BackoffMaxElapsedTime, "Max elapsed time for backoff when querying for role.")
 	fs.BoolVar(&s.Verbose, "verbose", false, "Verbose")
 	fs.BoolVar(&s.Version, "version", false, "Print the version and exits")
 }

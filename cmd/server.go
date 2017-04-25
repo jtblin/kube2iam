@@ -14,6 +14,15 @@ import (
 	"github.com/gorilla/mux"
 )
 
+const (
+	defaultAppPort         = "8181"
+	defaultIAMRoleKey      = "iam.amazonaws.com/role"
+	defaultMaxElapsedTime  = 2 * time.Second
+	defaultMaxInterval     = 1 * time.Second
+	defaultMetadataAddress = "169.254.169.254"
+	defaultNamespaceKey    = "iam.amazonaws.com/allowed-roles"
+)
+
 // Server encapsulates all of the parameters necessary for starting up
 // the server. These can either be set via command line or directly.
 type Server struct {
@@ -28,18 +37,18 @@ type Server struct {
 	HostIP                  string
 	NamespaceKey            string
 	AddIPTablesRule         bool
-	Debug                   bool
-	Insecure                bool
-	Verbose                 bool
-	Version                 bool
-	NamespaceRestriction    bool
 	AutoDiscoverBaseArn     bool
 	AutoDiscoverDefaultRole bool
+	Debug                   bool
+	Insecure                bool
+	NamespaceRestriction    bool
+	Verbose                 bool
+	Version                 bool
 	iam                     *iam
 	k8s                     *k8s
 	store                   *store
-	BackoffMaxInterval      time.Duration
 	BackoffMaxElapsedTime   time.Duration
+	BackoffMaxInterval      time.Duration
 }
 
 type appHandler func(http.ResponseWriter, *http.Request)
@@ -208,9 +217,11 @@ func (s *Server) Run(host, token string, insecure bool) error {
 // NewServer will create a new Server with default values.
 func NewServer() *Server {
 	return &Server{
-		AppPort:         "8181",
-		IAMRoleKey:      "iam.amazonaws.com/role",
-		MetadataAddress: "169.254.169.254",
-		NamespaceKey:    "iam.amazonaws.com/allowed-roles",
+		AppPort:               defaultAppPort,
+		BackoffMaxElapsedTime: defaultMaxElapsedTime,
+		IAMRoleKey:            defaultIAMRoleKey,
+		BackoffMaxInterval:    defaultMaxInterval,
+		MetadataAddress:       defaultMetadataAddress,
+		NamespaceKey:          defaultNamespaceKey,
 	}
 }

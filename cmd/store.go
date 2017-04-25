@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	log "github.com/Sirupsen/logrus"
-	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/client-go/pkg/api/v1"
 )
 
 // store implements the k8s framework ResourceEventHandler interface.
@@ -35,13 +35,13 @@ func (s *store) Get(IP string) (string, error) {
 	return "", fmt.Errorf("Unable to find role for IP %s", IP)
 }
 
-func (s *store) AddRoleToIP(pod *api.Pod, role string) {
+func (s *store) AddRoleToIP(pod *v1.Pod, role string) {
 	s.mutex.Lock()
 	s.rolesByIP[pod.Status.PodIP] = role
 	s.mutex.Unlock()
 }
 
-func (s *store) AddNamespaceToIP(pod *api.Pod) {
+func (s *store) AddNamespaceToIP(pod *v1.Pod) {
 	namespace := pod.GetNamespace()
 	s.mutex.Lock()
 	s.namespaceByIP[pod.Status.PodIP] = namespace

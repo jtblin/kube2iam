@@ -2,8 +2,8 @@ package cmd
 
 import (
 	log "github.com/Sirupsen/logrus"
-	"k8s.io/kubernetes/pkg/api"
-	kcache "k8s.io/kubernetes/pkg/client/cache"
+	"k8s.io/client-go/pkg/api/v1"
+	kcache "k8s.io/client-go/tools/cache"
 )
 
 type podHandler struct {
@@ -12,7 +12,7 @@ type podHandler struct {
 
 // OnAdd is called when a pod is added.
 func (p *podHandler) OnAdd(obj interface{}) {
-	pod, ok := obj.(*api.Pod)
+	pod, ok := obj.(*v1.Pod)
 	if !ok {
 		log.Errorf("Expected Pod but OnAdd handler received %+v", obj)
 		return
@@ -31,8 +31,8 @@ func (p *podHandler) OnAdd(obj interface{}) {
 
 // OnUpdate is called when a pod is modified.
 func (p *podHandler) OnUpdate(oldObj, newObj interface{}) {
-	oldPod, ok1 := oldObj.(*api.Pod)
-	newPod, ok2 := newObj.(*api.Pod)
+	oldPod, ok1 := oldObj.(*v1.Pod)
+	newPod, ok2 := newObj.(*v1.Pod)
 	if !ok1 || !ok2 {
 		log.Errorf("Expected Pod but OnUpdate handler received %+v %+v", oldObj, newObj)
 		return
@@ -55,11 +55,11 @@ func (p *podHandler) OnUpdate(oldObj, newObj interface{}) {
 
 // OnDelete is called when a pod is deleted.
 func (p *podHandler) OnDelete(obj interface{}) {
-	pod, ok := obj.(*api.Pod)
+	pod, ok := obj.(*v1.Pod)
 	if !ok {
 		deletedObj, dok := obj.(kcache.DeletedFinalStateUnknown)
 		if dok {
-			pod, ok = deletedObj.Obj.(*api.Pod)
+			pod, ok = deletedObj.Obj.(*v1.Pod)
 		}
 	}
 

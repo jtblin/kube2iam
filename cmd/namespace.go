@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 
 	log "github.com/Sirupsen/logrus"
-	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/client-go/pkg/api/v1"
 )
 
 type namespaceHandler struct {
@@ -13,7 +13,7 @@ type namespaceHandler struct {
 
 // OnAdd called with a namespace is added to k8s
 func (h *namespaceHandler) OnAdd(obj interface{}) {
-	ns, ok := obj.(*api.Namespace)
+	ns, ok := obj.(*v1.Namespace)
 	if !ok {
 		log.Errorf("Expected Namespace but OnAdd handler received %+v", obj)
 		return
@@ -31,8 +31,8 @@ func (h *namespaceHandler) OnAdd(obj interface{}) {
 
 // OnUpdate called with a namespace is updated inside k8s
 func (h *namespaceHandler) OnUpdate(oldObj, newObj interface{}) {
-	//ons, ok := oldObj.(*api.Namespace)
-	nns, ok := newObj.(*api.Namespace)
+	//ons, ok := oldObj.(*v1.Namespace)
+	nns, ok := newObj.(*v1.Namespace)
 	if !ok {
 		log.Errorf("Expected Namespace but OnUpdate handler received %+v", newObj)
 		return
@@ -50,7 +50,7 @@ func (h *namespaceHandler) OnUpdate(oldObj, newObj interface{}) {
 
 // OnDelete called with a namespace is removed from k8s
 func (h *namespaceHandler) OnDelete(obj interface{}) {
-	ns, ok := obj.(*api.Namespace)
+	ns, ok := obj.(*v1.Namespace)
 	if !ok {
 		log.Errorf("Expected Namespace but OnDelete handler received %+v", obj)
 		return
@@ -61,7 +61,7 @@ func (h *namespaceHandler) OnDelete(obj interface{}) {
 
 // getRoleAnnotations reads the "iam.amazonaws.com/allowed-roles" annotation off a namespace
 // and splits them as a JSON list (["role1", "role2", "role3"])
-func (h *namespaceHandler) getRoleAnnotation(ns *api.Namespace) []string {
+func (h *namespaceHandler) getRoleAnnotation(ns *v1.Namespace) []string {
 	rolesString := ns.Annotations[h.storage.namespaceKey]
 	if rolesString != "" {
 		var decoded []string

@@ -3,12 +3,12 @@ package cmd
 import (
 	"time"
 
-	"k8s.io/kubernetes/pkg/api"
-	kcache "k8s.io/kubernetes/pkg/client/cache"
-	"k8s.io/kubernetes/pkg/client/restclient"
-	client "k8s.io/kubernetes/pkg/client/unversioned"
-	selector "k8s.io/kubernetes/pkg/fields"
-	"k8s.io/kubernetes/pkg/util/wait"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/pkg/api/v1"
+	selector "k8s.io/client-go/pkg/fields"
+	"k8s.io/client-go/rest"
+	kcache "k8s.io/client-go/tools/cache"
 )
 
 const (
@@ -17,18 +17,18 @@ const (
 )
 
 type k8s struct {
-	*client.Client
+	*kubernetes.Clientset
 }
 
 // Returns a cache.ListWatch that gets all changes to pods.
 func (k8s *k8s) createPodLW() *kcache.ListWatch {
-	return kcache.NewListWatchFromClient(k8s, "pods", api.NamespaceAll, selector.Everything())
+	return kcache.NewListWatchFromClient(k8s.CoreV1().RESTClient(), "pods", v1.NamespaceAll, selector.Everything())
 }
 
 func (k8s *k8s) watchForPods(podManager kcache.ResourceEventHandler) kcache.Store {
 	podStore, podController := kcache.NewInformer(
 		k8s.createPodLW(),
-		&api.Pod{},
+		&v1.Pod{},
 		resyncPeriod,
 		podManager,
 	)
@@ -38,13 +38,13 @@ func (k8s *k8s) watchForPods(podManager kcache.ResourceEventHandler) kcache.Stor
 
 // returns a listwatcher of namespaces
 func (k8s *k8s) createNamespaceLW() *kcache.ListWatch {
-	return kcache.NewListWatchFromClient(k8s, "namespaces", api.NamespaceAll, selector.Everything())
+	return kcache.NewListWatchFromClient(k8s.CoreV1().RESTClient(), "namespaces", v1.NamespaceAll, selector.Everything())
 }
 
 func (k8s *k8s) watchForNamespaces(nsManager kcache.ResourceEventHandler) kcache.Store {
 	nsStore, nsController := kcache.NewInformer(
 		k8s.createNamespaceLW(),
-		&api.Namespace{},
+		&v1.Namespace{},
 		resyncPeriod,
 		nsManager,
 	)
@@ -53,20 +53,26 @@ func (k8s *k8s) watchForNamespaces(nsManager kcache.ResourceEventHandler) kcache
 }
 
 func newK8s(host, token string, insecure bool) (*k8s, error) {
-	var c *client.Client
+	var config *rest.Config
 	var err error
 	if host != "" && token != "" {
-		config := restclient.Config{
+		config = &rest.Config{
 			Host:        host,
 			BearerToken: token,
 			Insecure:    insecure,
 		}
-		c, err = client.New(&config)
 	} else {
-		c, err = client.NewInCluster()
+		config, err = rest.InClusterConfig()
+		if err != nil {
+			return nil, err
+		}
+	}
+	client, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return nil, err
 	}
 	if err != nil {
 		return nil, err
 	}
-	return &k8s{c}, nil
+	return &k8s{client}, nil
 }

@@ -22,7 +22,7 @@ setup:
 	go get -v -u github.com/alecthomas/gometalinter
 	go get -v -u github.com/jstemmer/go-junit-report
 	gometalinter --install --update
-	glide install
+	glide install --strip-vendor
 
 build: *.go fmt
 	go build -o build/bin/$(ARCH)/$(BINARY_NAME) $(GOBUILD_VERSION_ARGS) github.com/jtblin/$(BINARY_NAME)

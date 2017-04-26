@@ -1,3 +1,5 @@
+[![Docker Pulls](https://img.shields.io/docker/pulls/jtblin/kube2iam.svg)]()
+
 # kube2iam
 
 Provide IAM credentials to containers running inside a kubernetes cluster based on annotations.

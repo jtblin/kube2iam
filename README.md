@@ -130,6 +130,7 @@ different than `docker0` depending on which virtual network you use e.g.
 * for kops (on kubenet), use `cbr0`
 * for CNI, use `cni0`
 * for weave use `weave`
+* for flannel use `cni0`
 
 ```
 ---

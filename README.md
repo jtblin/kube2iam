@@ -49,7 +49,7 @@ It is necessary to create an IAM role which can assume other roles and assign it
 The roles that will be assumed must have a Trust Relationship which allows them to be assumed by the kubernetes worker role.
 See this [StackOverflow post](http://stackoverflow.com/a/33850060) for more details.
 
-```
+```json
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -77,8 +77,8 @@ See this [StackOverflow post](http://stackoverflow.com/a/33850060) for more deta
 
 Run the kube2iam container as a daemonset (so that it runs on each worker) with `hostNetwork: true`.
 
-```
----
+
+```yaml
 apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
@@ -108,7 +108,7 @@ spec:
 To prevent containers from directly accessing the ec2 metadata API and gaining unwanted access to AWS resources,
 the traffic to `169.254.169.254` must be proxied for docker containers.
 
-```
+```bash
 iptables \
   --append PREROUTING \
   --protocol tcp \
@@ -132,8 +132,7 @@ different than `docker0` depending on which virtual network you use e.g.
 * for weave use `weave`
 * for flannel use `cni0`
 
-```
----
+```yaml
 apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
@@ -171,8 +170,7 @@ spec:
 
 Add an `iam.amazonaws.com/role` annotation to your pods with the role that you want to assume for this pod.
 
-```
----
+```yaml
 apiVersion: v1
 kind: Pod
 metadata:
@@ -194,14 +192,65 @@ spec:
 
 You can use `--default-role` to set a fallback role to use when annotation is not set.
 
+#### ReplicaSet, CronJob, Deployment, etc.
+ 
+When creating higher-level abstractions than pods, you need to pass the annotation in the pod template of the  
+resource spec.
+
+Example for a `Deployment`:
+
+```yaml
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+spec:
+  replicas: 3
+  template:
+    metadata:
+      annotations:
+        iam.amazonaws.com/role: role-name
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.9.1
+        ports:
+        - containerPort: 80
+```
+
+Example for a `CronJob`:
+
+```yaml
+apiVersion: batch/v2alpha1
+kind: CronJob
+metadata:
+  name: my-cronjob
+spec:
+  schedule: "00 11 * * 2"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 3600
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          annotations:
+            iam.amazonaws.com/role: role-name
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: job
+            image: my-image
+```
+
 ### Namespace Restrictions
 
 By using the flag --namespace-restrictions you can enable a mode in which the roles that pods can assume is restricted by an annotation on the pod's namespace. This annotation should be in the form of a json array.
 
 To allow the aws-cli pod specified above to run in the default namespace your namespace would look like the following.
 
-```
----
+```yaml
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -219,11 +268,11 @@ By using the --debug flag you can enable some extra features making debugging ea
 
 ### Base ARN auto discovery
 
-By using the --auto-discover-base-arn flag, kube2iam will auto discover the base arn via the ec2 metadata service.
+By using the `--auto-discover-base-arn` flag, kube2iam will auto discover the base arn via the ec2 metadata service.
 
 ### Using ec2 instance role as default role
 
-By using the --auto-discover-default-role flag, kube2iam will auto discover the base arn and the iam role attached to the instance and use it as the fallback role to use when annotation is not set.
+By using the `--auto-discover-default-role` flag, kube2iam will auto discover the base arn and the iam role attached to the instance and use it as the fallback role to use when annotation is not set.
 
 ### Options
 
@@ -231,7 +280,7 @@ By default, `kube2iam` will use the in-cluster method to connect to the kubernet
 annotation to retrieve the role for the container. Either set the `base-role-arn` option to apply to all roles
 and only pass the role name in the `iam.amazonaws.com/role` annotation, otherwise pass the full role ARN in the annotation.
 
-```
+```bash
 $ kube2iam --help
 Usage of ./build/bin/darwin/kube2iam:
       --api-server string                   Endpoint for the api server
@@ -262,5 +311,5 @@ Jerome Touffe-Blin, [@jtblin](https://twitter.com/jtblin), [About me](http://abo
 
 # License
 
-kube2iam is copyright 2016 Jerome Touffe-Blin and contributors.
+kube2iam is copyright 2017 Jerome Touffe-Blin and contributors.
 It is licensed under the BSD license. See the included LICENSE file for details.

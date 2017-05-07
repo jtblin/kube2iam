@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -54,10 +55,26 @@ type Server struct {
 
 type appHandler func(http.ResponseWriter, *http.Request)
 
-// ServeHTTP implements the net/http server Handler interface.
+// ServeHTTP implements the net/http server Handler interface
+// and recovers from panics.
 func (fn appHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Debugf("Requesting %s", r.RequestURI)
 	log.Debugf("RemoteAddr %s", parseRemoteAddr(r.RemoteAddr))
+	defer func() {
+		var err error
+		if rec := recover(); rec != nil {
+			switch t := rec.(type) {
+			case string:
+				err = errors.New(t)
+			case error:
+				err = t
+			default:
+				err = errors.New("Unknown error")
+			}
+			log.Errorf("PANIC error processing request for %s: %+v", r.RequestURI, err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	}()
 	w.Header().Set("Server", "EC2ws")
 	fn(w, r)
 }

@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -91,6 +92,39 @@ func (s *Server) getRole(IP string) (string, error) {
 	}
 
 	return role, nil
+}
+
+type HealthResponse struct {
+	HostIP     string `json:"hostIP"`
+	InstanceID string `json:"instanceId"`
+}
+
+func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
+	resp, err := http.Get(fmt.Sprintf("http://%s/latest/meta-data/instance-id", s.MetadataAddress))
+	if err != nil {
+		log.Errorf("Error getting instance id %+v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if resp.StatusCode != 200 {
+		msg := fmt.Sprintf("Error getting instance id, got status: %+s", resp.Status)
+		log.Error(msg)
+		http.Error(w, msg, http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+	instanceID, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Errorf("Error reading response body %+v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	health := &HealthResponse{InstanceID: string(instanceID), HostIP: s.HostIP}
+	w.Header().Add("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(health); err != nil {
+		log.Errorf("Error sending json %+v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func (s *Server) debugStoreHandler(w http.ResponseWriter, r *http.Request) {
@@ -205,6 +239,7 @@ func (s *Server) Run(host, token string, insecure bool) error {
 	}
 	r.Handle("/{version}/meta-data/iam/security-credentials/", appHandler(s.securityCredentialsHandler))
 	r.Handle("/{version}/meta-data/iam/security-credentials/{role:.*}", appHandler(s.roleHandler))
+	r.Handle("/healthz", appHandler(s.healthHandler))
 	r.Handle("/{path:.*}", appHandler(s.reverseProxyHandler))
 
 	log.Infof("Listening on port %s", s.AppPort)

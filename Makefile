@@ -9,7 +9,7 @@ BUILD_DATE := $$(date +%Y-%m-%d-%H:%M)
 GIT_HASH := $$(git rev-parse --short HEAD)
 GOBUILD_VERSION_ARGS := -ldflags "-s -X $(VERSION_VAR)=$(REPO_VERSION) -X $(GIT_VAR)=$(GIT_HASH) -X $(BUILD_DATE_VAR)=$(BUILD_DATE)"
 # useful for other docker repos
-DOCKER_REPO := jtblin
+DOCKER_REPO ?= jtblin
 IMAGE_NAME := $(DOCKER_REPO)/$(BINARY_NAME)
 ARCH ?= darwin
 METALINTER_CONCURRENCY ?= 4
@@ -79,6 +79,10 @@ cross:
 
 docker: cross
 	docker build -t $(IMAGE_NAME):$(GIT_HASH) . $(DOCKER_BUILD_FLAGS)
+
+docker-dev: docker
+	docker tag $(IMAGE_NAME):$(GIT_HASH) $(IMAGE_NAME):dev
+	docker push $(IMAGE_NAME):dev
 
 release: check test docker
 	docker push $(IMAGE_NAME):$(GIT_HASH)

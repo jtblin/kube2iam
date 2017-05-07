@@ -1,0 +1,35 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: kube2iam
+  labels:
+    app: kube2iam
+spec:
+  template:
+    metadata:
+      labels:
+        name: kube2iam
+    spec:
+      hostNetwork: true
+      containers:
+        - image: jtblin/kube2iam:dev
+          name: kube2iam
+          args:
+            - "--app-port=8181"
+            - "--base-role-arn=arn:aws:iam::936664463856:role/"
+            - "--metadata-addr=127.0.0.1:9090"
+            - "--verbose"
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8181
+              hostPort: 8181
+              name: http
+        - image: jtblin/aws-mock-metadata:latest
+          name: aws-mock-metadata
+          args:
+            - "--availability-zone=us-east-1c"
+            - "--app-port=9090"
+            - "--instance-id=i-9cd21eb"
+            - "--verbose"
+          imagePullPolicy: Always

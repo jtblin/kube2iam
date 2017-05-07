@@ -305,6 +305,17 @@ Usage of ./build/bin/darwin/kube2iam:
       --version                             Print the version and exits
 ```
 
+## Development loop
+
+* Use [minikube](https://github.com/kubernetes/minikube) to run cluster locally
+* Build and push dev image to docker hub: `make docker-dev DOCKER_REPO=<your docker hub username>`
+* Update `deployment.yaml` as needed
+* Deploy to local kubernetes cluster: `kubectl create -f deployment.yaml` or 
+`kubectl delete -f deployment.yaml && kubectl create -f deployment.yaml`
+* Expose as service: `kubectl expose deployment kube2iam --type=NodePort`
+* Retrieve the services url: `minikube service kube2iam --url`
+* Test your changes e.g. `curl -is $(minikube service kube2iam --url)/healthz`
+
 # Author
 
 Jerome Touffe-Blin, [@jtblin](https://twitter.com/jtblin), [About me](http://about.me/jtblin)

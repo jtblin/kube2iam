@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
+	"net/url"
 	"strings"
 	"time"
 
@@ -75,7 +76,6 @@ func (fn appHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	}()
-	w.Header().Set("Server", "EC2ws")
 	fn(w, r)
 }
 
@@ -111,6 +111,7 @@ func (s *Server) getRole(IP string) (string, error) {
 	return role, nil
 }
 
+// HealthResponse represents a response for the health check.
 type HealthResponse struct {
 	HostIP     string `json:"hostIP"`
 	InstanceID string `json:"instanceId"`
@@ -162,6 +163,7 @@ func (s *Server) debugStoreHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) securityCredentialsHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Server", "EC2ws")
 	remoteIP := parseRemoteAddr(r.RemoteAddr)
 	role, err := s.getRole(remoteIP)
 	if err != nil {
@@ -180,6 +182,7 @@ func (s *Server) securityCredentialsHandler(w http.ResponseWriter, r *http.Reque
 }
 
 func (s *Server) roleHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Server", "EC2ws")
 	remoteIP := parseRemoteAddr(r.RemoteAddr)
 	podRole, err := s.getRole(remoteIP)
 	if err != nil {
@@ -221,12 +224,7 @@ func (s *Server) roleHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) reverseProxyHandler(w http.ResponseWriter, r *http.Request) {
-	director := func(req *http.Request) {
-		req = r
-		req.URL.Scheme = "http"
-		req.URL.Host = s.MetadataAddress
-	}
-	proxy := &httputil.ReverseProxy{Director: director}
+	proxy := httputil.NewSingleHostReverseProxy(&url.URL{Scheme: "http", Host: s.MetadataAddress})
 	proxy.ServeHTTP(w, r)
 	log.Debugf("Proxied %s", r.RequestURI)
 }

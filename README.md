@@ -178,7 +178,7 @@ metadata:
   labels:
     name: aws-cli
   annotations:
-    iam.amazonaws.com/role: role-name
+    iam.amazonaws.com/role: role-arn
 spec:
   containers:
   - image: fstab/aws-cli
@@ -209,7 +209,7 @@ spec:
   template:
     metadata:
       annotations:
-        iam.amazonaws.com/role: role-name
+        iam.amazonaws.com/role: role-arn
       labels:
         app: nginx
     spec:
@@ -236,7 +236,7 @@ spec:
       template:
         metadata:
           annotations:
-            iam.amazonaws.com/role: role-name
+            iam.amazonaws.com/role: role-arn
         spec:
           restartPolicy: OnFailure
           containers:
@@ -256,7 +256,7 @@ kind: Namespace
 metadata:
   annotations:
     iam.amazonaws.com/allowed-roles: |
-      ["role-name"]
+      ["role-arn"]
   name: default
 ```
 

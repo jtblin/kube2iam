@@ -25,7 +25,7 @@ func main() {
 
 	if s.AutoDiscoverBaseArn {
 		if s.BaseRoleARN != "" {
-			log.Fatal("--auto-discover-base-arn can't be used if --base-role-arn is specified")
+			log.Fatal("--auto-discover-base-arn cannot be used if --base-role-arn is specified")
 		}
 		arn, err := cmd.GetBaseArn()
 		if err != nil {
@@ -37,7 +37,7 @@ func main() {
 
 	if s.AutoDiscoverDefaultRole {
 		if s.DefaultIAMRole != "" {
-			log.Fatalf("You cant use --default-role and --auto-discover-default-role at the same time")
+			log.Fatalf("You cannot use --default-role and --auto-discover-default-role at the same time")
 		}
 		arn, err := cmd.GetBaseArn()
 		if err != nil {
@@ -76,7 +76,7 @@ func addFlags(s *cmd.Server, fs *pflag.FlagSet) {
 	fs.StringVar(&s.MetadataAddress, "metadata-addr", s.MetadataAddress, "Address for the ec2 metadata")
 	fs.BoolVar(&s.AddIPTablesRule, "iptables", false, "Add iptables rule (also requires --host-ip)")
 	fs.BoolVar(&s.AutoDiscoverBaseArn, "auto-discover-base-arn", false, "Queries EC2 Metadata to determine the base ARN")
-	fs.BoolVar(&s.AutoDiscoverDefaultRole, "auto-discover-default-role", false, "Queries EC2 Metadata to determine the default Iam Role and base ARN, can't be used with --default-role, overwrites any previous setting for --base-role-arn")
+	fs.BoolVar(&s.AutoDiscoverDefaultRole, "auto-discover-default-role", false, "Queries EC2 Metadata to determine the default Iam Role and base ARN, cannot be used with --default-role, overwrites any previous setting for --base-role-arn")
 	fs.StringVar(&s.HostInterface, "host-interface", "docker0", "Host interface for proxying AWS metadata")
 	fs.BoolVar(&s.NamespaceRestriction, "namespace-restrictions", false, "Enable namespace restrictions")
 	fs.StringVar(&s.NamespaceKey, "namespace-key", s.NamespaceKey, "Namespace annotation key used to retrieve the IAM roles allowed (value in annotation should be json array)")

@@ -71,8 +71,5 @@ func newK8s(host, token string, insecure bool) (*k8s, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err != nil {
-		return nil, err
-	}
 	return &k8s{client}, nil
 }

@@ -1,8 +1,6 @@
 package main
 
 import (
-	"runtime"
-
 	log "github.com/Sirupsen/logrus"
 	"github.com/spf13/pflag"
 
@@ -12,7 +10,6 @@ import (
 )
 
 func main() {
-	runtime.GOMAXPROCS(runtime.NumCPU())
 	s := cmd.NewServer()
 	addFlags(s, pflag.CommandLine)
 	pflag.Parse()

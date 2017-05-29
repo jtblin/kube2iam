@@ -7,7 +7,7 @@ import (
 
 func TestCheckInterfaceExistsFailsWithBogusInterface(t *testing.T) {
 	ifc := "bogus0"
-	if err := CheckInterfaceExists(ifc); err == nil {
+	if err := checkInterfaceExists(ifc); err == nil {
 		t.Error("Should fail with invalid interface. Interface received:", ifc)
 	}
 }
@@ -22,16 +22,16 @@ func TestCheckInterfaceExistsPassesWithValidInterface(t *testing.T) {
 	default:
 		// everything else that we don't know or care about...fail
 		ifc = "unknown"
-		t.Error("%s OS '%s'\n", ifc, os)
+		t.Fatalf("%s OS '%s'\n", ifc, os)
 	}
-	if err := CheckInterfaceExists(ifc); err != nil {
+	if err := checkInterfaceExists(ifc); err != nil {
 		t.Error("Should pass with valid interface. Interface received:", ifc)
 	}
 }
 
 func TestCheckInterfaceExistsPassesWithPlus(t *testing.T) {
 	ifc := "cali+"
-	if err := CheckInterfaceExists(ifc); err != nil {
+	if err := checkInterfaceExists(ifc); err != nil {
 		t.Error("Should pass with external networking. Interface received:", ifc)
 	}
 }

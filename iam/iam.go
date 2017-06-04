@@ -1,4 +1,4 @@
-package cmd
+package iam
 
 import (
 	"fmt"
@@ -21,12 +21,13 @@ const (
 	ttl               = time.Minute * 15
 )
 
-type iam struct {
-	baseARN string
+// Client represents an IAM client.
+type Client struct {
+	BaseARN string
 }
 
-// credentials represent the security credentials response.
-type credentials struct {
+// Credentials represent the security Credentials response.
+type Credentials struct {
 	AccessKeyID     string `json:"AccessKeyId"`
 	Code            string
 	Expiration      string
@@ -36,11 +37,12 @@ type credentials struct {
 	Type            string
 }
 
-func (iam *iam) roleARN(role string) string {
+// RoleARN returns the full iam role ARN.
+func (iam *Client) RoleARN(role string) string {
 	if strings.HasPrefix(strings.ToLower(role), fullArnPrefix) {
 		return role
 	}
-	return fmt.Sprintf("%s%s", iam.baseARN, role)
+	return fmt.Sprintf("%s%s", iam.BaseARN, role)
 }
 
 func getHash(text string) string {
@@ -69,12 +71,12 @@ func GetBaseArn() (string, error) {
 	arn := strings.Replace(iamInfo.InstanceProfileArn, "instance-profile", "role", 1)
 	baseArn := strings.Split(arn, "/")
 	if len(baseArn) != 2 {
-		return "", fmt.Errorf("Can't determine baseARN")
+		return "", fmt.Errorf("Can't determine BaseARN")
 	}
 	return fmt.Sprintf("%s/", baseArn[0]), nil
 }
 
-// GetInstanceIamRole get instance iam role from metadata service
+// GetInstanceIamRole get instance Client role from metadata service
 func GetInstanceIamRole() (string, error) {
 	sess, err := session.NewSession()
 	if err != nil {
@@ -84,7 +86,7 @@ func GetInstanceIamRole() (string, error) {
 	if !metadata.Available() {
 		return "", fmt.Errorf("EC2 Metadata is not available, are you running on EC2?")
 	}
-	iamRole, err := metadata.GetMetadata("iam/security-credentials/")
+	iamRole, err := metadata.GetMetadata("Client/security-Credentials/")
 	if err != nil {
 		return "", err
 	}
@@ -100,7 +102,8 @@ func sessionName(roleARN, remoteIP string) string {
 	return fmt.Sprintf("%.[2]*[1]s", name, maxSessNameLength)
 }
 
-func (iam *iam) assumeRole(roleARN, remoteIP string) (*credentials, error) {
+// AssumeRole returns an IAM role Credentials using AWS STS.
+func (iam *Client) AssumeRole(roleARN, remoteIP string) (*Credentials, error) {
 	item, err := cache.Fetch(roleARN, ttl, func() (interface{}, error) {
 		sess, err := session.NewSession()
 		if err != nil {
@@ -116,7 +119,7 @@ func (iam *iam) assumeRole(roleARN, remoteIP string) (*credentials, error) {
 			return nil, err
 		}
 
-		return &credentials{
+		return &Credentials{
 			AccessKeyID:     *resp.Credentials.AccessKeyId,
 			Code:            "Success",
 			Expiration:      resp.Credentials.Expiration.Format("2006-01-02T15:04:05Z"),
@@ -129,9 +132,10 @@ func (iam *iam) assumeRole(roleARN, remoteIP string) (*credentials, error) {
 	if err != nil {
 		return nil, err
 	}
-	return item.Value().(*credentials), nil
+	return item.Value().(*Credentials), nil
 }
 
-func newIAM(baseARN string) *iam {
-	return &iam{baseARN: baseARN}
+// NewClient returns a new IAM client.
+func NewClient(baseARN string) *Client {
+	return &Client{BaseARN: baseARN}
 }

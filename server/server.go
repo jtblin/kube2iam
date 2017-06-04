@@ -1,4 +1,4 @@
-package cmd
+package server
 
 import (
 	"encoding/json"
@@ -15,6 +15,11 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/cenk/backoff"
 	"github.com/gorilla/mux"
+
+	"github.com/jtblin/kube2iam"
+	"github.com/jtblin/kube2iam/iam"
+	"github.com/jtblin/kube2iam/k8s"
+	"github.com/jtblin/kube2iam/store"
 )
 
 const (
@@ -47,9 +52,9 @@ type Server struct {
 	NamespaceRestriction    bool
 	Verbose                 bool
 	Version                 bool
-	iam                     *iam
-	k8s                     *k8s
-	store                   *store
+	iam                     *iam.Client
+	k8s                     *k8s.Client
+	store                   *store.Store
 	BackoffMaxElapsedTime   time.Duration
 	BackoffMaxInterval      time.Duration
 }
@@ -159,7 +164,7 @@ func (s *Server) debugStoreHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Write(o)
+	write(w, string(o))
 }
 
 func (s *Server) securityCredentialsHandler(w http.ResponseWriter, r *http.Request) {
@@ -170,10 +175,10 @@ func (s *Server) securityCredentialsHandler(w http.ResponseWriter, r *http.Reque
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	roleARN := s.iam.roleARN(role)
+	roleARN := s.iam.RoleARN(role)
 	// If a base ARN has been supplied and this is not cross-account then
 	// return a simple role-name, otherwise return the full ARN
-	if s.iam.baseARN != "" && strings.HasPrefix(roleARN, s.iam.baseARN) {
+	if s.iam.BaseARN != "" && strings.HasPrefix(roleARN, s.iam.BaseARN) {
 		idx := strings.LastIndex(roleARN, "/")
 		write(w, roleARN[idx+1:])
 		return
@@ -189,7 +194,7 @@ func (s *Server) roleHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	podRoleARN := s.iam.roleARN(podRole)
+	podRoleARN := s.iam.RoleARN(podRole)
 
 	isRestricted, namespace := s.store.CheckNamespaceRestriction(podRoleARN, remoteIP)
 	if !isRestricted {
@@ -200,7 +205,7 @@ func (s *Server) roleHandler(w http.ResponseWriter, r *http.Request) {
 	allowedRoleARN := podRoleARN
 
 	wantedRole := mux.Vars(r)["role"]
-	wantedRoleARN := s.iam.roleARN(wantedRole)
+	wantedRoleARN := s.iam.RoleARN(wantedRole)
 	log.Debugf("Pod with RemoteAddr %s is annotated with role '%s' ('%s'), wants role '%s' ('%s')",
 		remoteIP, allowedRole, allowedRoleARN, wantedRole, wantedRoleARN)
 	if wantedRoleARN != allowedRoleARN {
@@ -210,7 +215,7 @@ func (s *Server) roleHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	credentials, err := s.iam.assumeRole(wantedRoleARN, remoteIP)
+	credentials, err := s.iam.AssumeRole(wantedRoleARN, remoteIP)
 	if err != nil {
 		log.Errorf("Error assuming role %+v for pod at %s with namespace %s", err, remoteIP, namespace)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -237,16 +242,16 @@ func write(w http.ResponseWriter, s string) {
 
 // Run runs the specified Server.
 func (s *Server) Run(host, token string, insecure bool) error {
-	k8s, err := newK8s(host, token, insecure)
+	k, err := k8s.NewClient(host, token, insecure)
 	if err != nil {
 		return err
 	}
-	s.k8s = k8s
-	s.iam = newIAM(s.BaseRoleARN)
-	model := newStore(s.IAMRoleKey, s.DefaultIAMRole, s.NamespaceRestriction, s.NamespaceKey, s.iam)
+	s.k8s = k
+	s.iam = iam.NewClient(s.BaseRoleARN)
+	model := store.NewStore(s.IAMRoleKey, s.DefaultIAMRole, s.NamespaceRestriction, s.NamespaceKey, s.iam)
 	s.store = model
-	s.k8s.watchForPods(newPodHandler(model))
-	s.k8s.watchForNamespaces(newNamespaceHandler(model))
+	s.k8s.WatchForPods(kube2iam.NewPodHandler(model))
+	s.k8s.WatchForNamespaces(kube2iam.NewNamespaceHandler(model))
 	r := mux.NewRouter()
 	if s.Debug {
 		// This is a potential security risk if enabled in some clusters, hence the flag

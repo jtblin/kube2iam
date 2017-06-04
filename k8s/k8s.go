@@ -1,4 +1,4 @@
-package cmd
+package k8s
 
 import (
 	"time"
@@ -8,7 +8,7 @@ import (
 	"k8s.io/client-go/pkg/api/v1"
 	selector "k8s.io/client-go/pkg/fields"
 	"k8s.io/client-go/rest"
-	kcache "k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/cache"
 )
 
 const (
@@ -16,17 +16,19 @@ const (
 	resyncPeriod = 30 * time.Minute
 )
 
-type k8s struct {
+// Client represents a kubernetes client.
+type Client struct {
 	*kubernetes.Clientset
 }
 
 // Returns a cache.ListWatch that gets all changes to pods.
-func (k8s *k8s) createPodLW() *kcache.ListWatch {
-	return kcache.NewListWatchFromClient(k8s.CoreV1().RESTClient(), "pods", v1.NamespaceAll, selector.Everything())
+func (k8s *Client) createPodLW() *cache.ListWatch {
+	return cache.NewListWatchFromClient(k8s.CoreV1().RESTClient(), "pods", v1.NamespaceAll, selector.Everything())
 }
 
-func (k8s *k8s) watchForPods(podManager kcache.ResourceEventHandler) kcache.Store {
-	podStore, podController := kcache.NewInformer(
+// WatchForPods watches for pod changes.
+func (k8s *Client) WatchForPods(podManager cache.ResourceEventHandler) cache.Store {
+	podStore, podController := cache.NewInformer(
 		k8s.createPodLW(),
 		&v1.Pod{},
 		resyncPeriod,
@@ -37,12 +39,13 @@ func (k8s *k8s) watchForPods(podManager kcache.ResourceEventHandler) kcache.Stor
 }
 
 // returns a listwatcher of namespaces
-func (k8s *k8s) createNamespaceLW() *kcache.ListWatch {
-	return kcache.NewListWatchFromClient(k8s.CoreV1().RESTClient(), "namespaces", v1.NamespaceAll, selector.Everything())
+func (k8s *Client) createNamespaceLW() *cache.ListWatch {
+	return cache.NewListWatchFromClient(k8s.CoreV1().RESTClient(), "namespaces", v1.NamespaceAll, selector.Everything())
 }
 
-func (k8s *k8s) watchForNamespaces(nsManager kcache.ResourceEventHandler) kcache.Store {
-	nsStore, nsController := kcache.NewInformer(
+// WatchForNamespaces watches for namespaces changes.
+func (k8s *Client) WatchForNamespaces(nsManager cache.ResourceEventHandler) cache.Store {
+	nsStore, nsController := cache.NewInformer(
 		k8s.createNamespaceLW(),
 		&v1.Namespace{},
 		resyncPeriod,
@@ -52,7 +55,8 @@ func (k8s *k8s) watchForNamespaces(nsManager kcache.ResourceEventHandler) kcache
 	return nsStore
 }
 
-func newK8s(host, token string, insecure bool) (*k8s, error) {
+// NewClient returns a new kubernetes client.
+func NewClient(host, token string, insecure bool) (*Client, error) {
 	var config *rest.Config
 	var err error
 	if host != "" && token != "" {
@@ -71,5 +75,5 @@ func newK8s(host, token string, insecure bool) (*k8s, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &k8s{client}, nil
+	return &Client{client}, nil
 }

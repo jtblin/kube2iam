@@ -1,18 +1,21 @@
-package cmd
+package kube2iam
 
 import (
 	"encoding/json"
 
 	log "github.com/Sirupsen/logrus"
 	"k8s.io/client-go/pkg/api/v1"
+
+	"github.com/jtblin/kube2iam/store"
 )
 
-type namespaceHandler struct {
-	storage *store
+// NamespaceHandler represents a namespace handler.
+type NamespaceHandler struct {
+	storage *store.Store
 }
 
 // OnAdd called with a namespace is added to k8s
-func (h *namespaceHandler) OnAdd(obj interface{}) {
+func (h *NamespaceHandler) OnAdd(obj interface{}) {
 	ns, ok := obj.(*v1.Namespace)
 	if !ok {
 		log.Errorf("Expected Namespace but OnAdd handler received %+v", obj)
@@ -30,7 +33,7 @@ func (h *namespaceHandler) OnAdd(obj interface{}) {
 }
 
 // OnUpdate called with a namespace is updated inside k8s
-func (h *namespaceHandler) OnUpdate(oldObj, newObj interface{}) {
+func (h *NamespaceHandler) OnUpdate(oldObj, newObj interface{}) {
 	//ons, ok := oldObj.(*v1.Namespace)
 	nns, ok := newObj.(*v1.Namespace)
 	if !ok {
@@ -49,7 +52,7 @@ func (h *namespaceHandler) OnUpdate(oldObj, newObj interface{}) {
 }
 
 // OnDelete called with a namespace is removed from k8s
-func (h *namespaceHandler) OnDelete(obj interface{}) {
+func (h *NamespaceHandler) OnDelete(obj interface{}) {
 	ns, ok := obj.(*v1.Namespace)
 	if !ok {
 		log.Errorf("Expected Namespace but OnDelete handler received %+v", obj)
@@ -61,8 +64,8 @@ func (h *namespaceHandler) OnDelete(obj interface{}) {
 
 // getRoleAnnotations reads the "iam.amazonaws.com/allowed-roles" annotation off a namespace
 // and splits them as a JSON list (["role1", "role2", "role3"])
-func (h *namespaceHandler) getRoleAnnotation(ns *v1.Namespace) []string {
-	rolesString := ns.Annotations[h.storage.namespaceKey]
+func (h *NamespaceHandler) getRoleAnnotation(ns *v1.Namespace) []string {
+	rolesString := ns.Annotations[h.storage.NamespaceKey]
 	if rolesString != "" {
 		var decoded []string
 		if err := json.Unmarshal([]byte(rolesString), &decoded); err != nil {
@@ -73,8 +76,9 @@ func (h *namespaceHandler) getRoleAnnotation(ns *v1.Namespace) []string {
 	return nil
 }
 
-func newNamespaceHandler(s *store) *namespaceHandler {
-	return &namespaceHandler{
+// NewNamespaceHandler returns a new namespace handler.
+func NewNamespaceHandler(s *store.Store) *NamespaceHandler {
+	return &NamespaceHandler{
 		storage: s,
 	}
 }

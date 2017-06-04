@@ -1,4 +1,4 @@
-package cmd
+package store
 
 import (
 	"fmt"
@@ -6,23 +6,25 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"k8s.io/client-go/pkg/api/v1"
+
+	"github.com/jtblin/kube2iam/iam"
 )
 
-// store implements the k8s framework ResourceEventHandler interface.
-type store struct {
+// Store implements the k8s framework ResourceEventHandler interface.
+type Store struct {
 	defaultRole          string
-	iamRoleKey           string
-	namespaceKey         string
+	IamRoleKey           string
+	NamespaceKey         string
 	namespaceRestriction bool
 	mutex                sync.RWMutex
 	rolesByIP            map[string]string
 	rolesByNamespace     map[string][]string
 	namespaceByIP        map[string]string
-	iam                  *iam
+	iam                  *iam.Client
 }
 
 // Get returns the iam role based on IP address.
-func (s *store) Get(IP string) (string, error) {
+func (s *Store) Get(IP string) (string, error) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 	if role, ok := s.rolesByIP[IP]; ok {
@@ -35,20 +37,23 @@ func (s *store) Get(IP string) (string, error) {
 	return "", fmt.Errorf("Unable to find role for IP %s", IP)
 }
 
-func (s *store) AddRoleToIP(pod *v1.Pod, role string) {
+// AddRoleToIP caches the role for the given IP address.
+func (s *Store) AddRoleToIP(pod *v1.Pod, role string) {
 	s.mutex.Lock()
 	s.rolesByIP[pod.Status.PodIP] = role
 	s.mutex.Unlock()
 }
 
-func (s *store) AddNamespaceToIP(pod *v1.Pod) {
+// AddNamespaceToIP caches the namespace for the given IP address.
+func (s *Store) AddNamespaceToIP(pod *v1.Pod) {
 	namespace := pod.GetNamespace()
 	s.mutex.Lock()
 	s.namespaceByIP[pod.Status.PodIP] = namespace
 	s.mutex.Unlock()
 }
 
-func (s *store) DeleteIP(ip string) {
+// DeleteIP deletes the IP address from the cache.
+func (s *Store) DeleteIP(ip string) {
 	s.mutex.Lock()
 	delete(s.rolesByIP, ip)
 	delete(s.namespaceByIP, ip)
@@ -56,9 +61,9 @@ func (s *store) DeleteIP(ip string) {
 }
 
 // AddRoleToNamespace takes a role name and adds it to our internal state
-func (s *store) AddRoleToNamespace(namespace string, role string) {
+func (s *Store) AddRoleToNamespace(namespace string, role string) {
 	// Make sure to add the full ARN of roles to ensure string matching works
-	roleARN := s.iam.roleARN(role)
+	roleARN := s.iam.RoleARN(role)
 
 	ar := s.rolesByNamespace[namespace]
 
@@ -81,9 +86,9 @@ func (s *store) AddRoleToNamespace(namespace string, role string) {
 }
 
 // RemoveRoleFromNamespace takes a role and removes it from a namespace mapping
-func (s *store) RemoveRoleFromNamespace(namespace string, role string) {
+func (s *Store) RemoveRoleFromNamespace(namespace string, role string) {
 	// Make sure to remove the full ARN of roles to ensure string matching works
-	roleARN := s.iam.roleARN(role)
+	roleARN := s.iam.RoleARN(role)
 
 	ar := s.rolesByNamespace[namespace]
 	for i := range ar {
@@ -98,7 +103,7 @@ func (s *store) RemoveRoleFromNamespace(namespace string, role string) {
 }
 
 // DeleteNamespace removes all role mappings from a namespace
-func (s *store) DeleteNamespace(namespace string) {
+func (s *Store) DeleteNamespace(namespace string) {
 	s.mutex.Lock()
 	delete(s.rolesByNamespace, namespace)
 	s.mutex.Unlock()
@@ -106,7 +111,7 @@ func (s *store) DeleteNamespace(namespace string) {
 
 // checkRoleForNamespace checks the 'database' for a role allowed in a namespace,
 // returns true if the role is found, otheriwse false
-func (s *store) checkRoleForNamespace(role string, namespace string) bool {
+func (s *Store) checkRoleForNamespace(role string, namespace string) bool {
 	ar := s.rolesByNamespace[namespace]
 	for _, r := range ar {
 		if r == role {
@@ -118,7 +123,8 @@ func (s *store) checkRoleForNamespace(role string, namespace string) bool {
 	return false
 }
 
-func (s *store) CheckNamespaceRestriction(role string, ip string) (bool, string) {
+// CheckNamespaceRestriction checks the namespace restrictions for the current pod.
+func (s *Store) CheckNamespaceRestriction(role string, ip string) (bool, string) {
 	ns := s.namespaceByIP[ip]
 
 	// if the namespace restrictions are not in place early out true
@@ -127,30 +133,34 @@ func (s *store) CheckNamespaceRestriction(role string, ip string) (bool, string)
 	}
 
 	// if the role is the default role you are also good
-	if role == s.iam.roleARN(s.defaultRole) {
+	if role == s.iam.RoleARN(s.defaultRole) {
 		return true, ns
 	}
 
 	return s.checkRoleForNamespace(role, ns), ns
 }
 
-func (s *store) DumpRolesByIP() map[string]string {
+// DumpRolesByIP outputs all the roles by IP address.
+func (s *Store) DumpRolesByIP() map[string]string {
 	return s.rolesByIP
 }
 
-func (s *store) DumpRolesByNamespace() map[string][]string {
+// DumpRolesByNamespace outputs all the roles by namespace.
+func (s *Store) DumpRolesByNamespace() map[string][]string {
 	return s.rolesByNamespace
 }
 
-func (s *store) DumpNamespaceByIP() map[string]string {
+// DumpNamespaceByIP outputs all the namespaces by IP address.
+func (s *Store) DumpNamespaceByIP() map[string]string {
 	return s.namespaceByIP
 }
 
-func newStore(key string, defaultRole string, namespaceRestriction bool, namespaceKey string, iamInstance *iam) *store {
-	return &store{
+// NewStore returns a new Store for iam roles.
+func NewStore(key string, defaultRole string, namespaceRestriction bool, namespaceKey string, iamInstance *iam.Client) *Store {
+	return &Store{
 		defaultRole:          defaultRole,
-		iamRoleKey:           key,
-		namespaceKey:         namespaceKey,
+		IamRoleKey:           key,
+		NamespaceKey:         namespaceKey,
 		namespaceRestriction: namespaceRestriction,
 		rolesByIP:            make(map[string]string),
 		rolesByNamespace:     make(map[string][]string),

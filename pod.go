@@ -1,17 +1,20 @@
-package cmd
+package kube2iam
 
 import (
 	log "github.com/Sirupsen/logrus"
 	"k8s.io/client-go/pkg/api/v1"
-	kcache "k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/cache"
+
+	"github.com/jtblin/kube2iam/store"
 )
 
-type podHandler struct {
-	storage *store
+// PodHandler represents a pod handler.
+type PodHandler struct {
+	storage *store.Store
 }
 
 // OnAdd is called when a pod is added.
-func (p *podHandler) OnAdd(obj interface{}) {
+func (p *PodHandler) OnAdd(obj interface{}) {
 	pod, ok := obj.(*v1.Pod)
 	if !ok {
 		log.Errorf("Expected Pod but OnAdd handler received %+v", obj)
@@ -22,7 +25,7 @@ func (p *podHandler) OnAdd(obj interface{}) {
 	p.storage.AddNamespaceToIP(pod)
 
 	if pod.Status.PodIP != "" {
-		if role, ok := pod.Annotations[p.storage.iamRoleKey]; ok {
+		if role, ok := pod.Annotations[p.storage.IamRoleKey]; ok {
 			log.Debugf("- Role %s", role)
 			p.storage.AddRoleToIP(pod, role)
 		}
@@ -30,7 +33,7 @@ func (p *podHandler) OnAdd(obj interface{}) {
 }
 
 // OnUpdate is called when a pod is modified.
-func (p *podHandler) OnUpdate(oldObj, newObj interface{}) {
+func (p *PodHandler) OnUpdate(oldObj, newObj interface{}) {
 	oldPod, ok1 := oldObj.(*v1.Pod)
 	newPod, ok2 := newObj.(*v1.Pod)
 	if !ok1 || !ok2 {
@@ -45,7 +48,7 @@ func (p *podHandler) OnUpdate(oldObj, newObj interface{}) {
 		return
 	}
 
-	if annotationDiffers(oldPod.Annotations, newPod.Annotations, p.storage.iamRoleKey) {
+	if annotationDiffers(oldPod.Annotations, newPod.Annotations, p.storage.IamRoleKey) {
 		log.Debugf("Updating pod %s due to added/updated annotation value", newPod.GetName())
 		p.OnDelete(oldPod)
 		p.OnAdd(newPod)
@@ -54,10 +57,10 @@ func (p *podHandler) OnUpdate(oldObj, newObj interface{}) {
 }
 
 // OnDelete is called when a pod is deleted.
-func (p *podHandler) OnDelete(obj interface{}) {
+func (p *PodHandler) OnDelete(obj interface{}) {
 	pod, ok := obj.(*v1.Pod)
 	if !ok {
-		deletedObj, dok := obj.(kcache.DeletedFinalStateUnknown)
+		deletedObj, dok := obj.(cache.DeletedFinalStateUnknown)
 		if dok {
 			pod, ok = deletedObj.Obj.(*v1.Pod)
 		}
@@ -84,8 +87,9 @@ func annotationDiffers(oldAnnotations, newAnnotations map[string]string, annotat
 	return false
 }
 
-func newPodHandler(s *store) *podHandler {
-	return &podHandler{
+// NewPodHandler returns a new pod handler.
+func NewPodHandler(s *store.Store) *PodHandler {
+	return &PodHandler{
 		storage: s,
 	}
 }

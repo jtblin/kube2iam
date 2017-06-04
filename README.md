@@ -287,7 +287,7 @@ Usage of ./build/bin/darwin/kube2iam:
       --api-token string                    Token to authenticate with the api server
       --app-port string                     Http port (default "8181")
       --auto-discover-base-arn              Queries EC2 Metadata to determine the base ARN
-      --auto-discover-default-role          Queries EC2 Metadata to determine the default Iam Role, can't be used with --default-role
+      --auto-discover-default-role          Queries EC2 Metadata to determine the default Iam Role, cannot be used with --default-role
       --backoff-max-elapsed-time duration   Max elapsed time for backoff when querying for role. (default 2s)
       --backoff-max-interval duration       Max interval for backoff when querying for role. (default 1s)
       --base-role-arn string                Base role ARN

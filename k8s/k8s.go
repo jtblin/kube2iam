@@ -38,7 +38,7 @@ func (k8s *Client) WatchForPods(podManager cache.ResourceEventHandler) cache.Sto
 	return podStore
 }
 
-// returns a listwatcher of namespaces
+// returns a cache.ListWatch of namespaces.
 func (k8s *Client) createNamespaceLW() *cache.ListWatch {
 	return cache.NewListWatchFromClient(k8s.CoreV1().RESTClient(), "namespaces", v1.NamespaceAll, selector.Everything())
 }

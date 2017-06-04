@@ -14,7 +14,13 @@ type NamespaceHandler struct {
 	storage *store.Store
 }
 
-// OnAdd called with a namespace is added to k8s
+func (h *NamespaceHandler) namespaceFields(ns *v1.Namespace) log.Fields {
+	return log.Fields{
+		"ns.name": ns.GetName(),
+	}
+}
+
+// OnAdd called with a namespace is added to k8s.
 func (h *NamespaceHandler) OnAdd(obj interface{}) {
 	ns, ok := obj.(*v1.Namespace)
 	if !ok {
@@ -22,17 +28,17 @@ func (h *NamespaceHandler) OnAdd(obj interface{}) {
 		return
 	}
 
-	log.Debugf("Namespace OnAdd %s", ns.GetName())
+	log.WithFields(h.namespaceFields(ns)).Debug("Namespace OnAdd")
 
 	roles := h.getRoleAnnotation(ns)
 	for _, role := range roles {
-		log.Debugf("- Role %s", role)
+		log.WithFields(h.namespaceFields(ns)).WithField("ns.role", role).Debug("Namespace OnAdd - Role")
 		h.storage.AddRoleToNamespace(ns.GetName(), role)
 	}
 
 }
 
-// OnUpdate called with a namespace is updated inside k8s
+// OnUpdate called with a namespace is updated inside k8s.
 func (h *NamespaceHandler) OnUpdate(oldObj, newObj interface{}) {
 	//ons, ok := oldObj.(*v1.Namespace)
 	nns, ok := newObj.(*v1.Namespace)
@@ -40,25 +46,25 @@ func (h *NamespaceHandler) OnUpdate(oldObj, newObj interface{}) {
 		log.Errorf("Expected Namespace but OnUpdate handler received %+v", newObj)
 		return
 	}
-	log.Debugf("Namespace OnUpdate %s", nns.GetName())
+	log.WithFields(h.namespaceFields(nns)).Debug("Namespace OnUpdate")
 
 	roles := h.getRoleAnnotation(nns)
 	nsname := nns.GetName()
 	h.storage.DeleteNamespace(nsname)
 	for _, role := range roles {
-		log.Debugf("- Role %s", role)
+		log.WithFields(h.namespaceFields(nns)).WithField("ns.role", role).Debug("Namespace OnUpdate - Role")
 		h.storage.AddRoleToNamespace(nsname, role)
 	}
 }
 
-// OnDelete called with a namespace is removed from k8s
+// OnDelete called with a namespace is removed from k8s.
 func (h *NamespaceHandler) OnDelete(obj interface{}) {
 	ns, ok := obj.(*v1.Namespace)
 	if !ok {
 		log.Errorf("Expected Namespace but OnDelete handler received %+v", obj)
 		return
 	}
-	log.Debugf("Namespace OnDelete %s", ns.GetName())
+	log.WithFields(h.namespaceFields(ns)).Debug("Namespace OnDelete")
 	h.storage.DeleteNamespace(ns.GetName())
 }
 

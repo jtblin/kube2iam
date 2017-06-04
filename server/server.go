@@ -59,13 +59,31 @@ type Server struct {
 	BackoffMaxInterval      time.Duration
 }
 
-type appHandler func(http.ResponseWriter, *http.Request)
+type appHandler func(*log.Entry, http.ResponseWriter, *http.Request)
+
+type responseWriter struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func (rw *responseWriter) WriteHeader(code int) {
+	rw.statusCode = code
+	rw.ResponseWriter.WriteHeader(code)
+}
+
+func newResponseWriter(w http.ResponseWriter) *responseWriter {
+	return &responseWriter{w, http.StatusOK}
+}
 
 // ServeHTTP implements the net/http server Handler interface
 // and recovers from panics.
 func (fn appHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	log.Debugf("Requesting %s", r.RequestURI)
-	log.Debugf("RemoteAddr %s", parseRemoteAddr(r.RemoteAddr))
+	logger := log.WithFields(log.Fields{
+		"req.method": r.Method,
+		"req.path":   r.URL.Path,
+		"req.remote": parseRemoteAddr(r.RemoteAddr),
+	})
+	start := time.Now()
 	defer func() {
 		var err error
 		if rec := recover(); rec != nil {
@@ -77,11 +95,16 @@ func (fn appHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			default:
 				err = errors.New("Unknown error")
 			}
-			log.Errorf("PANIC error processing request for %s: %+v", r.RequestURI, err)
+			logger.WithField("res.status", http.StatusInternalServerError).
+				Errorf("PANIC error processing request: %+v", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	}()
-	fn(w, r)
+	rw := newResponseWriter(w)
+	fn(logger, rw, r)
+	latency := time.Since(start)
+	logger.WithFields(log.Fields{"res.duration": latency.Nanoseconds(), "res.status": rw.statusCode}).
+		Info("Handling request")
 }
 
 func parseRemoteAddr(addr string) string {
@@ -122,7 +145,7 @@ type HealthResponse struct {
 	InstanceID string `json:"instanceId"`
 }
 
-func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) healthHandler(logger *log.Entry, w http.ResponseWriter, r *http.Request) {
 	resp, err := http.Get(fmt.Sprintf("http://%s/latest/meta-data/instance-id", s.MetadataAddress))
 	if err != nil {
 		log.Errorf("Error getting instance id %+v", err)
@@ -150,7 +173,7 @@ func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) debugStoreHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) debugStoreHandler(logger *log.Entry, w http.ResponseWriter, r *http.Request) {
 	output := make(map[string]interface{})
 
 	output["rolesByIP"] = s.store.DumpRolesByIP()
@@ -164,10 +187,10 @@ func (s *Server) debugStoreHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	write(w, string(o))
+	write(logger, w, string(o))
 }
 
-func (s *Server) securityCredentialsHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) securityCredentialsHandler(logger *log.Entry, w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Server", "EC2ws")
 	remoteIP := parseRemoteAddr(r.RemoteAddr)
 	role, err := s.getRole(remoteIP)
@@ -180,63 +203,68 @@ func (s *Server) securityCredentialsHandler(w http.ResponseWriter, r *http.Reque
 	// return a simple role-name, otherwise return the full ARN
 	if s.iam.BaseARN != "" && strings.HasPrefix(roleARN, s.iam.BaseARN) {
 		idx := strings.LastIndex(roleARN, "/")
-		write(w, roleARN[idx+1:])
+		write(logger, w, roleARN[idx+1:])
 		return
 	}
-	write(w, roleARN)
+	write(logger, w, roleARN)
 }
 
-func (s *Server) roleHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) roleHandler(logger *log.Entry, w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Server", "EC2ws")
 	remoteIP := parseRemoteAddr(r.RemoteAddr)
+
 	podRole, err := s.getRole(remoteIP)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	podRoleARN := s.iam.RoleARN(podRole)
 
-	isRestricted, namespace := s.store.CheckNamespaceRestriction(podRoleARN, remoteIP)
-	if !isRestricted {
+	podRoleARN := s.iam.RoleARN(podRole)
+	isAllowed, namespace := s.store.CheckNamespaceRestriction(podRoleARN, remoteIP)
+
+	roleLogger := logger.WithFields(log.Fields{
+		"pod.iam.role":    podRole,
+		"ns.name": namespace,
+	})
+
+	if !isAllowed {
+		roleLogger.Warn("Rejected due to namespace restrictions")
 		http.Error(w, fmt.Sprintf("Role requested %s not valid for namespace of pod at %s with namespace %s", podRole, remoteIP, namespace), http.StatusNotFound)
 		return
 	}
-	allowedRole := podRole
-	allowedRoleARN := podRoleARN
 
 	wantedRole := mux.Vars(r)["role"]
 	wantedRoleARN := s.iam.RoleARN(wantedRole)
-	log.Debugf("Pod with RemoteAddr %s is annotated with role '%s' ('%s'), wants role '%s' ('%s')",
-		remoteIP, allowedRole, allowedRoleARN, wantedRole, wantedRoleARN)
-	if wantedRoleARN != allowedRoleARN {
-		log.Errorf("Invalid role '%s' ('%s') for RemoteAddr %s: does not match annotated role '%s' ('%s')",
-			wantedRole, wantedRoleARN, remoteIP, allowedRole, allowedRoleARN)
+
+	if wantedRoleARN != podRoleARN {
+		roleLogger.WithField("params.iam.role", wantedRole).
+			Error("Invalid role: does not match annotated role")
 		http.Error(w, fmt.Sprintf("Invalid role %s", wantedRole), http.StatusForbidden)
 		return
 	}
 
 	credentials, err := s.iam.AssumeRole(wantedRoleARN, remoteIP)
 	if err != nil {
-		log.Errorf("Error assuming role %+v for pod at %s with namespace %s", err, remoteIP, namespace)
+		roleLogger.Errorf("Error assuming role %+v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	if err := json.NewEncoder(w).Encode(credentials); err != nil {
-		log.Errorf("Error sending json %+v", err)
+		roleLogger.Errorf("Error sending json %+v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
-func (s *Server) reverseProxyHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) reverseProxyHandler(logger *log.Entry, w http.ResponseWriter, r *http.Request) {
 	proxy := httputil.NewSingleHostReverseProxy(&url.URL{Scheme: "http", Host: s.MetadataAddress})
 	proxy.ServeHTTP(w, r)
-	log.Debugf("Proxied %s", r.RequestURI)
+	logger.WithField("metadata.url", s.MetadataAddress).Debug("Proxy ec2 metadata request")
 }
 
-func write(w http.ResponseWriter, s string) {
+func write(logger *log.Entry, w http.ResponseWriter, s string) {
 	if _, err := w.Write([]byte(s)); err != nil {
-		log.Errorf("Error writing response: %+v", err)
+		logger.Errorf("Error writing response: %+v", err)
 	}
 }
 

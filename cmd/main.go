@@ -1,6 +1,9 @@
 package main
 
 import (
+	"regexp"
+	"strings"
+
 	log "github.com/Sirupsen/logrus"
 	"github.com/spf13/pflag"
 
@@ -34,6 +37,8 @@ func addFlags(s *server.Server, fs *pflag.FlagSet) {
 	fs.BoolVar(&s.Version, "version", false, "Print the version and exits")
 }
 
+var arnRegexp = regexp.MustCompile(`^arn:\w*:iam:\w*:\w*:role\/?$`)
+
 func main() {
 	s := server.NewServer()
 	addFlags(s, pflag.CommandLine)
@@ -46,6 +51,15 @@ func main() {
 
 	if s.Version {
 		version.PrintVersionAndExit()
+	}
+
+	if s.BaseRoleARN != "" {
+		if !arnRegexp.MatchString(s.BaseRoleARN) {
+			log.Fatalf("Invalid --base-role-arn specified, expected: %s", arnRegexp.String())
+		}
+		if !strings.HasSuffix(s.BaseRoleARN, "/") {
+			s.BaseRoleARN += "/"
+		}
 	}
 
 	if s.AutoDiscoverBaseArn {

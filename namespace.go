@@ -42,10 +42,10 @@ func (h *NamespaceHandler) OnAdd(obj interface{}) {
 
 // OnUpdate called with a namespace is updated inside k8s.
 func (h *NamespaceHandler) OnUpdate(oldObj, newObj interface{}) {
-	ons, ok := oldObj.(*v1.Namespace)
-	nns, ok := newObj.(*v1.Namespace)
-	if !ok {
-		log.Errorf("Expected Namespace but OnUpdate handler received %+v", newObj)
+	ons, ok1 := oldObj.(*v1.Namespace)
+	nns, ok2 := newObj.(*v1.Namespace)
+	if !ok1 || !ok2 {
+		log.Errorf("Expected Namespace but OnUpdate handler received %+v %+v", oldObj, newObj)
 		return
 	}
 	logger := log.WithFields(h.namespaceFields(nns))

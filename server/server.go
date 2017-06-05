@@ -223,8 +223,8 @@ func (s *Server) roleHandler(logger *log.Entry, w http.ResponseWriter, r *http.R
 	isAllowed, namespace := s.store.CheckNamespaceRestriction(podRoleARN, remoteIP)
 
 	roleLogger := logger.WithFields(log.Fields{
-		"pod.iam.role":    podRole,
-		"ns.name": namespace,
+		"pod.iam.role": podRole,
+		"ns.name":      namespace,
 	})
 
 	if !isAllowed {

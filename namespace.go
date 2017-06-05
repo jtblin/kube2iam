@@ -2,6 +2,7 @@ package kube2iam
 
 import (
 	"encoding/json"
+	"sync"
 
 	log "github.com/Sirupsen/logrus"
 	"k8s.io/client-go/pkg/api/v1"
@@ -11,6 +12,7 @@ import (
 
 // NamespaceHandler represents a namespace handler.
 type NamespaceHandler struct {
+	mutex   sync.RWMutex
 	storage *store.Store
 }
 
@@ -28,32 +30,38 @@ func (h *NamespaceHandler) OnAdd(obj interface{}) {
 		return
 	}
 
-	log.WithFields(h.namespaceFields(ns)).Debug("Namespace OnAdd")
+	logger := log.WithFields(h.namespaceFields(ns))
+	logger.Debug("Namespace OnAdd")
 
 	roles := h.getRoleAnnotation(ns)
 	for _, role := range roles {
-		log.WithFields(h.namespaceFields(ns)).WithField("ns.role", role).Debug("Namespace OnAdd - Role")
+		logger.WithField("ns.role", role).Info("Add role to namespace")
 		h.storage.AddRoleToNamespace(ns.GetName(), role)
 	}
-
 }
 
 // OnUpdate called with a namespace is updated inside k8s.
 func (h *NamespaceHandler) OnUpdate(oldObj, newObj interface{}) {
-	//ons, ok := oldObj.(*v1.Namespace)
+	ons, ok := oldObj.(*v1.Namespace)
 	nns, ok := newObj.(*v1.Namespace)
 	if !ok {
 		log.Errorf("Expected Namespace but OnUpdate handler received %+v", newObj)
 		return
 	}
-	log.WithFields(h.namespaceFields(nns)).Debug("Namespace OnUpdate")
+	logger := log.WithFields(h.namespaceFields(nns))
+	logger.Debug("Namespace OnUpdate")
 
-	roles := h.getRoleAnnotation(nns)
-	nsname := nns.GetName()
-	h.storage.DeleteNamespace(nsname)
-	for _, role := range roles {
-		log.WithFields(h.namespaceFields(nns)).WithField("ns.role", role).Debug("Namespace OnUpdate - Role")
-		h.storage.AddRoleToNamespace(nsname, role)
+	if annotationDiffers(ons.GetAnnotations(), nns.GetAnnotations(), h.storage.NamespaceKey) {
+		roles := h.getRoleAnnotation(nns)
+		nsName := nns.GetName()
+		h.mutex.Lock()
+		defer h.mutex.Unlock()
+		logger.Info("Deleting namespace from store (OnUpdate)")
+		h.storage.DeleteNamespace(nsName)
+		for _, role := range roles {
+			logger.WithField("ns.role", role).Info("Add role namespace (OnUpdate)")
+			h.storage.AddRoleToNamespace(nsName, role)
+		}
 	}
 }
 
@@ -64,14 +72,14 @@ func (h *NamespaceHandler) OnDelete(obj interface{}) {
 		log.Errorf("Expected Namespace but OnDelete handler received %+v", obj)
 		return
 	}
-	log.WithFields(h.namespaceFields(ns)).Debug("Namespace OnDelete")
+	log.WithFields(h.namespaceFields(ns)).Info("Deleting namespace from store (OnDelete)")
 	h.storage.DeleteNamespace(ns.GetName())
 }
 
 // getRoleAnnotations reads the "iam.amazonaws.com/allowed-roles" annotation off a namespace
 // and splits them as a JSON list (["role1", "role2", "role3"])
 func (h *NamespaceHandler) getRoleAnnotation(ns *v1.Namespace) []string {
-	rolesString := ns.Annotations[h.storage.NamespaceKey]
+	rolesString := ns.GetAnnotations()[h.storage.NamespaceKey]
 	if rolesString != "" {
 		var decoded []string
 		if err := json.Unmarshal([]byte(rolesString), &decoded); err != nil {

@@ -1,6 +1,8 @@
 package kube2iam
 
 import (
+	"sync"
+
 	log "github.com/Sirupsen/logrus"
 	"k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/tools/cache"
@@ -10,6 +12,7 @@ import (
 
 // PodHandler represents a pod handler.
 type PodHandler struct {
+	mutex   sync.RWMutex
 	storage *store.Store
 }
 
@@ -29,15 +32,22 @@ func (p *PodHandler) OnAdd(obj interface{}) {
 		log.Errorf("Expected Pod but OnAdd handler received %+v", obj)
 		return
 	}
-	log.WithFields(p.podFields(pod)).Debug("Pod OnAdd")
+	logger := log.WithFields(p.podFields(pod))
+	logger.Debug("Pod OnAdd")
 
 	p.storage.AddNamespaceToIP(pod)
 
 	if pod.Status.PodIP != "" {
 		if role, ok := pod.GetAnnotations()[p.storage.IamRoleKey]; ok {
+			logger.Info("Adding pod to store")
 			p.storage.AddRoleToIP(pod, role)
 		}
 	}
+}
+
+func (p *PodHandler) shouldUpdate(oldPod, newPod *v1.Pod) bool {
+	return oldPod.Status.PodIP != newPod.Status.PodIP ||
+		annotationDiffers(oldPod.GetAnnotations(), newPod.GetAnnotations(), p.storage.IamRoleKey)
 }
 
 // OnUpdate is called when a pod is modified.
@@ -51,17 +61,12 @@ func (p *PodHandler) OnUpdate(oldObj, newObj interface{}) {
 	logger := log.WithFields(p.podFields(newPod))
 	logger.Debug("Pod OnUpdate")
 
-	if oldPod.Status.PodIP != newPod.Status.PodIP {
+	if p.shouldUpdate(oldPod, newPod) {
+		logger.Info("Updating pod due to added/updated annotation value or different pod IP")
+		p.mutex.Lock()
+		defer p.mutex.Unlock()
 		p.OnDelete(oldPod)
 		p.OnAdd(newPod)
-		return
-	}
-
-	if annotationDiffers(oldPod.Annotations, newPod.Annotations, p.storage.IamRoleKey) {
-		logger.Debug("Updating pod due to added/updated annotation value")
-		p.OnDelete(oldPod)
-		p.OnAdd(newPod)
-		return
 	}
 }
 
@@ -80,9 +85,11 @@ func (p *PodHandler) OnDelete(obj interface{}) {
 		return
 	}
 
-	log.WithFields(p.podFields(pod)).Debug("Pod OnDelete")
+	logger := log.WithFields(p.podFields(pod))
+	logger.Debug("Pod OnDelete")
 
 	if pod.Status.PodIP != "" {
+		logger.Info("Removing pod from store")
 		p.storage.DeleteIP(pod.Status.PodIP)
 	}
 }

@@ -37,7 +37,7 @@ func addFlags(s *server.Server, fs *pflag.FlagSet) {
 	fs.BoolVar(&s.Version, "version", false, "Print the version and exits")
 }
 
-var arnRegexp = regexp.MustCompile(`^arn:\w*:iam:\w*:\w*:role\/?$`)
+var arnRegexp = regexp.MustCompile(`^arn:\w*:iam:\w*:\w*:role\/(\w+\/*)*$`)
 
 func main() {
 	s := server.NewServer()

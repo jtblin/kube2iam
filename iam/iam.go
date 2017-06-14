@@ -54,7 +54,7 @@ func getHash(text string) string {
 	return fmt.Sprintf("%x", h.Sum32())
 }
 
-// GetBaseArn get the base ARN from metadata service
+// GetBaseArn get the base ARN from metadata service.
 func GetBaseArn() (string, error) {
 	sess, err := session.NewSession()
 	if err != nil {
@@ -76,7 +76,7 @@ func GetBaseArn() (string, error) {
 	return fmt.Sprintf("%s/", baseArn[0]), nil
 }
 
-// GetInstanceIamRole get instance Client role from metadata service
+// GetInstanceIamRole get instance Client role from metadata service.
 func GetInstanceIamRole() (string, error) {
 	sess, err := session.NewSession()
 	if err != nil {
@@ -86,7 +86,7 @@ func GetInstanceIamRole() (string, error) {
 	if !metadata.Available() {
 		return "", fmt.Errorf("EC2 Metadata is not available, are you running on EC2?")
 	}
-	iamRole, err := metadata.GetMetadata("Client/security-Credentials/")
+	iamRole, err := metadata.GetMetadata("iam/security-credentials/")
 	if err != nil {
 		return "", err
 	}

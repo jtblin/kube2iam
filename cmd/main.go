@@ -1,7 +1,6 @@
 package main
 
 import (
-	"regexp"
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
@@ -37,8 +36,6 @@ func addFlags(s *server.Server, fs *pflag.FlagSet) {
 	fs.BoolVar(&s.Version, "version", false, "Print the version and exits")
 }
 
-var arnRegexp = regexp.MustCompile(`^arn:\w*:iam:\w*:\w*:role\/?$`)
-
 func main() {
 	s := server.NewServer()
 	addFlags(s, pflag.CommandLine)
@@ -54,8 +51,8 @@ func main() {
 	}
 
 	if s.BaseRoleARN != "" {
-		if !arnRegexp.MatchString(s.BaseRoleARN) {
-			log.Fatalf("Invalid --base-role-arn specified, expected: %s", arnRegexp.String())
+		if !iam.IsValidBaseARN(s.BaseRoleARN) {
+			log.Fatalf("Invalid --base-role-arn specified, expected: %s", iam.ARNRegexp.String())
 		}
 		if !strings.HasSuffix(s.BaseRoleARN, "/") {
 			s.BaseRoleARN += "/"
@@ -83,7 +80,7 @@ func main() {
 			log.Fatalf("%s", err)
 		}
 		s.BaseRoleARN = arn
-		instanceIAMRole, err := iam.GetInstanceIamRole()
+		instanceIAMRole, err := iam.GetInstanceIAMRole()
 		if err != nil {
 			log.Fatalf("%s", err)
 		}

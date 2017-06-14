@@ -16,7 +16,6 @@ import (
 var cache = ccache.New(ccache.Configure())
 
 const (
-	fullArnPrefix     = "arn:"
 	maxSessNameLength = 64
 	ttl               = time.Minute * 15
 )
@@ -37,14 +36,6 @@ type Credentials struct {
 	Type            string
 }
 
-// RoleARN returns the full iam role ARN.
-func (iam *Client) RoleARN(role string) string {
-	if strings.HasPrefix(strings.ToLower(role), fullArnPrefix) {
-		return role
-	}
-	return fmt.Sprintf("%s%s", iam.BaseARN, role)
-}
-
 func getHash(text string) string {
 	h := fnv.New32a()
 	_, err := h.Write([]byte(text))
@@ -54,30 +45,8 @@ func getHash(text string) string {
 	return fmt.Sprintf("%x", h.Sum32())
 }
 
-// GetBaseArn get the base ARN from metadata service.
-func GetBaseArn() (string, error) {
-	sess, err := session.NewSession()
-	if err != nil {
-		return "", err
-	}
-	metadata := ec2metadata.New(sess)
-	if !metadata.Available() {
-		return "", fmt.Errorf("EC2 Metadata is not available, are you running on EC2?")
-	}
-	iamInfo, err := metadata.IAMInfo()
-	if err != nil {
-		return "", err
-	}
-	arn := strings.Replace(iamInfo.InstanceProfileArn, "instance-profile", "role", 1)
-	baseArn := strings.Split(arn, "/")
-	if len(baseArn) != 2 {
-		return "", fmt.Errorf("Can't determine BaseARN")
-	}
-	return fmt.Sprintf("%s/", baseArn[0]), nil
-}
-
-// GetInstanceIamRole get instance Client role from metadata service.
-func GetInstanceIamRole() (string, error) {
+// GetInstanceIAMRole get instance IAM role from metadata service.
+func GetInstanceIAMRole() (string, error) {
 	sess, err := session.NewSession()
 	if err != nil {
 		return "", err

@@ -202,8 +202,7 @@ func (s *Server) securityCredentialsHandler(logger *log.Entry, w http.ResponseWr
 	// If a base ARN has been supplied and this is not cross-account then
 	// return a simple role-name, otherwise return the full ARN
 	if s.iam.BaseARN != "" && strings.HasPrefix(roleARN, s.iam.BaseARN) {
-		idx := strings.LastIndex(roleARN, "/")
-		write(logger, w, roleARN[idx+1:])
+		write(logger, w, strings.TrimPrefix(roleARN, s.iam.baseARN))
 		return
 	}
 	write(logger, w, roleARN)

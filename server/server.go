@@ -102,9 +102,11 @@ func (fn appHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}()
 	rw := newResponseWriter(w)
 	fn(logger, rw, r)
-	latency := time.Since(start)
-	logger.WithFields(log.Fields{"res.duration": latency.Nanoseconds(), "res.status": rw.statusCode}).
-		Info("Handling request")
+	if r.URL.Path != "/healthz" {
+		latency := time.Since(start)
+		logger.WithFields(log.Fields{"res.duration": latency.Nanoseconds(), "res.status": rw.statusCode}).
+			Info("Handling request")
+	}
 }
 
 func parseRemoteAddr(addr string) string {

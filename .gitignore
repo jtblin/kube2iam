@@ -27,4 +27,5 @@ _testmain.go
 # Created by .ignore support plugin (hsz.mobi)
 
 /build/
+coverage.out
 /vendor/

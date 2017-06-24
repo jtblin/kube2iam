@@ -13,6 +13,7 @@ DOCKER_REPO ?= jtblin
 IMAGE_NAME := $(DOCKER_REPO)/$(BINARY_NAME)
 ARCH ?= darwin
 METALINTER_CONCURRENCY ?= 4
+METALINTER_DEADLINE ?= 180
 # useful for passing --build-arg http_proxy :)
 DOCKER_BUILD_FLAGS := 
 
@@ -21,6 +22,7 @@ setup:
 	go get -v -u github.com/githubnemo/CompileDaemon
 	go get -v -u github.com/alecthomas/gometalinter
 	go get -v -u github.com/jstemmer/go-junit-report
+	go get -v github.com/mattn/goveralls
 	gometalinter --install --update
 	glide install --strip-vendor
 
@@ -63,7 +65,7 @@ junit-test: build
 
 check:
 	go install ./cmd
-	gometalinter --concurrency=$(METALINTER_CONCURRENCY) --deadline=180s ./... --vendor --linter='errcheck:errcheck:-ignore=net:Close' --cyclo-over=20 \
+	gometalinter --concurrency=$(METALINTER_CONCURRENCY) --deadline=$(METALINTER_DEADLINE)s ./... --vendor --linter='errcheck:errcheck:-ignore=net:Close' --cyclo-over=20 \
 		--linter='vet:go tool vet -composites=false {paths}:PATH:LINE:MESSAGE' --disable=interfacer --dupl-threshold=50
 
 check-all:

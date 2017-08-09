@@ -16,10 +16,9 @@ import (
 	"github.com/cenk/backoff"
 	"github.com/gorilla/mux"
 
-	"github.com/jtblin/kube2iam"
 	"github.com/jtblin/kube2iam/iam"
 	"github.com/jtblin/kube2iam/k8s"
-	"github.com/jtblin/kube2iam/store"
+	"github.com/jtblin/kube2iam/processor"
 )
 
 const (
@@ -54,7 +53,7 @@ type Server struct {
 	Version                 bool
 	iam                     *iam.Client
 	k8s                     *k8s.Client
-	store                   *store.Store
+	roleProcessor           *processor.RoleProcessor
 	BackoffMaxElapsedTime   time.Duration
 	BackoffMaxInterval      time.Duration
 }
@@ -121,11 +120,11 @@ func parseRemoteAddr(addr string) string {
 	return hostname
 }
 
-func (s *Server) getRole(IP string) (string, error) {
-	var role string
+func (s *Server) getRoleMapping(IP string) (*processor.RoleMappingResult, error) {
+	var roleMapping *processor.RoleMappingResult
 	var err error
 	operation := func() error {
-		role, err = s.store.Get(IP)
+		roleMapping, err = s.roleProcessor.GetRoleMapping(IP)
 		return err
 	}
 
@@ -135,10 +134,10 @@ func (s *Server) getRole(IP string) (string, error) {
 
 	err = backoff.Retry(operation, expBackoff)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return role, nil
+	return roleMapping, nil
 }
 
 // HealthResponse represents a response for the health check.
@@ -176,13 +175,7 @@ func (s *Server) healthHandler(logger *log.Entry, w http.ResponseWriter, r *http
 }
 
 func (s *Server) debugStoreHandler(logger *log.Entry, w http.ResponseWriter, r *http.Request) {
-	output := make(map[string]interface{})
-
-	output["rolesByIP"] = s.store.DumpRolesByIP()
-	output["rolesByNamespace"] = s.store.DumpRolesByNamespace()
-	output["namespaceByIP"] = s.store.DumpNamespaceByIP()
-
-	o, err := json.Marshal(output)
+	o, err := json.Marshal(s.roleProcessor.DumpDebugInfo())
 	if err != nil {
 		log.Errorf("Error converting debug map to json: %+v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -195,49 +188,40 @@ func (s *Server) debugStoreHandler(logger *log.Entry, w http.ResponseWriter, r *
 func (s *Server) securityCredentialsHandler(logger *log.Entry, w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Server", "EC2ws")
 	remoteIP := parseRemoteAddr(r.RemoteAddr)
-	role, err := s.getRole(remoteIP)
+	roleMapping, err := s.getRoleMapping(remoteIP)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	roleARN := s.iam.RoleARN(role)
+
 	// If a base ARN has been supplied and this is not cross-account then
 	// return a simple role-name, otherwise return the full ARN
-	if s.iam.BaseARN != "" && strings.HasPrefix(roleARN, s.iam.BaseARN) {
-		write(logger, w, strings.TrimPrefix(roleARN, s.iam.BaseARN))
+	if s.iam.BaseARN != "" && strings.HasPrefix(roleMapping.Role, s.iam.BaseARN) {
+		write(logger, w, strings.TrimPrefix(roleMapping.Role, s.iam.BaseARN))
 		return
 	}
-	write(logger, w, roleARN)
+	write(logger, w, roleMapping.Role)
 }
 
 func (s *Server) roleHandler(logger *log.Entry, w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Server", "EC2ws")
 	remoteIP := parseRemoteAddr(r.RemoteAddr)
 
-	podRole, err := s.getRole(remoteIP)
+	roleMapping, err := s.getRoleMapping(remoteIP)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
-	podRoleARN := s.iam.RoleARN(podRole)
-	isAllowed, namespace := s.store.CheckNamespaceRestriction(podRoleARN, remoteIP)
-
 	roleLogger := logger.WithFields(log.Fields{
-		"pod.iam.role": podRole,
-		"ns.name":      namespace,
+		"pod.iam.role": roleMapping.Role,
+		"ns.name":      roleMapping.Namespace,
 	})
-
-	if !isAllowed {
-		roleLogger.Warn("Rejected due to namespace restrictions")
-		http.Error(w, fmt.Sprintf("Role requested %s not valid for namespace of pod at %s with namespace %s", podRole, remoteIP, namespace), http.StatusNotFound)
-		return
-	}
 
 	wantedRole := mux.Vars(r)["role"]
 	wantedRoleARN := s.iam.RoleARN(wantedRole)
 
-	if wantedRoleARN != podRoleARN {
+	if wantedRoleARN != roleMapping.Role {
 		roleLogger.WithField("params.iam.role", wantedRole).
 			Error("Invalid role: does not match annotated role")
 		http.Error(w, fmt.Sprintf("Invalid role %s", wantedRole), http.StatusForbidden)
@@ -277,11 +261,11 @@ func (s *Server) Run(host, token string, insecure bool) error {
 	}
 	s.k8s = k
 	s.iam = iam.NewClient(s.BaseRoleARN)
-	model := store.NewStore(s.IAMRoleKey, s.DefaultIAMRole, s.NamespaceRestriction, s.NamespaceKey, s.iam)
-	s.store = model
-	s.k8s.WatchForPods(kube2iam.NewPodHandler(model))
-	s.k8s.WatchForNamespaces(kube2iam.NewNamespaceHandler(model))
+	s.roleProcessor = processor.NewRoleProcessor(s.IAMRoleKey, s.DefaultIAMRole, s.NamespaceRestriction, s.NamespaceKey, s.iam, s.k8s)
+	s.k8s.WatchForPods(k8s.NewPodHandler(s.IAMRoleKey))
+	s.k8s.WatchForNamespaces(k8s.NewNamespaceHandler(s.NamespaceKey))
 	r := mux.NewRouter()
+
 	if s.Debug {
 		// This is a potential security risk if enabled in some clusters, hence the flag
 		r.Handle("/debug/store", appHandler(s.debugStoreHandler))

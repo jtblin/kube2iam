@@ -12,12 +12,11 @@ echo "mode: count" > coverage.out
 ERROR=""
 
 declare -a packages=('' \
-    'cmd' \
+    'processor' \
     'iam' \
     'iptables' \
     'k8s' \
     'server' \
-    'store' \
     'version');
 
 # Test each package and append coverage profile info to coverage.out

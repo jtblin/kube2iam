@@ -19,15 +19,17 @@ import (
 	"github.com/jtblin/kube2iam/iam"
 	"github.com/jtblin/kube2iam/k8s"
 	"github.com/jtblin/kube2iam/processor"
+	"k8s.io/client-go/tools/cache"
 )
 
 const (
-	defaultAppPort         = "8181"
-	defaultIAMRoleKey      = "iam.amazonaws.com/role"
-	defaultMaxElapsedTime  = 2 * time.Second
-	defaultMaxInterval     = 1 * time.Second
-	defaultMetadataAddress = "169.254.169.254"
-	defaultNamespaceKey    = "iam.amazonaws.com/allowed-roles"
+	defaultAppPort           = "8181"
+	defaultIAMRoleKey        = "iam.amazonaws.com/role"
+	defaultMaxElapsedTime    = 2 * time.Second
+	defaultMaxInterval       = 1 * time.Second
+	defaultMetadataAddress   = "169.254.169.254"
+	defaultNamespaceKey      = "iam.amazonaws.com/allowed-roles"
+	defaultCacheSyncAttempts = 10
 )
 
 // Server encapsulates all of the parameters necessary for starting up
@@ -262,8 +264,20 @@ func (s *Server) Run(host, token string, insecure bool) error {
 	s.k8s = k
 	s.iam = iam.NewClient(s.BaseRoleARN)
 	s.roleProcessor = processor.NewRoleProcessor(s.IAMRoleKey, s.DefaultIAMRole, s.NamespaceRestriction, s.NamespaceKey, s.iam, s.k8s)
-	s.k8s.WatchForPods(k8s.NewPodHandler(s.IAMRoleKey))
-	s.k8s.WatchForNamespaces(k8s.NewNamespaceHandler(s.NamespaceKey))
+	podSynched := s.k8s.WatchForPods(k8s.NewPodHandler(s.IAMRoleKey))
+	namespaceSynched := s.k8s.WatchForNamespaces(k8s.NewNamespaceHandler(s.NamespaceKey))
+
+	synced := false
+	for i := 0; i < defaultCacheSyncAttempts && !synced; i++ {
+		synced = cache.WaitForCacheSync(nil, podSynched, namespaceSynched)
+	}
+
+	if !synced {
+		log.Fatalf("Attempted to wait for caches to be synced for [%d] however it is not done.  Giving up.", defaultCacheSyncAttempts)
+	} else {
+		log.Debugln("Caches have been synced.  Proceeding with server.")
+	}
+
 	r := mux.NewRouter()
 
 	if s.Debug {

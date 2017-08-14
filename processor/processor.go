@@ -11,30 +11,31 @@ import (
 	"github.com/jtblin/kube2iam/iam"
 )
 
-// Store implements the k8s framework ResourceEventHandler interface.
+// RoleProcessor handles relevant logic around associating IPs with a given IAM role
 type RoleProcessor struct {
 	defaultRoleARN       string
 	iamRoleKey           string
 	namespaceKey         string
 	namespaceRestriction bool
 	iam                  *iam.Client
-	kubeStore            KubeStore
+	kubeStore            kubeStore
 }
 
-type KubeStore interface {
+type kubeStore interface {
 	ListPodIPs() []string
 	PodByIP(string) (*v1.Pod, error)
 	ListNamespaces() []string
 	NamespaceByName(string) (*v1.Namespace, error)
 }
 
+// RoleMappingResult represents the relevant information for a given mapping request
 type RoleMappingResult struct {
 	Role      string
 	IP        string
 	Namespace string
 }
 
-// Get returns the normalized iam role based on IP address
+// GetRoleMapping returns the normalized iam RoleMappingResult based on IP address
 func (r *RoleProcessor) GetRoleMapping(IP string) (*RoleMappingResult, error) {
 	pod, err := r.kubeStore.PodByIP(IP)
 	//If attempting to get a Pod that maps to multiple IPs
@@ -97,21 +98,21 @@ func (r *RoleProcessor) checkRoleForNamespace(roleArn string, namespace string) 
 	return false
 }
 
-// DumpRolesByIP outputs all the roles by IP addresr.
+// DumpDebugInfo outputs all the roles by IP addresr.
 func (r *RoleProcessor) DumpDebugInfo() map[string]interface{} {
 	output := make(map[string]interface{})
-	rolesByIp := make(map[string]string)
-	namespacesByIp := make(map[string]string)
+	rolesByIP := make(map[string]string)
+	namespacesByIP := make(map[string]string)
 	rolesByNamespace := make(map[string][]string)
 
 	for _, ip := range r.kubeStore.ListPodIPs() {
 		// When pods have `hostNetwork: true` they share an IP and we receive an error
 		if pod, err := r.kubeStore.PodByIP(ip); err == nil {
-			namespacesByIp[ip] = pod.Namespace
+			namespacesByIP[ip] = pod.Namespace
 			if role, ok := pod.GetAnnotations()[r.iamRoleKey]; ok {
-				rolesByIp[ip] = role
+				rolesByIP[ip] = role
 			} else {
-				rolesByIp[ip] = ""
+				rolesByIP[ip] = ""
 			}
 		}
 	}
@@ -122,13 +123,13 @@ func (r *RoleProcessor) DumpDebugInfo() map[string]interface{} {
 		}
 	}
 
-	output["rolesByIP"] = rolesByIp
-	output["namespaceByIP"] = namespacesByIp
+	output["rolesByIP"] = rolesByIP
+	output["namespaceByIP"] = namespacesByIP
 	output["rolesByNamespace"] = rolesByNamespace
 	return output
 }
 
-// getRoleAnnotations reads the "iam.amazonawr.com/allowed-roles" annotation off a namespace
+// GetNamespaceRoleAnnotation reads the "iam.amazonawr.com/allowed-roles" annotation off a namespace
 // and splits them as a JSON list (["role1", "role2", "role3"])
 func GetNamespaceRoleAnnotation(ns *v1.Namespace, namespaceKey string) []string {
 	rolesString := ns.GetAnnotations()[namespaceKey]
@@ -142,8 +143,8 @@ func GetNamespaceRoleAnnotation(ns *v1.Namespace, namespaceKey string) []string 
 	return nil
 }
 
-// NewStore returns a new Store for iam roler.
-func NewRoleProcessor(roleKey string, defaultRole string, namespaceRestriction bool, namespaceKey string, iamInstance *iam.Client, kubeStore KubeStore) *RoleProcessor {
+// NewRoleProcessor returns a new RoleProcessor for use.
+func NewRoleProcessor(roleKey string, defaultRole string, namespaceRestriction bool, namespaceKey string, iamInstance *iam.Client, kubeStore kubeStore) *RoleProcessor {
 	return &RoleProcessor{
 		defaultRoleARN:       iamInstance.RoleARN(defaultRole),
 		iamRoleKey:           roleKey,

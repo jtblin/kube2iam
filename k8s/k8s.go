@@ -65,6 +65,7 @@ func (k8s *Client) WatchForNamespaces(nsEventLogger cache.ResourceEventHandler) 
 	return k8s.namespaceController.HasSynced
 }
 
+// ListPodIPs returns the underlying set of pods being managed/indexed
 func (k8s *Client) ListPodIPs() []string {
 	// Decided to simply dump this and leave it up to consumer
 	// as k8s package currently doesn't need to be concerned about what's
@@ -72,10 +73,14 @@ func (k8s *Client) ListPodIPs() []string {
 	return k8s.podIndexer.ListIndexFuncValues(podIPIndexName)
 }
 
+// ListNamespaces returns the underlying set of namespaces being managed/indexed
 func (k8s *Client) ListNamespaces() []string {
 	return k8s.namespaceIndexer.ListIndexFuncValues(namespaceIndexName)
 }
 
+// PodByIP provides the representation of the pod itself being cached keyed off of it's IP
+// Returns an error if there are multiple pods attempting to be keyed off of the same IP
+// (Which happens when they of type `hostNetwork: true`)
 func (k8s *Client) PodByIP(IP string) (*v1.Pod, error) {
 	pods, err := k8s.podIndexer.ByIndex(podIPIndexName, IP)
 	if err != nil {
@@ -98,6 +103,8 @@ func (k8s *Client) PodByIP(IP string) (*v1.Pod, error) {
 	return nil, fmt.Errorf("%d pods (%v) with the ip %s indexed", len(pods), podNames, IP)
 }
 
+// NamespaceByName retrieves a namespace by it's given name.
+// Returns an error if there are no namespaces available
 func (k8s *Client) NamespaceByName(namespaceName string) (*v1.Namespace, error) {
 	namespace, err := k8s.namespaceIndexer.ByIndex(namespaceIndexName, namespaceName)
 	if err != nil {

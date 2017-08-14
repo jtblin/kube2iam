@@ -88,6 +88,7 @@ func isPodActive(p *v1.Pod) bool {
 		p.DeletionTimestamp == nil
 }
 
+// NewPodHandler constructs a pod handler given the relevant IAM Role Key
 func NewPodHandler(iamRoleKey string) *PodHandler {
 	return &PodHandler{iamRoleKey: iamRoleKey}
 }

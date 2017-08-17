@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/cenk/backoff"
 	"github.com/gorilla/mux"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/jtblin/kube2iam"
 	"github.com/jtblin/kube2iam/iam"
@@ -25,6 +25,7 @@ import (
 const (
 	defaultAppPort         = "8181"
 	defaultIAMRoleKey      = "iam.amazonaws.com/role"
+	defaultLogLevel        = "info"
 	defaultMaxElapsedTime  = 2 * time.Second
 	defaultMaxInterval     = 1 * time.Second
 	defaultMetadataAddress = "169.254.169.254"
@@ -44,6 +45,7 @@ type Server struct {
 	HostInterface           string
 	HostIP                  string
 	NamespaceKey            string
+	LogLevel                string
 	AddIPTablesRule         bool
 	AutoDiscoverBaseArn     bool
 	AutoDiscoverDefaultRole bool
@@ -305,6 +307,7 @@ func NewServer() *Server {
 		BackoffMaxElapsedTime: defaultMaxElapsedTime,
 		IAMRoleKey:            defaultIAMRoleKey,
 		BackoffMaxInterval:    defaultMaxInterval,
+		LogLevel:              defaultLogLevel,
 		MetadataAddress:       defaultMetadataAddress,
 		NamespaceKey:          defaultNamespaceKey,
 	}

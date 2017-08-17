@@ -197,7 +197,7 @@ spec:
 You can use `--default-role` to set a fallback role to use when annotation is not set.
 
 #### ReplicaSet, CronJob, Deployment, etc.
- 
+
 When creating higher-level abstractions than pods, you need to pass the annotation in the pod template of the  
 resource spec.
 
@@ -291,7 +291,7 @@ Usage of ./build/bin/darwin/kube2iam:
       --api-token string                    Token to authenticate with the api server
       --app-port string                     Http port (default "8181")
       --auto-discover-base-arn              Queries EC2 Metadata to determine the base ARN
-      --auto-discover-default-role          Queries EC2 Metadata to determine the default Iam Role, cannot be used with --default-role
+      --auto-discover-default-role          Queries EC2 Metadata to determine the default Iam Role and base ARN, cannot be used with --default-role, overwrites any previous setting for --base-role-arn
       --backoff-max-elapsed-time duration   Max elapsed time for backoff when querying for role. (default 2s)
       --backoff-max-interval duration       Max interval for backoff when querying for role. (default 1s)
       --base-role-arn string                Base role ARN
@@ -302,6 +302,7 @@ Usage of ./build/bin/darwin/kube2iam:
       --iam-role-key string                 Pod annotation key used to retrieve the IAM role (default "iam.amazonaws.com/role")
       --insecure                            Kubernetes server should be accessed without verifying the TLS. Testing only
       --iptables                            Add iptables rule (also requires --host-ip)
+      --log-level string                    Log level (default "info")
       --metadata-addr string                Address for the ec2 metadata (default "169.254.169.254")
       --namespace-key string                Namespace annotation key used to retrieve the IAM roles allowed (value in annotation should be json array) (default "iam.amazonaws.com/allowed-roles")
       --namespace-restrictions              Enable namespace restrictions
@@ -314,7 +315,7 @@ Usage of ./build/bin/darwin/kube2iam:
 * Use [minikube](https://github.com/kubernetes/minikube) to run cluster locally
 * Build and push dev image to docker hub: `make docker-dev DOCKER_REPO=<your docker hub username>`
 * Update `deployment.yaml` as needed
-* Deploy to local kubernetes cluster: `kubectl create -f deployment.yaml` or 
+* Deploy to local kubernetes cluster: `kubectl create -f deployment.yaml` or
 `kubectl delete -f deployment.yaml && kubectl create -f deployment.yaml`
 * Expose as service: `kubectl expose deployment kube2iam --type=NodePort`
 * Retrieve the services url: `minikube service kube2iam --url`

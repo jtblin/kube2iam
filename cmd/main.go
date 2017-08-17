@@ -3,7 +3,7 @@ package main
 import (
 	"strings"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 
 	"github.com/jtblin/kube2iam/iam"
@@ -32,6 +32,7 @@ func addFlags(s *server.Server, fs *pflag.FlagSet) {
 	fs.StringVar(&s.HostIP, "host-ip", s.HostIP, "IP address of host")
 	fs.DurationVar(&s.BackoffMaxInterval, "backoff-max-interval", s.BackoffMaxInterval, "Max interval for backoff when querying for role.")
 	fs.DurationVar(&s.BackoffMaxElapsedTime, "backoff-max-elapsed-time", s.BackoffMaxElapsedTime, "Max elapsed time for backoff when querying for role.")
+	fs.StringVar(&s.LogLevel, "log-level", s.LogLevel, "Log level")
 	fs.BoolVar(&s.Verbose, "verbose", false, "Verbose")
 	fs.BoolVar(&s.Version, "version", false, "Print the version and exits")
 }
@@ -41,7 +42,7 @@ func main() {
 	addFlags(s, pflag.CommandLine)
 	pflag.Parse()
 
-	log.SetLevel(log.InfoLevel)
+	log.ParseLevel(s.LogLevel)
 	if s.Verbose {
 		log.SetLevel(log.DebugLevel)
 	}

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"sync"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/pkg/api/v1"
 
 	"github.com/jtblin/kube2iam/store"

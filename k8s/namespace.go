@@ -1,7 +1,7 @@
 package k8s
 
 import (
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/pkg/api/v1"
 
 	"fmt"

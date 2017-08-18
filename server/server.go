@@ -15,11 +15,11 @@ import (
 	"github.com/cenk/backoff"
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
+	"k8s.io/client-go/tools/cache"
 
 	"github.com/jtblin/kube2iam/iam"
 	"github.com/jtblin/kube2iam/k8s"
 	"github.com/jtblin/kube2iam/processor"
-	"k8s.io/client-go/tools/cache"
 )
 
 const (

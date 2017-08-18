@@ -1,10 +1,10 @@
 package k8s
 
 import (
+	"fmt"
+
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/pkg/api/v1"
-
-	"fmt"
 
 	"github.com/jtblin/kube2iam/processor"
 )

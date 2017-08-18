@@ -1,9 +1,8 @@
 package k8s
 
 import (
-	"time"
-
 	"fmt"
+	"time"
 
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"

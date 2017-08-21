@@ -1,6 +1,7 @@
 package iam
 
 import (
+	"errors"
 	"fmt"
 	"hash/fnv"
 	"strings"
@@ -53,14 +54,14 @@ func GetInstanceIAMRole() (string, error) {
 	}
 	metadata := ec2metadata.New(sess)
 	if !metadata.Available() {
-		return "", fmt.Errorf("EC2 Metadata is not available, are you running on EC2?")
+		return "", errors.New("EC2 Metadata is not available, are you running on EC2?")
 	}
 	iamRole, err := metadata.GetMetadata("iam/security-credentials/")
 	if err != nil {
 		return "", err
 	}
 	if iamRole == "" || err != nil {
-		return "", fmt.Errorf("EC2 Metadata didn't returned any IAM Role")
+		return "", errors.New("EC2 Metadata didn't returned any IAM Role")
 	}
 	return iamRole, nil
 }

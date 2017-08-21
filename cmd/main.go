@@ -42,9 +42,15 @@ func main() {
 	addFlags(s, pflag.CommandLine)
 	pflag.Parse()
 
-	log.ParseLevel(s.LogLevel)
+	logLevel, err := log.ParseLevel(s.LogLevel)
+	if err != nil {
+		log.Fatalf("%s", err)
+	}
+
 	if s.Verbose {
 		log.SetLevel(log.DebugLevel)
+	} else {
+		log.SetLevel(logLevel)
 	}
 
 	if s.Version {

@@ -1,27 +1,16 @@
-package k8s
+package kube2iam
 
 import (
+	"encoding/json"
 	"fmt"
 
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/pkg/api/v1"
-
-	"github.com/jtblin/kube2iam/processor"
 )
 
-// NamespaceHandler outputs change events from K8
+// NamespaceHandler outputs change events from K8.
 type NamespaceHandler struct {
 	namespaceKey string
-}
-
-func namespaceIndexFunc(obj interface{}) ([]string, error) {
-	namespace, ok := obj.(*v1.Namespace)
-	if !ok {
-		return nil, fmt.Errorf("Expected namespace but recieved: %+v", obj)
-	}
-
-	return []string{namespace.GetName()}, nil
-
 }
 
 func (h *NamespaceHandler) namespaceFields(ns *v1.Namespace) log.Fields {
@@ -41,7 +30,7 @@ func (h *NamespaceHandler) OnAdd(obj interface{}) {
 	logger := log.WithFields(h.namespaceFields(ns))
 	logger.Debug("Namespace OnAdd")
 
-	roles := processor.GetNamespaceRoleAnnotation(ns, h.namespaceKey)
+	roles := GetNamespaceRoleAnnotation(ns, h.namespaceKey)
 	for _, role := range roles {
 		logger.WithField("ns.role", role).Info("Discovered role on namespace (OnAdd)")
 	}
@@ -57,7 +46,7 @@ func (h *NamespaceHandler) OnUpdate(oldObj, newObj interface{}) {
 	logger := log.WithFields(h.namespaceFields(nns))
 	logger.Debug("Namespace OnUpdate")
 
-	roles := processor.GetNamespaceRoleAnnotation(nns, h.namespaceKey)
+	roles := GetNamespaceRoleAnnotation(nns, h.namespaceKey)
 
 	for _, role := range roles {
 		logger.WithField("ns.role", role).Info("Discovered role on namespace (OnUpdate)")
@@ -72,6 +61,30 @@ func (h *NamespaceHandler) OnDelete(obj interface{}) {
 		return
 	}
 	log.WithFields(h.namespaceFields(ns)).Info("Deleting namespace (OnDelete)")
+}
+
+// GetNamespaceRoleAnnotation reads the "iam.amazonawr.com/allowed-roles" annotation off a namespace
+// and splits them as a JSON list (["role1", "role2", "role3"])
+func GetNamespaceRoleAnnotation(ns *v1.Namespace, namespaceKey string) []string {
+	rolesString := ns.GetAnnotations()[namespaceKey]
+	if rolesString != "" {
+		var decoded []string
+		if err := json.Unmarshal([]byte(rolesString), &decoded); err != nil {
+			log.Errorf("Unable to decode roles on namespace %s ( role annotation is '%s' ) with error: %s", ns.Name, rolesString, err)
+		}
+		return decoded
+	}
+	return nil
+}
+
+// NamespaceIndexFunc maps a namespace to it's name.
+func NamespaceIndexFunc(obj interface{}) ([]string, error) {
+	namespace, ok := obj.(*v1.Namespace)
+	if !ok {
+		return nil, fmt.Errorf("Expected namespace but recieved: %+v", obj)
+	}
+
+	return []string{namespace.GetName()}, nil
 }
 
 // NewNamespaceHandler returns a new namespace handler.

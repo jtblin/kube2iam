@@ -1,12 +1,12 @@
 package processor
 
 import (
-	"encoding/json"
 	"fmt"
 
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/pkg/api/v1"
 
+	"github.com/jtblin/kube2iam"
 	"github.com/jtblin/kube2iam/iam"
 )
 
@@ -17,10 +17,10 @@ type RoleProcessor struct {
 	namespaceKey         string
 	namespaceRestriction bool
 	iam                  *iam.Client
-	kubeStore            kubeStore
+	kubeStore            store
 }
 
-type kubeStore interface {
+type store interface {
 	ListPodIPs() []string
 	PodByIP(string) (*v1.Pod, error)
 	ListNamespaces() []string
@@ -37,7 +37,7 @@ type RoleMappingResult struct {
 // GetRoleMapping returns the normalized iam RoleMappingResult based on IP address
 func (r *RoleProcessor) GetRoleMapping(IP string) (*RoleMappingResult, error) {
 	pod, err := r.kubeStore.PodByIP(IP)
-	//If attempting to get a Pod that maps to multiple IPs
+	// If attempting to get a Pod that maps to multiple IPs
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +47,7 @@ func (r *RoleProcessor) GetRoleMapping(IP string) (*RoleMappingResult, error) {
 		return nil, err
 	}
 
-	//Determine if normalized role is allowed to be used in pod's namespace
+	// Determine if normalized role is allowed to be used in pod's namespace
 	if r.checkRoleForNamespace(role, pod.GetNamespace()) {
 		return &RoleMappingResult{Role: role, Namespace: pod.GetNamespace(), IP: IP}, nil
 	}
@@ -82,18 +82,18 @@ func (r *RoleProcessor) checkRoleForNamespace(roleArn string, namespace string) 
 
 	ns, err := r.kubeStore.NamespaceByName(namespace)
 	if err != nil {
-		log.Debug("Unable to find an indexed namespace of [%s]", ns)
+		log.Debug("Unable to find an indexed namespace of %s", namespace)
 		return false
 	}
 
-	ar := GetNamespaceRoleAnnotation(ns, r.namespaceKey)
+	ar := kube2iam.GetNamespaceRoleAnnotation(ns, r.namespaceKey)
 	for _, role := range ar {
 		if r.iam.RoleARN(role) == roleArn {
-			log.Debugf("Role:%s on namespace:%s found.", roleArn, namespace)
+			log.Debugf("Role: %s on namespace:%s found.", roleArn, namespace)
 			return true
 		}
 	}
-	log.Warnf("Role: [%s] on namespace: [%s] not found.", roleArn, namespace)
+	log.Warnf("Role: %s on namespace: %s not found.", roleArn, namespace)
 	return false
 }
 
@@ -118,7 +118,7 @@ func (r *RoleProcessor) DumpDebugInfo() map[string]interface{} {
 
 	for _, namespaceName := range r.kubeStore.ListNamespaces() {
 		if namespace, err := r.kubeStore.NamespaceByName(namespaceName); err == nil {
-			rolesByNamespace[namespace.GetName()] = GetNamespaceRoleAnnotation(namespace, r.namespaceKey)
+			rolesByNamespace[namespace.GetName()] = kube2iam.GetNamespaceRoleAnnotation(namespace, r.namespaceKey)
 		}
 	}
 
@@ -128,22 +128,8 @@ func (r *RoleProcessor) DumpDebugInfo() map[string]interface{} {
 	return output
 }
 
-// GetNamespaceRoleAnnotation reads the "iam.amazonawr.com/allowed-roles" annotation off a namespace
-// and splits them as a JSON list (["role1", "role2", "role3"])
-func GetNamespaceRoleAnnotation(ns *v1.Namespace, namespaceKey string) []string {
-	rolesString := ns.GetAnnotations()[namespaceKey]
-	if rolesString != "" {
-		var decoded []string
-		if err := json.Unmarshal([]byte(rolesString), &decoded); err != nil {
-			log.Errorf("Unable to decode roles on namespace %s ( role annotation is '%s' ) with error: %s", ns.Name, rolesString, err)
-		}
-		return decoded
-	}
-	return nil
-}
-
 // NewRoleProcessor returns a new RoleProcessor for use.
-func NewRoleProcessor(roleKey string, defaultRole string, namespaceRestriction bool, namespaceKey string, iamInstance *iam.Client, kubeStore kubeStore) *RoleProcessor {
+func NewRoleProcessor(roleKey string, defaultRole string, namespaceRestriction bool, namespaceKey string, iamInstance *iam.Client, kubeStore store) *RoleProcessor {
 	return &RoleProcessor{
 		defaultRoleARN:       iamInstance.RoleARN(defaultRole),
 		iamRoleKey:           roleKey,

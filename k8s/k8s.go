@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jtblin/kube2iam"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/pkg/api/v1"
@@ -13,19 +14,19 @@ import (
 )
 
 const (
-	// Resync period for the kube controller loop.
-	resyncPeriod       = 30 * time.Minute
 	podIPIndexName     = "byPodIP"
 	namespaceIndexName = "byName"
+	// Resync period for the kube controller loop.
+	resyncPeriod = 30 * time.Minute
 )
 
 // Client represents a kubernetes client.
 type Client struct {
 	*kubernetes.Clientset
-	podIndexer          cache.Indexer
-	podController       *cache.Controller
-	namespaceIndexer    cache.Indexer
 	namespaceController *cache.Controller
+	namespaceIndexer    cache.Indexer
+	podController       *cache.Controller
+	podIndexer          cache.Indexer
 }
 
 // Returns a cache.ListWatch that gets all changes to pods.
@@ -40,7 +41,7 @@ func (k8s *Client) WatchForPods(podEventLogger cache.ResourceEventHandler) cache
 		&v1.Pod{},
 		resyncPeriod,
 		podEventLogger,
-		cache.Indexers{podIPIndexName: podIPIndexFunc},
+		cache.Indexers{podIPIndexName: kube2iam.PodIPIndexFunc},
 	)
 	go k8s.podController.Run(wait.NeverStop)
 	return k8s.podController.HasSynced
@@ -58,7 +59,7 @@ func (k8s *Client) WatchForNamespaces(nsEventLogger cache.ResourceEventHandler) 
 		&v1.Namespace{},
 		resyncPeriod,
 		nsEventLogger,
-		cache.Indexers{namespaceIndexName: namespaceIndexFunc},
+		cache.Indexers{namespaceIndexName: kube2iam.NamespaceIndexFunc},
 	)
 	go k8s.namespaceController.Run(wait.NeverStop)
 	return k8s.namespaceController.HasSynced
@@ -137,7 +138,5 @@ func NewClient(host, token string, insecure bool) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	k8s := &Client{}
-	k8s.Clientset = client
-	return k8s, nil
+	return &Client{Clientset: client}, nil
 }

@@ -15,7 +15,7 @@ ARCH ?= darwin
 METALINTER_CONCURRENCY ?= 4
 METALINTER_DEADLINE ?= 180
 # useful for passing --build-arg http_proxy :)
-DOCKER_BUILD_FLAGS := 
+DOCKER_BUILD_FLAGS :=
 
 setup:
 	go get -v -u github.com/Masterminds/glide
@@ -26,7 +26,7 @@ setup:
 	gometalinter --install --update
 	glide install --strip-vendor
 
-build: fmt
+build: *.go fmt
 	go build -o build/bin/$(ARCH)/$(BINARY_NAME) $(GOBUILD_VERSION_ARGS) github.com/jtblin/$(BINARY_NAME)/cmd
 
 build-race: fmt

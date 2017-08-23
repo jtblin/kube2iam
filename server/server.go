@@ -17,6 +17,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/jtblin/kube2iam"
 	"github.com/jtblin/kube2iam/iam"
 	"github.com/jtblin/kube2iam/k8s"
 	"github.com/jtblin/kube2iam/processor"
@@ -266,8 +267,8 @@ func (s *Server) Run(host, token string, insecure bool) error {
 	s.k8s = k
 	s.iam = iam.NewClient(s.BaseRoleARN)
 	s.roleProcessor = processor.NewRoleProcessor(s.IAMRoleKey, s.DefaultIAMRole, s.NamespaceRestriction, s.NamespaceKey, s.iam, s.k8s)
-	podSynched := s.k8s.WatchForPods(k8s.NewPodHandler(s.IAMRoleKey))
-	namespaceSynched := s.k8s.WatchForNamespaces(k8s.NewNamespaceHandler(s.NamespaceKey))
+	podSynched := s.k8s.WatchForPods(kube2iam.NewPodHandler(s.IAMRoleKey))
+	namespaceSynched := s.k8s.WatchForNamespaces(kube2iam.NewNamespaceHandler(s.NamespaceKey))
 
 	synced := false
 	for i := 0; i < defaultCacheSyncAttempts && !synced; i++ {
@@ -275,7 +276,7 @@ func (s *Server) Run(host, token string, insecure bool) error {
 	}
 
 	if !synced {
-		log.Fatalf("Attempted to wait for caches to be synced for [%d] however it is not done.  Giving up.", defaultCacheSyncAttempts)
+		log.Fatalf("Attempted to wait for caches to be synced for %d however it is not done.  Giving up.", defaultCacheSyncAttempts)
 	} else {
 		log.Debugln("Caches have been synced.  Proceeding with server.")
 	}

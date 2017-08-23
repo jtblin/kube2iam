@@ -1,4 +1,4 @@
-package k8s
+package kube2iam
 
 import (
 	"fmt"
@@ -70,7 +70,15 @@ func (p *PodHandler) OnDelete(obj interface{}) {
 	logger.Debug("Pod OnDelete")
 }
 
-func podIPIndexFunc(obj interface{}) ([]string, error) {
+func isPodActive(p *v1.Pod) bool {
+	return p.Status.PodIP != "" &&
+		v1.PodSucceeded != p.Status.Phase &&
+		v1.PodFailed != p.Status.Phase &&
+		p.DeletionTimestamp == nil
+}
+
+// PodIPIndexFunc maps a given Pod to it's IP for caching.
+func PodIPIndexFunc(obj interface{}) ([]string, error) {
 	pod, ok := obj.(*v1.Pod)
 	if !ok {
 		return nil, fmt.Errorf("obj not pod: %+v", obj)
@@ -79,13 +87,6 @@ func podIPIndexFunc(obj interface{}) ([]string, error) {
 		return []string{pod.Status.PodIP}, nil
 	}
 	return nil, nil
-}
-
-func isPodActive(p *v1.Pod) bool {
-	return p.Status.PodIP != "" &&
-		v1.PodSucceeded != p.Status.Phase &&
-		v1.PodFailed != p.Status.Phase &&
-		p.DeletionTimestamp == nil
 }
 
 // NewPodHandler constructs a pod handler given the relevant IAM Role Key

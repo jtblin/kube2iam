@@ -11,11 +11,12 @@ echo "mode: count" > coverage.out
 # Initialize error tracking
 ERROR=""
 
-declare -a packages=('cmd' \
-    'processor' \
+declare -a packages=('' \
+    'cmd' \
     'iam' \
     'iptables' \
     'k8s' \
+    'processor' \
     'server' \
     'version');
 

@@ -128,7 +128,7 @@ func (r *RoleMapper) DumpDebugInfo() map[string]interface{} {
 	return output
 }
 
-// NewRoleProcessor returns a new RoleMapper for use.
+// NewRoleMapper returns a new RoleMapper for use.
 func NewRoleMapper(roleKey string, defaultRole string, namespaceRestriction bool, namespaceKey string, iamInstance *iam.Client, kubeStore store) *RoleMapper {
 	return &RoleMapper{
 		defaultRoleARN:       iamInstance.RoleARN(defaultRole),

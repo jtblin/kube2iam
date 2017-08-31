@@ -16,7 +16,7 @@ declare -a packages=('' \
     'iam' \
     'iptables' \
     'k8s' \
-    'processor' \
+    'mappings' \
     'server' \
     'version');
 

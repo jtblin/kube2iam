@@ -20,7 +20,7 @@ import (
 	"github.com/jtblin/kube2iam"
 	"github.com/jtblin/kube2iam/iam"
 	"github.com/jtblin/kube2iam/k8s"
-	"github.com/jtblin/kube2iam/processor"
+	"github.com/jtblin/kube2iam/mappings"
 )
 
 const (
@@ -58,7 +58,7 @@ type Server struct {
 	Version                 bool
 	iam                     *iam.Client
 	k8s                     *k8s.Client
-	roleProcessor           *processor.RoleProcessor
+	roleMapper              *mappings.RoleMapper
 	BackoffMaxElapsedTime   time.Duration
 	BackoffMaxInterval      time.Duration
 }
@@ -125,11 +125,11 @@ func parseRemoteAddr(addr string) string {
 	return hostname
 }
 
-func (s *Server) getRoleMapping(IP string) (*processor.RoleMappingResult, error) {
-	var roleMapping *processor.RoleMappingResult
+func (s *Server) getRoleMapping(IP string) (*mappings.RoleMappingResult, error) {
+	var roleMapping *mappings.RoleMappingResult
 	var err error
 	operation := func() error {
-		roleMapping, err = s.roleProcessor.GetRoleMapping(IP)
+		roleMapping, err = s.roleMapper.GetRoleMapping(IP)
 		return err
 	}
 
@@ -180,7 +180,7 @@ func (s *Server) healthHandler(logger *log.Entry, w http.ResponseWriter, r *http
 }
 
 func (s *Server) debugStoreHandler(logger *log.Entry, w http.ResponseWriter, r *http.Request) {
-	o, err := json.Marshal(s.roleProcessor.DumpDebugInfo())
+	o, err := json.Marshal(s.roleMapper.DumpDebugInfo())
 	if err != nil {
 		log.Errorf("Error converting debug map to json: %+v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -266,7 +266,7 @@ func (s *Server) Run(host, token string, insecure bool) error {
 	}
 	s.k8s = k
 	s.iam = iam.NewClient(s.BaseRoleARN)
-	s.roleProcessor = processor.NewRoleProcessor(s.IAMRoleKey, s.DefaultIAMRole, s.NamespaceRestriction, s.NamespaceKey, s.iam, s.k8s)
+	s.roleMapper = mappings.NewRoleMapper(s.IAMRoleKey, s.DefaultIAMRole, s.NamespaceRestriction, s.NamespaceKey, s.iam, s.k8s)
 	podSynched := s.k8s.WatchForPods(kube2iam.NewPodHandler(s.IAMRoleKey))
 	namespaceSynched := s.k8s.WatchForNamespaces(kube2iam.NewNamespaceHandler(s.NamespaceKey))
 

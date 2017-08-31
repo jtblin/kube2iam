@@ -1,4 +1,4 @@
-package processor
+package mappings
 
 import (
 	"fmt"
@@ -10,14 +10,14 @@ import (
 	"github.com/jtblin/kube2iam/iam"
 )
 
-// RoleProcessor handles relevant logic around associating IPs with a given IAM role
-type RoleProcessor struct {
+// RoleMapper handles relevant logic around associating IPs with a given IAM role
+type RoleMapper struct {
 	defaultRoleARN       string
 	iamRoleKey           string
 	namespaceKey         string
 	namespaceRestriction bool
 	iam                  *iam.Client
-	kubeStore            store
+	store                store
 }
 
 type store interface {
@@ -35,8 +35,8 @@ type RoleMappingResult struct {
 }
 
 // GetRoleMapping returns the normalized iam RoleMappingResult based on IP address
-func (r *RoleProcessor) GetRoleMapping(IP string) (*RoleMappingResult, error) {
-	pod, err := r.kubeStore.PodByIP(IP)
+func (r *RoleMapper) GetRoleMapping(IP string) (*RoleMappingResult, error) {
+	pod, err := r.store.PodByIP(IP)
 	// If attempting to get a Pod that maps to multiple IPs
 	if err != nil {
 		return nil, err
@@ -58,7 +58,7 @@ func (r *RoleProcessor) GetRoleMapping(IP string) (*RoleMappingResult, error) {
 // extractQualifiedRoleName extracts a fully qualified ARN for a given pod,
 // taking into consideration the appropriate fallback logic and defaulting
 // logic along with the namespace role restrictions
-func (r *RoleProcessor) extractRoleARN(pod *v1.Pod) (string, error) {
+func (r *RoleMapper) extractRoleARN(pod *v1.Pod) (string, error) {
 	rawRoleName, annotationPresent := pod.GetAnnotations()[r.iamRoleKey]
 
 	if !annotationPresent && r.defaultRoleARN == "" {
@@ -75,12 +75,12 @@ func (r *RoleProcessor) extractRoleARN(pod *v1.Pod) (string, error) {
 
 // checkRoleForNamespace checks the 'database' for a role allowed in a namespace,
 // returns true if the role is found, otheriwse false
-func (r *RoleProcessor) checkRoleForNamespace(roleArn string, namespace string) bool {
+func (r *RoleMapper) checkRoleForNamespace(roleArn string, namespace string) bool {
 	if !r.namespaceRestriction || roleArn == r.defaultRoleARN {
 		return true
 	}
 
-	ns, err := r.kubeStore.NamespaceByName(namespace)
+	ns, err := r.store.NamespaceByName(namespace)
 	if err != nil {
 		log.Debug("Unable to find an indexed namespace of %s", namespace)
 		return false
@@ -98,15 +98,15 @@ func (r *RoleProcessor) checkRoleForNamespace(roleArn string, namespace string) 
 }
 
 // DumpDebugInfo outputs all the roles by IP addresr.
-func (r *RoleProcessor) DumpDebugInfo() map[string]interface{} {
+func (r *RoleMapper) DumpDebugInfo() map[string]interface{} {
 	output := make(map[string]interface{})
 	rolesByIP := make(map[string]string)
 	namespacesByIP := make(map[string]string)
 	rolesByNamespace := make(map[string][]string)
 
-	for _, ip := range r.kubeStore.ListPodIPs() {
+	for _, ip := range r.store.ListPodIPs() {
 		// When pods have `hostNetwork: true` they share an IP and we receive an error
-		if pod, err := r.kubeStore.PodByIP(ip); err == nil {
+		if pod, err := r.store.PodByIP(ip); err == nil {
 			namespacesByIP[ip] = pod.Namespace
 			if role, ok := pod.GetAnnotations()[r.iamRoleKey]; ok {
 				rolesByIP[ip] = role
@@ -116,8 +116,8 @@ func (r *RoleProcessor) DumpDebugInfo() map[string]interface{} {
 		}
 	}
 
-	for _, namespaceName := range r.kubeStore.ListNamespaces() {
-		if namespace, err := r.kubeStore.NamespaceByName(namespaceName); err == nil {
+	for _, namespaceName := range r.store.ListNamespaces() {
+		if namespace, err := r.store.NamespaceByName(namespaceName); err == nil {
 			rolesByNamespace[namespace.GetName()] = kube2iam.GetNamespaceRoleAnnotation(namespace, r.namespaceKey)
 		}
 	}
@@ -128,14 +128,14 @@ func (r *RoleProcessor) DumpDebugInfo() map[string]interface{} {
 	return output
 }
 
-// NewRoleProcessor returns a new RoleProcessor for use.
-func NewRoleProcessor(roleKey string, defaultRole string, namespaceRestriction bool, namespaceKey string, iamInstance *iam.Client, kubeStore store) *RoleProcessor {
-	return &RoleProcessor{
+// NewRoleProcessor returns a new RoleMapper for use.
+func NewRoleMapper(roleKey string, defaultRole string, namespaceRestriction bool, namespaceKey string, iamInstance *iam.Client, kubeStore store) *RoleMapper {
+	return &RoleMapper{
 		defaultRoleARN:       iamInstance.RoleARN(defaultRole),
 		iamRoleKey:           roleKey,
 		namespaceKey:         namespaceKey,
 		namespaceRestriction: namespaceRestriction,
 		iam:                  iamInstance,
-		kubeStore:            kubeStore,
+		store:                kubeStore,
 	}
 }

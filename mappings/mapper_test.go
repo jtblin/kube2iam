@@ -1,4 +1,4 @@
-package processor
+package mappings
 
 import (
 	"fmt"
@@ -60,7 +60,7 @@ func TestExtractRoleARN(t *testing.T) {
 	}
 	for _, tt := range roleExtractionTests {
 		t.Run(tt.test, func(t *testing.T) {
-			rp := RoleProcessor{}
+			rp := RoleMapper{}
 			rp.iamRoleKey = "roleKey"
 			rp.defaultRoleARN = tt.defaultRole
 			rp.iam = &iam.Client{BaseARN: defaultBaseRole}
@@ -155,13 +155,13 @@ func TestCheckRoleForNamespace(t *testing.T) {
 
 	for _, tt := range roleCheckTests {
 		t.Run(tt.test, func(t *testing.T) {
-			rp := NewRoleProcessor(
+			rp := NewRoleMapper(
 				roleKey,
 				tt.defaultArn,
 				tt.namespaceRestriction,
 				namespaceKey,
 				&iam.Client{BaseARN: defaultBaseRole},
-				&kubeStoreMock{
+				&storeMock{
 					namespace:   tt.namespace,
 					annotations: tt.namespaceAnnotations,
 				},
@@ -175,22 +175,21 @@ func TestCheckRoleForNamespace(t *testing.T) {
 	}
 }
 
-
-type kubeStoreMock struct {
+type storeMock struct {
 	namespace   string
 	annotations map[string]string
 }
 
-func (k *kubeStoreMock) ListPodIPs() []string {
+func (k *storeMock) ListPodIPs() []string {
 	return nil
 }
-func (k *kubeStoreMock) PodByIP(string) (*v1.Pod, error) {
+func (k *storeMock) PodByIP(string) (*v1.Pod, error) {
 	return nil, nil
 }
-func (k *kubeStoreMock) ListNamespaces() []string {
+func (k *storeMock) ListNamespaces() []string {
 	return nil
 }
-func (k *kubeStoreMock) NamespaceByName(ns string) (*v1.Namespace, error) {
+func (k *storeMock) NamespaceByName(ns string) (*v1.Namespace, error) {
 	if ns == k.namespace {
 		nns := &v1.Namespace{}
 		nns.Name = k.namespace

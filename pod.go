@@ -18,10 +18,11 @@ type PodHandler struct {
 
 func (p *PodHandler) podFields(pod *v1.Pod) log.Fields {
 	return log.Fields{
-		"pod.name":      pod.GetName(),
-		"pod.namespace": pod.GetNamespace(),
-		"pod.status.ip": pod.Status.PodIP,
-		"pod.iam.role":  pod.GetAnnotations()[p.storage.IamRoleKey],
+		"pod.name":         pod.GetName(),
+		"pod.namespace":    pod.GetNamespace(),
+		"pod.status.ip":    pod.Status.PodIP,
+		"pod.status.phase": pod.Status.Phase,
+		"pod.iam.role":     pod.GetAnnotations()[p.storage.IamRoleKey],
 	}
 }
 
@@ -32,6 +33,12 @@ func (p *PodHandler) OnAdd(obj interface{}) {
 		log.Errorf("Expected Pod but OnAdd handler received %+v", obj)
 		return
 	}
+
+	// Only add our namespace map if the container is "Running"
+	if pod.Status.Phase != "Running" {
+		return
+	}
+
 	logger := log.WithFields(p.podFields(pod))
 	logger.Debug("Pod OnAdd")
 
@@ -58,6 +65,12 @@ func (p *PodHandler) OnUpdate(oldObj, newObj interface{}) {
 		log.Errorf("Expected Pod but OnUpdate handler received %+v %+v", oldObj, newObj)
 		return
 	}
+
+	// Only update our namespace map if the container is "Running"
+	if newPod.Status.Phase != "Running" {
+		return
+	}
+
 	logger := log.WithFields(p.podFields(newPod))
 	logger.Debug("Pod OnUpdate")
 

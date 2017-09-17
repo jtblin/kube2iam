@@ -2,18 +2,15 @@ package kube2iam
 
 import (
 	"encoding/json"
-	"sync"
+	"fmt"
 
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/pkg/api/v1"
-
-	"github.com/jtblin/kube2iam/store"
 )
 
-// NamespaceHandler represents a namespace handler.
+// NamespaceHandler outputs change events from K8.
 type NamespaceHandler struct {
-	mutex   sync.RWMutex
-	storage *store.Store
+	namespaceKey string
 }
 
 func (h *NamespaceHandler) namespaceFields(ns *v1.Namespace) log.Fields {
@@ -33,35 +30,26 @@ func (h *NamespaceHandler) OnAdd(obj interface{}) {
 	logger := log.WithFields(h.namespaceFields(ns))
 	logger.Debug("Namespace OnAdd")
 
-	roles := h.getRoleAnnotation(ns)
+	roles := GetNamespaceRoleAnnotation(ns, h.namespaceKey)
 	for _, role := range roles {
-		logger.WithField("ns.role", role).Info("Add role to namespace")
-		h.storage.AddRoleToNamespace(ns.GetName(), role)
+		logger.WithField("ns.role", role).Info("Discovered role on namespace (OnAdd)")
 	}
 }
 
 // OnUpdate called with a namespace is updated inside k8s.
 func (h *NamespaceHandler) OnUpdate(oldObj, newObj interface{}) {
-	ons, ok1 := oldObj.(*v1.Namespace)
-	nns, ok2 := newObj.(*v1.Namespace)
-	if !ok1 || !ok2 {
+	nns, ok := newObj.(*v1.Namespace)
+	if !ok {
 		log.Errorf("Expected Namespace but OnUpdate handler received %+v %+v", oldObj, newObj)
 		return
 	}
 	logger := log.WithFields(h.namespaceFields(nns))
 	logger.Debug("Namespace OnUpdate")
 
-	if annotationDiffers(ons.GetAnnotations(), nns.GetAnnotations(), h.storage.NamespaceKey) {
-		roles := h.getRoleAnnotation(nns)
-		nsName := nns.GetName()
-		h.mutex.Lock()
-		defer h.mutex.Unlock()
-		logger.Info("Deleting namespace from store (OnUpdate)")
-		h.storage.DeleteNamespace(nsName)
-		for _, role := range roles {
-			logger.WithField("ns.role", role).Info("Add role namespace (OnUpdate)")
-			h.storage.AddRoleToNamespace(nsName, role)
-		}
+	roles := GetNamespaceRoleAnnotation(nns, h.namespaceKey)
+
+	for _, role := range roles {
+		logger.WithField("ns.role", role).Info("Discovered role on namespace (OnUpdate)")
 	}
 }
 
@@ -72,14 +60,13 @@ func (h *NamespaceHandler) OnDelete(obj interface{}) {
 		log.Errorf("Expected Namespace but OnDelete handler received %+v", obj)
 		return
 	}
-	log.WithFields(h.namespaceFields(ns)).Info("Deleting namespace from store (OnDelete)")
-	h.storage.DeleteNamespace(ns.GetName())
+	log.WithFields(h.namespaceFields(ns)).Info("Deleting namespace (OnDelete)")
 }
 
-// getRoleAnnotations reads the "iam.amazonaws.com/allowed-roles" annotation off a namespace
+// GetNamespaceRoleAnnotation reads the "iam.amazonaws.com/allowed-roles" annotation off a namespace
 // and splits them as a JSON list (["role1", "role2", "role3"])
-func (h *NamespaceHandler) getRoleAnnotation(ns *v1.Namespace) []string {
-	rolesString := ns.GetAnnotations()[h.storage.NamespaceKey]
+func GetNamespaceRoleAnnotation(ns *v1.Namespace, namespaceKey string) []string {
+	rolesString := ns.GetAnnotations()[namespaceKey]
 	if rolesString != "" {
 		var decoded []string
 		if err := json.Unmarshal([]byte(rolesString), &decoded); err != nil {
@@ -90,9 +77,19 @@ func (h *NamespaceHandler) getRoleAnnotation(ns *v1.Namespace) []string {
 	return nil
 }
 
+// NamespaceIndexFunc maps a namespace to it's name.
+func NamespaceIndexFunc(obj interface{}) ([]string, error) {
+	namespace, ok := obj.(*v1.Namespace)
+	if !ok {
+		return nil, fmt.Errorf("Expected namespace but recieved: %+v", obj)
+	}
+
+	return []string{namespace.GetName()}, nil
+}
+
 // NewNamespaceHandler returns a new namespace handler.
-func NewNamespaceHandler(s *store.Store) *NamespaceHandler {
+func NewNamespaceHandler(namespaceKey string) *NamespaceHandler {
 	return &NamespaceHandler{
-		storage: s,
+		namespaceKey: namespaceKey,
 	}
 }

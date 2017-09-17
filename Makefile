@@ -15,7 +15,7 @@ ARCH ?= darwin
 METALINTER_CONCURRENCY ?= 4
 METALINTER_DEADLINE ?= 180
 # useful for passing --build-arg http_proxy :)
-DOCKER_BUILD_FLAGS := 
+DOCKER_BUILD_FLAGS :=
 
 setup:
 	go get -v -u github.com/Masterminds/glide

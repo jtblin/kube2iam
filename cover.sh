@@ -16,8 +16,8 @@ declare -a packages=('' \
     'iam' \
     'iptables' \
     'k8s' \
+    'mappings' \
     'server' \
-    'store' \
     'version');
 
 # Test each package and append coverage profile info to coverage.out

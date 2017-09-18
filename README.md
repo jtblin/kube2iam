@@ -80,6 +80,8 @@ See this [StackOverflow post](http://stackoverflow.com/a/33850060) for more deta
 ### kube2iam daemonset
 
 Run the kube2iam container as a daemonset (so that it runs on each worker) with `hostNetwork: true`.
+The kube2iam daemon and iptables rule (see below) need to run before all other pods that would require 
+access to AWS resources.  
 
 
 ```yaml

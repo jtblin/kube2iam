@@ -97,7 +97,7 @@ func (r *RoleMapper) checkRoleForNamespace(roleArn string, namespace string) boo
 	return false
 }
 
-// DumpDebugInfo outputs all the roles by IP addresr.
+// DumpDebugInfo outputs all the roles by IP address.
 func (r *RoleMapper) DumpDebugInfo() map[string]interface{} {
 	output := make(map[string]interface{})
 	rolesByIP := make(map[string]string)

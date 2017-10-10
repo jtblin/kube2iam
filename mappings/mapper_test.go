@@ -144,7 +144,7 @@ func TestCheckRoleForNamespace(t *testing.T) {
 			expectedResult:       true,
 		},
 		{
-			test:                 "Restrictions enabled, full globbed arn in annotation",
+			test:                 "Restrictions enabled, full arn with glob in annotation",
 			namespaceRestriction: true,
 			defaultArn:           "arn:aws:iam::123456789012:role/default-role",
 			roleARN:              "arn:aws:iam::123456789012:role/path/explicit-role",

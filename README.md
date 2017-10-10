@@ -266,6 +266,22 @@ metadata:
   name: default
 ```
 
+_Note:_ You can also use glob-based matching for namespace restrictions, which works nicely with the path-based namespacing supported for AWS IAM roles. 
+
+Example: to allow all roles prefixed with `my-custom-path/` to be assuemd by pods in the default namespace, the 
+default namespace would be annotated as follows:
+
+```yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  annotations:
+    iam.amazonaws.com/allowed-roles: |
+      ["my-custom-path/*"]
+  name: default
+```
+
+
 ### Debug
 
 By using the --debug flag you can enable some extra features making debugging easier:

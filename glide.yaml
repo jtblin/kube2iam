@@ -25,3 +25,4 @@ import:
   - iptables
 - package: github.com/sirupsen/logrus
   version: ^1.0.2
+- package: github.com/ryanuber/go-glob

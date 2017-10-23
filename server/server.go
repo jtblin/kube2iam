@@ -43,6 +43,7 @@ type Server struct {
 	BaseRoleARN             string
 	DefaultIAMRole          string
 	IAMRoleKey              string
+	RoleAliasConfigMaps     map[string][]string // a mapping of role aliases with key as namespace and value as slice of configmap names
 	MetadataAddress         string
 	HostInterface           string
 	HostIP                  string
@@ -266,13 +267,22 @@ func (s *Server) Run(host, token string, insecure bool) error {
 	}
 	s.k8s = k
 	s.iam = iam.NewClient(s.BaseRoleARN)
-	s.roleMapper = mappings.NewRoleMapper(s.IAMRoleKey, s.DefaultIAMRole, s.NamespaceRestriction, s.NamespaceKey, s.iam, s.k8s)
+	s.roleMapper = mappings.NewRoleMapper(
+		s.IAMRoleKey,
+		s.DefaultIAMRole,
+		s.NamespaceRestriction,
+		s.NamespaceKey,
+		s.RoleAliasConfigMaps,
+		s.iam,
+		s.k8s,
+	)
 	podSynched := s.k8s.WatchForPods(kube2iam.NewPodHandler(s.IAMRoleKey))
 	namespaceSynched := s.k8s.WatchForNamespaces(kube2iam.NewNamespaceHandler(s.NamespaceKey))
+	configMapSynched := s.k8s.WatchForConfigMaps(s.RoleAliasConfigMaps, kube2iam.NewConfigMapHandler(s.RoleAliasConfigMaps))
 
 	synced := false
 	for i := 0; i < defaultCacheSyncAttempts && !synced; i++ {
-		synced = cache.WaitForCacheSync(nil, podSynched, namespaceSynched)
+		synced = cache.WaitForCacheSync(nil, podSynched, namespaceSynched, configMapSynched)
 	}
 
 	if !synced {

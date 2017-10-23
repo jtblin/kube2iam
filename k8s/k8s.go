@@ -16,6 +16,7 @@ import (
 const (
 	podIPIndexName     = "byPodIP"
 	namespaceIndexName = "byName"
+	configMapIndexName = "configMapByName"
 	// Resync period for the kube controller loop.
 	resyncPeriod = 30 * time.Minute
 )
@@ -27,6 +28,8 @@ type Client struct {
 	namespaceIndexer    cache.Indexer
 	podController       *cache.Controller
 	podIndexer          cache.Indexer
+	configMapController *cache.Controller
+	configMapIndexer    cache.Indexer
 }
 
 // Returns a cache.ListWatch that gets all changes to pods.
@@ -65,6 +68,24 @@ func (k8s *Client) WatchForNamespaces(nsEventLogger cache.ResourceEventHandler) 
 	return k8s.namespaceController.HasSynced
 }
 
+// createConfigMapLW returns a cache.ListWatch of configmaps.
+func (k8s *Client) createConfigMapLW() *cache.ListWatch {
+	return cache.NewListWatchFromClient(k8s.CoreV1().RESTClient(), "configmaps", v1.NamespaceAll, selector.Everything())
+}
+
+// WatchForConfigMaps watches for configmaps changes.
+func (k8s *Client) WatchForConfigMaps(roleAliasConfigMaps map[string][]string, nsEventLogger cache.ResourceEventHandler) cache.InformerSynced {
+	k8s.configMapIndexer, k8s.configMapController = cache.NewIndexerInformer(
+		k8s.createConfigMapLW(),
+		&v1.ConfigMap{},
+		resyncPeriod,
+		nsEventLogger,
+		cache.Indexers{configMapIndexName: kube2iam.ConfigMapIndexFunc(roleAliasConfigMaps)},
+	)
+	go k8s.configMapController.Run(wait.NeverStop)
+	return k8s.configMapController.HasSynced
+}
+
 // ListPodIPs returns the underlying set of pods being managed/indexed
 func (k8s *Client) ListPodIPs() []string {
 	// Decided to simply dump this and leave it up to consumer
@@ -76,6 +97,28 @@ func (k8s *Client) ListPodIPs() []string {
 // ListNamespaces returns the underlying set of namespaces being managed/indexed
 func (k8s *Client) ListNamespaces() []string {
 	return k8s.namespaceIndexer.ListIndexFuncValues(namespaceIndexName)
+}
+
+// ConfigMap returns configmap by name and namespace based on the cache.
+// It returns an error if there is no matching configmap found in the cache.
+func (k8s *Client) ConfigMap(name, ns string) (*v1.ConfigMap, error) {
+	cms, err := k8s.configMapIndexer.ByIndex(configMapIndexName, name)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(cms) == 0 {
+		return nil, fmt.Errorf("ConfigMap with specified name not found")
+	}
+
+	for _, cm := range cms {
+		ret := cm.(*v1.ConfigMap)
+		if ret.ObjectMeta.Namespace == ns {
+			return ret, nil
+		}
+	}
+
+	return nil, fmt.Errorf("ConfigMap with specified name and namespace not found")
 }
 
 // PodByIP provides the representation of the pod itself being cached keyed off of it's IP

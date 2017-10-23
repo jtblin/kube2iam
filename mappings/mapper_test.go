@@ -17,11 +17,13 @@ const (
 
 func TestExtractRoleARN(t *testing.T) {
 	var roleExtractionTests = []struct {
-		test        string
-		annotations map[string]string
-		defaultRole string
-		expectedARN string
-		expectError bool
+		test                string
+		annotations         map[string]string
+		defaultRole         string
+		roleAliasConfigMaps map[string][]string
+		stubbedConfigMaps   []*v1.ConfigMap
+		expectedARN         string
+		expectError         bool
 	}{
 		{
 			test:        "No default, no annotation",
@@ -57,10 +59,62 @@ func TestExtractRoleARN(t *testing.T) {
 			defaultRole: "explicit-default-role",
 			expectedARN: "arn:aws:iam::123456789012:role/explicit-default-role",
 		},
+		{
+			test:        "Role alias exists",
+			annotations: map[string]string{roleKey: "role-alias"},
+			roleAliasConfigMaps: map[string][]string{
+				"default": {"roles"},
+			},
+			stubbedConfigMaps: []*v1.ConfigMap{
+				{
+					ObjectMeta: v1.ObjectMeta{
+						Name:      "roles",
+						Namespace: "default",
+					},
+					Data: map[string]string{
+						"role-alias": "arn:aws:iam::888:role/real-role",
+					},
+				},
+			},
+			expectedARN: "arn:aws:iam::888:role/real-role",
+		},
+		{
+			test:        "Role alias doesn't exist, fall back to default base role",
+			annotations: map[string]string{roleKey: "role-alias"},
+			roleAliasConfigMaps: map[string][]string{
+				"default": {"roles"},
+			},
+			stubbedConfigMaps: []*v1.ConfigMap{
+				{
+					ObjectMeta: v1.ObjectMeta{
+						Name:      "roles",
+						Namespace: "default",
+					},
+					Data: map[string]string{
+						"another-role-alias": "arn:aws:iam::888:role/real-role",
+					},
+				},
+			},
+			expectedARN: "arn:aws:iam::123456789012:role/role-alias",
+		},
+		{
+			test:        "Role alias configmap doesn't exist",
+			annotations: map[string]string{roleKey: "role-alias"},
+			roleAliasConfigMaps: map[string][]string{
+				"default": {"roles"},
+			},
+			stubbedConfigMaps: []*v1.ConfigMap{},
+			expectError:       true,
+		},
 	}
 	for _, tt := range roleExtractionTests {
 		t.Run(tt.test, func(t *testing.T) {
-			rp := RoleMapper{}
+			rp := RoleMapper{
+				roleAliasConfigMaps: tt.roleAliasConfigMaps,
+				store: &storeMock{
+					configMaps: tt.stubbedConfigMaps,
+				},
+			}
 			rp.iamRoleKey = "roleKey"
 			rp.defaultRoleARN = tt.defaultRole
 			rp.iam = &iam.Client{BaseARN: defaultBaseRole}
@@ -178,6 +232,7 @@ func TestCheckRoleForNamespace(t *testing.T) {
 				tt.defaultArn,
 				tt.namespaceRestriction,
 				namespaceKey,
+				nil,
 				&iam.Client{BaseARN: defaultBaseRole},
 				&storeMock{
 					namespace:   tt.namespace,
@@ -196,6 +251,7 @@ func TestCheckRoleForNamespace(t *testing.T) {
 type storeMock struct {
 	namespace   string
 	annotations map[string]string
+	configMaps  []*v1.ConfigMap
 }
 
 func (k *storeMock) ListPodIPs() []string {
@@ -215,4 +271,12 @@ func (k *storeMock) NamespaceByName(ns string) (*v1.Namespace, error) {
 		return nns, nil
 	}
 	return nil, fmt.Errorf("Namepsace isn't present")
+}
+func (k *storeMock) ConfigMap(name, ns string) (*v1.ConfigMap, error) {
+	for _, cm := range k.configMaps {
+		if cm.ObjectMeta.Name == name && cm.ObjectMeta.Namespace == ns {
+			return cm, nil
+		}
+	}
+	return nil, fmt.Errorf("ConfigMap isn't present")
 }

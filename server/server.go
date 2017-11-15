@@ -46,6 +46,7 @@ type Server struct {
 	MetadataAddress         string
 	HostInterface           string
 	HostIP                  string
+	NodeName                string
 	NamespaceKey            string
 	LogLevel                string
 	AddIPTablesRule         bool
@@ -259,8 +260,8 @@ func write(logger *log.Entry, w http.ResponseWriter, s string) {
 }
 
 // Run runs the specified Server.
-func (s *Server) Run(host, token string, insecure bool) error {
-	k, err := k8s.NewClient(host, token, insecure)
+func (s *Server) Run(host, token, nodeName string, insecure bool) error {
+	k, err := k8s.NewClient(host, token, nodeName, insecure)
 	if err != nil {
 		return err
 	}

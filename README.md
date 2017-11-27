@@ -50,8 +50,8 @@ It is necessary to create an IAM role which can assume other roles and assign it
 }
 ```
 
-The roles that will be assumed must have a Trust Relationship which allows them to be assumed by the kubernetes worker role.
-See this [StackOverflow post](http://stackoverflow.com/a/33850060) for more details.
+The roles that will be assumed must have a Trust Relationship which allows them to be assumed by the kubernetes worker
+role. See this [StackOverflow post](http://stackoverflow.com/a/33850060) for more details.
 
 ```json
 {
@@ -252,7 +252,8 @@ spec:
 
 ### Namespace Restrictions
 
-By using the flag --namespace-restrictions you can enable a mode in which the roles that pods can assume is restricted by an annotation on the pod's namespace. This annotation should be in the form of a json array.
+By using the flag --namespace-restrictions you can enable a mode in which the roles that pods can assume is restricted
+by an annotation on the pod's namespace. This annotation should be in the form of a json array.
 
 To allow the aws-cli pod specified above to run in the default namespace your namespace would look like the following.
 
@@ -294,13 +295,15 @@ By using the `--auto-discover-base-arn` flag, kube2iam will auto discover the ba
 
 ### Using ec2 instance role as default role
 
-By using the `--auto-discover-default-role` flag, kube2iam will auto discover the base arn and the iam role attached to the instance and use it as the fallback role to use when annotation is not set.
+By using the `--auto-discover-default-role` flag, kube2iam will auto discover the base arn and the iam role attached to
+the instance and use it as the fallback role to use when annotation is not set.
 
 ### Options
 
-By default, `kube2iam` will use the in-cluster method to connect to the kubernetes master, and use the `iam.amazonaws.com/role`
-annotation to retrieve the role for the container. Either set the `base-role-arn` option to apply to all roles
-and only pass the role name in the `iam.amazonaws.com/role` annotation, otherwise pass the full role ARN in the annotation.
+By default, `kube2iam` will use the in-cluster method to connect to the kubernetes master, and use the
+`iam.amazonaws.com/role` annotation to retrieve the role for the container. Either set the `base-role-arn` option to
+apply to all roles and only pass the role name in the `iam.amazonaws.com/role` annotation, otherwise pass the full role
+ARN in the annotation.
 
 ```bash
 $ kube2iam --help

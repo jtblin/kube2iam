@@ -3,6 +3,7 @@ package mappings
 import (
 	"fmt"
 
+	glob "github.com/ryanuber/go-glob"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/pkg/api/v1"
 
@@ -87,9 +88,10 @@ func (r *RoleMapper) checkRoleForNamespace(roleArn string, namespace string) boo
 	}
 
 	ar := kube2iam.GetNamespaceRoleAnnotation(ns, r.namespaceKey)
-	for _, role := range ar {
-		if r.iam.RoleARN(role) == roleArn {
-			log.Debugf("Role: %s on namespace:%s found.", roleArn, namespace)
+	for _, rolePattern := range ar {
+		normalized := r.iam.RoleARN(rolePattern)
+		if glob.Glob(normalized, roleArn) {
+			log.Debugf("Role: %s matched %s on namespace:%s.", roleArn, rolePattern, namespace)
 			return true
 		}
 	}

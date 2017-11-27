@@ -65,13 +65,15 @@ junit-test: build
 
 check:
 	go install ./cmd
+
 	gometalinter --concurrency=$(METALINTER_CONCURRENCY) --deadline=$(METALINTER_DEADLINE)s ./... --vendor --linter='errcheck:errcheck:-ignore=net:Close' --cyclo-over=20 \
-		--linter='vet:go tool vet -composites=false {paths}:PATH:LINE:MESSAGE' --disable=interfacer --dupl-threshold=50
+		--linter='vet:govet --no-recurse -composites=false:PATH:LINE:MESSAGE' --disable=interfacer --dupl-threshold=50
 
 check-all:
 	go install ./cmd
 	gometalinter --concurrency=$(METALINTER_CONCURRENCY) --deadline=600s ./... --vendor --cyclo-over=20 \
-		--linter='vet:go tool vet {paths}:PATH:LINE:MESSAGE' --dupl-threshold=50
+		--linter='vet:govet --no-recurse:PATH:LINE:MESSAGE' --dupl-threshold=50
+		--dupl-threshold=50
 
 watch:
 	CompileDaemon -color=true -build "make test"

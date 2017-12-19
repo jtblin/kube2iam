@@ -18,7 +18,8 @@ spec:
           args:
             - "--app-port=8181"
             - "--base-role-arn=arn:aws:iam::936664463856:role/"
-            - "--metadata-addr=127.0.0.1:9090"
+            - "--metadata-addr=127.0.0.1"
+            - "--metadata-port=9090"
             - "--verbose"
           imagePullPolicy: Always
           ports:

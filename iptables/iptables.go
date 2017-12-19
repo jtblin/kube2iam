@@ -9,7 +9,7 @@ import (
 )
 
 // AddRule adds the required rule to the host's nat table.
-func AddRule(appPort, metadataAddress, hostInterface, hostIP string) error {
+func AddRule(appPort, metadataAddress, metadataPort, hostInterface, hostIP string) error {
 
 	if err := checkInterfaceExists(hostInterface); err != nil {
 		return err
@@ -25,7 +25,7 @@ func AddRule(appPort, metadataAddress, hostInterface, hostIP string) error {
 	}
 
 	return ipt.AppendUnique(
-		"nat", "PREROUTING", "-p", "tcp", "-d", metadataAddress, "--dport", "80",
+		"nat", "PREROUTING", "-p", "tcp", "-d", metadataAddress, "--dport", metadataPort,
 		"-j", "DNAT", "--to-destination", hostIP+":"+appPort, "-i", hostInterface,
 	)
 }

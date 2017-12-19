@@ -23,6 +23,7 @@ func addFlags(s *server.Server, fs *pflag.FlagSet) {
 	fs.StringVar(&s.IAMRoleKey, "iam-role-key", s.IAMRoleKey, "Pod annotation key used to retrieve the IAM role")
 	fs.BoolVar(&s.Insecure, "insecure", false, "Kubernetes server should be accessed without verifying the TLS. Testing only")
 	fs.StringVar(&s.MetadataAddress, "metadata-addr", s.MetadataAddress, "Address for the ec2 metadata")
+	fs.StringVar(&s.MetadataPort, "metadata-port", s.MetadataPort, "Port for the ec2 metadata")
 	fs.BoolVar(&s.AddIPTablesRule, "iptables", false, "Add iptables rule (also requires --host-ip)")
 	fs.BoolVar(&s.AutoDiscoverBaseArn, "auto-discover-base-arn", false, "Queries EC2 Metadata to determine the base ARN")
 	fs.BoolVar(&s.AutoDiscoverDefaultRole, "auto-discover-default-role", false, "Queries EC2 Metadata to determine the default Iam Role and base ARN, cannot be used with --default-role, overwrites any previous setting for --base-role-arn")
@@ -96,7 +97,7 @@ func main() {
 	}
 
 	if s.AddIPTablesRule {
-		if err := iptables.AddRule(s.AppPort, s.MetadataAddress, s.HostInterface, s.HostIP); err != nil {
+		if err := iptables.AddRule(s.AppPort, s.MetadataAddress, s.MetadataPort, s.HostInterface, s.HostIP); err != nil {
 			log.Fatalf("%s", err)
 		}
 	}

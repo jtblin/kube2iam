@@ -31,6 +31,7 @@ const (
 	defaultMaxElapsedTime    = 2 * time.Second
 	defaultMaxInterval       = 1 * time.Second
 	defaultMetadataAddress   = "169.254.169.254"
+	defaultMetadataPort      = "80"
 	defaultNamespaceKey      = "iam.amazonaws.com/allowed-roles"
 )
 
@@ -44,6 +45,7 @@ type Server struct {
 	DefaultIAMRole          string
 	IAMRoleKey              string
 	MetadataAddress         string
+	MetadataPort            string
 	HostInterface           string
 	HostIP                  string
 	NamespaceKey            string
@@ -152,7 +154,7 @@ type HealthResponse struct {
 }
 
 func (s *Server) healthHandler(logger *log.Entry, w http.ResponseWriter, r *http.Request) {
-	resp, err := http.Get(fmt.Sprintf("http://%s/latest/meta-data/instance-id", s.MetadataAddress))
+	resp, err := http.Get(fmt.Sprintf("http://%s:%s/latest/meta-data/instance-id", s.MetadataAddress, s.MetadataPort))
 	if err != nil {
 		log.Errorf("Error getting instance id %+v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -247,9 +249,10 @@ func (s *Server) roleHandler(logger *log.Entry, w http.ResponseWriter, r *http.R
 }
 
 func (s *Server) reverseProxyHandler(logger *log.Entry, w http.ResponseWriter, r *http.Request) {
-	proxy := httputil.NewSingleHostReverseProxy(&url.URL{Scheme: "http", Host: s.MetadataAddress})
+	metadataURL := fmt.Sprintf("%s:%s", s.MetadataAddress, s.MetadataPort)
+	proxy := httputil.NewSingleHostReverseProxy(&url.URL{Scheme: "http", Host: metadataURL})
 	proxy.ServeHTTP(w, r)
-	logger.WithField("metadata.url", s.MetadataAddress).Debug("Proxy ec2 metadata request")
+	logger.WithField("metadata.url", metadataURL).Debug("Proxy ec2 metadata request")
 }
 
 func write(logger *log.Entry, w http.ResponseWriter, s string) {
@@ -308,6 +311,7 @@ func NewServer() *Server {
 		BackoffMaxInterval:    defaultMaxInterval,
 		LogLevel:              defaultLogLevel,
 		MetadataAddress:       defaultMetadataAddress,
+		MetadataPort:          defaultMetadataPort,
 		NamespaceKey:          defaultNamespaceKey,
 	}
 }

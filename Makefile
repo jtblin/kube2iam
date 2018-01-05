@@ -73,7 +73,6 @@ check-all:
 	go install ./cmd
 	gometalinter --concurrency=$(METALINTER_CONCURRENCY) --deadline=600s ./... --vendor --cyclo-over=20 \
 		--linter='vet:govet --no-recurse:PATH:LINE:MESSAGE' --dupl-threshold=50
-		--dupl-threshold=50
 
 watch:
 	CompileDaemon -color=true -build "make test"

@@ -287,7 +287,11 @@ func (s *Server) Run(host, token string, insecure bool) error {
 		// This is a potential security risk if enabled in some clusters, hence the flag
 		r.Handle("/debug/store", appHandler(s.debugStoreHandler))
 	}
-	r.Handle("/{version}/meta-data/iam/security-credentials/", appHandler(s.securityCredentialsHandler))
+	// Metadata service should return a redirect (301) when the trailing slash is omitted.
+	// Some instances have seen cases where the service does not redirect (301) and returns the values immediately (200).
+	// This can cause issues when SDKs and/or integrations expect the redirect and omit the trailing slash (i.e. aws-sdk-go).
+	// To handle this scenario, trailing slash of not, kube2iam will provide correct credentials.
+	r.Handle("/{version}/meta-data/iam/security-credentials{?:[/]?}", appHandler(s.securityCredentialsHandler))
 	r.Handle("/{version}/meta-data/iam/security-credentials/{role:.*}", appHandler(s.roleHandler))
 	r.Handle("/healthz", appHandler(s.healthHandler))
 	r.Handle("/{path:.*}", appHandler(s.reverseProxyHandler))

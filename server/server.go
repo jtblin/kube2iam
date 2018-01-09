@@ -281,13 +281,13 @@ func (s *Server) Run(host, token string, insecure bool) error {
 		log.Debugln("Caches have been synced.  Proceeding with server.")
 	}
 
-	r := mux.NewRouter()
+	r := mux.NewRouter().StrictSlash(true)
 
 	if s.Debug {
 		// This is a potential security risk if enabled in some clusters, hence the flag
 		r.Handle("/debug/store", appHandler(s.debugStoreHandler))
 	}
-	r.Handle("/{version}/meta-data/iam/security-credentials/", appHandler(s.securityCredentialsHandler))
+	r.Handle("/{version}/meta-data/iam/security-credentials", appHandler(s.securityCredentialsHandler))
 	r.Handle("/{version}/meta-data/iam/security-credentials/{role:.*}", appHandler(s.roleHandler))
 	r.Handle("/healthz", appHandler(s.healthHandler))
 	r.Handle("/{path:.*}", appHandler(s.reverseProxyHandler))

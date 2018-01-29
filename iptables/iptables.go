@@ -30,6 +30,20 @@ func AddRule(appPort, metadataAddress, hostInterface, hostIP string) error {
 	)
 }
 
+// DeleteRule deletes the specified rule from the host's nat table.
+func DeleteRule(appPort, metadataAddress, hostInterface, hostIP string) error {
+
+	ipt, err := iptables.New()
+	if err != nil {
+		return err
+	}
+
+	return ipt.Delete(
+		"nat", "PREROUTING", "-p", "tcp", "-d", metadataAddress, "--dport", "80",
+		"-j", "DNAT", "--to-destination", hostIP+":"+appPort, "-i", hostInterface,
+	)
+}
+
 // checkInterfaceExists validates the interface passed exists for the given system.
 // checkInterfaceExists ignores wildcard networks.
 func checkInterfaceExists(hostInterface string) error {

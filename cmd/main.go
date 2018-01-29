@@ -24,6 +24,7 @@ func addFlags(s *server.Server, fs *pflag.FlagSet) {
 	fs.BoolVar(&s.Insecure, "insecure", false, "Kubernetes server should be accessed without verifying the TLS. Testing only")
 	fs.StringVar(&s.MetadataAddress, "metadata-addr", s.MetadataAddress, "Address for the ec2 metadata")
 	fs.BoolVar(&s.AddIPTablesRule, "iptables", false, "Add iptables rule (also requires --host-ip)")
+	fs.BoolVar(&s.RemoveIPTablesRuleOnExit, "remove-iptables-on-exit", false, "Attempt to remove iptables rule on exit (also requires --iptables)")
 	fs.BoolVar(&s.AutoDiscoverBaseArn, "auto-discover-base-arn", false, "Queries EC2 Metadata to determine the base ARN")
 	fs.BoolVar(&s.AutoDiscoverDefaultRole, "auto-discover-default-role", false, "Queries EC2 Metadata to determine the default Iam Role and base ARN, cannot be used with --default-role, overwrites any previous setting for --base-role-arn")
 	fs.StringVar(&s.HostInterface, "host-interface", "docker0", "Host interface for proxying AWS metadata")
@@ -101,7 +102,19 @@ func main() {
 		}
 	}
 
+	if s.RemoveIPTablesRuleOnExit {
+		if !s.AddIPTablesRule {
+			log.Fatalf("You cannot use --remove-iptables-on-exit without also specifying --iptables")
+		}
+		defer func() {
+			if err := iptables.DeleteRule(s.AppPort, s.MetadataAddress, s.HostInterface, s.HostIP); err != nil {
+				log.Fatalf("%s", err)
+			}
+		}()
+	}
+
 	if err := s.Run(s.APIServer, s.APIToken, s.Insecure); err != nil {
 		log.Fatalf("%s", err)
 	}
+
 }

@@ -323,6 +323,7 @@ Usage of ./build/bin/darwin/kube2iam:
       --iam-role-key string                 Pod annotation key used to retrieve the IAM role (default "iam.amazonaws.com/role")
       --insecure                            Kubernetes server should be accessed without verifying the TLS. Testing only
       --iptables                            Add iptables rule (also requires --host-ip)
+      --remove-iptables-on-exit             Attempt to remove iptables rule on exit (also requires --iptables)
       --log-level string                    Log level (default "info")
       --metadata-addr string                Address for the ec2 metadata (default "169.254.169.254")
       --namespace-key string                Namespace annotation key used to retrieve the IAM roles allowed (value in annotation should be json array) (default "iam.amazonaws.com/allowed-roles")

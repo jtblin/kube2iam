@@ -30,6 +30,7 @@ func AddRule(appPort, metadataAddress, hostInterface, hostIP string) error {
 	)
 }
 
+// DeleteRule deletes the specified rule from the host's nat table.
 func DeleteRule(appPort, metadataAddress, hostInterface, hostIP string) error {
 
 	ipt, err := iptables.New()

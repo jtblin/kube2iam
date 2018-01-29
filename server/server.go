@@ -37,30 +37,31 @@ const (
 // Server encapsulates all of the parameters necessary for starting up
 // the server. These can either be set via command line or directly.
 type Server struct {
-	APIServer               string
-	APIToken                string
-	AppPort                 string
-	BaseRoleARN             string
-	DefaultIAMRole          string
-	IAMRoleKey              string
-	MetadataAddress         string
-	HostInterface           string
-	HostIP                  string
-	NamespaceKey            string
-	LogLevel                string
-	AddIPTablesRule         bool
-	AutoDiscoverBaseArn     bool
-	AutoDiscoverDefaultRole bool
-	Debug                   bool
-	Insecure                bool
-	NamespaceRestriction    bool
-	Verbose                 bool
-	Version                 bool
-	iam                     *iam.Client
-	k8s                     *k8s.Client
-	roleMapper              *mappings.RoleMapper
-	BackoffMaxElapsedTime   time.Duration
-	BackoffMaxInterval      time.Duration
+	APIServer                string
+	APIToken                 string
+	AppPort                  string
+	BaseRoleARN              string
+	DefaultIAMRole           string
+	IAMRoleKey               string
+	MetadataAddress          string
+	HostInterface            string
+	HostIP                   string
+	NamespaceKey             string
+	LogLevel                 string
+	AddIPTablesRule          bool
+	RemoveIPTablesRuleOnExit bool
+	AutoDiscoverBaseArn      bool
+	AutoDiscoverDefaultRole  bool
+	Debug                    bool
+	Insecure                 bool
+	NamespaceRestriction     bool
+	Verbose                  bool
+	Version                  bool
+	iam                      *iam.Client
+	k8s                      *k8s.Client
+	roleMapper               *mappings.RoleMapper
+	BackoffMaxElapsedTime    time.Duration
+	BackoffMaxInterval       time.Duration
 }
 
 type appHandler func(*log.Entry, http.ResponseWriter, *http.Request)

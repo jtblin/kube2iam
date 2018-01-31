@@ -37,30 +37,31 @@ const (
 // Server encapsulates all of the parameters necessary for starting up
 // the server. These can either be set via command line or directly.
 type Server struct {
-	APIServer               string
-	APIToken                string
-	AppPort                 string
-	BaseRoleARN             string
-	DefaultIAMRole          string
-	IAMRoleKey              string
-	MetadataAddress         string
-	HostInterface           string
-	HostIP                  string
-	NamespaceKey            string
-	LogLevel                string
-	AddIPTablesRule         bool
-	AutoDiscoverBaseArn     bool
-	AutoDiscoverDefaultRole bool
-	Debug                   bool
-	Insecure                bool
-	NamespaceRestriction    bool
-	Verbose                 bool
-	Version                 bool
-	iam                     *iam.Client
-	k8s                     *k8s.Client
-	roleMapper              *mappings.RoleMapper
-	BackoffMaxElapsedTime   time.Duration
-	BackoffMaxInterval      time.Duration
+	APIServer                string
+	APIToken                 string
+	AppPort                  string
+	BaseRoleARN              string
+	DefaultIAMRole           string
+	IAMRoleKey               string
+	MetadataAddress          string
+	HostInterface            string
+	HostIP                   string
+	NamespaceKey             string
+	LogLevel                 string
+	AddIPTablesRule          bool
+	RemoveIPTablesRuleOnExit bool
+	AutoDiscoverBaseArn      bool
+	AutoDiscoverDefaultRole  bool
+	Debug                    bool
+	Insecure                 bool
+	NamespaceRestriction     bool
+	Verbose                  bool
+	Version                  bool
+	iam                      *iam.Client
+	k8s                      *k8s.Client
+	roleMapper               *mappings.RoleMapper
+	BackoffMaxElapsedTime    time.Duration
+	BackoffMaxInterval       time.Duration
 }
 
 type appHandler func(*log.Entry, http.ResponseWriter, *http.Request)
@@ -145,14 +146,19 @@ func (s *Server) getRoleMapping(IP string) (*mappings.RoleMappingResult, error) 
 	return roleMapping, nil
 }
 
-// HealthResponse represents a response for the health check.
-type HealthResponse struct {
+// healthResponse represents a response for the health check.
+type healthResponse struct {
 	HostIP     string `json:"hostIP"`
 	InstanceID string `json:"instanceId"`
 }
 
+var healthClient = http.Client{
+	Timeout:   5 * time.Second,
+	Transport: http.DefaultTransport,
+}
+
 func (s *Server) healthHandler(logger *log.Entry, w http.ResponseWriter, r *http.Request) {
-	resp, err := http.Get(fmt.Sprintf("http://%s/latest/meta-data/instance-id", s.MetadataAddress))
+	resp, err := healthClient.Get(fmt.Sprintf("http://%s/latest/meta-data/instance-id", s.MetadataAddress))
 	if err != nil {
 		log.Errorf("Error getting instance id %+v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -171,7 +177,7 @@ func (s *Server) healthHandler(logger *log.Entry, w http.ResponseWriter, r *http
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	health := &HealthResponse{InstanceID: string(instanceID), HostIP: s.HostIP}
+	health := &healthResponse{InstanceID: string(instanceID), HostIP: s.HostIP}
 	w.Header().Add("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(health); err != nil {
 		log.Errorf("Error sending json %+v", err)
@@ -292,11 +298,8 @@ func (s *Server) Run(host, token string, insecure bool) error {
 	r.Handle("/healthz", appHandler(s.healthHandler))
 	r.Handle("/{path:.*}", appHandler(s.reverseProxyHandler))
 
-	log.Infof("Listening on port %s", s.AppPort)
-	if err := http.ListenAndServe(":"+s.AppPort, r); err != nil {
-		log.Fatalf("Error creating http server: %+v", err)
-	}
-	return nil
+	log.Infof("Listening on :%s", s.AppPort)
+	return http.ListenAndServe(":" + s.AppPort, r)
 }
 
 // NewServer will create a new Server with default values.

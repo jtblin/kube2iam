@@ -252,6 +252,10 @@ func (s *Server) reverseProxyHandler(logger *log.Entry, w http.ResponseWriter, r
 	logger.WithField("metadata.url", s.MetadataAddress).Debug("Proxy ec2 metadata request")
 }
 
+func (s *Server) securityCredentialsRedirectHandler(logger *log.Entry, w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, r.URL.Path+"/", 301)
+}
+
 func write(logger *log.Entry, w http.ResponseWriter, s string) {
 	if _, err := w.Write([]byte(s)); err != nil {
 		logger.Errorf("Error writing response: %+v", err)
@@ -287,6 +291,7 @@ func (s *Server) Run(host, token string, insecure bool) error {
 		// This is a potential security risk if enabled in some clusters, hence the flag
 		r.Handle("/debug/store", appHandler(s.debugStoreHandler))
 	}
+	r.Handle("/{version}/meta-data/iam/security-credentials", appHandler(s.securityCredentialsRedirectHandler))
 	r.Handle("/{version}/meta-data/iam/security-credentials/", appHandler(s.securityCredentialsHandler))
 	r.Handle("/{version}/meta-data/iam/security-credentials/{role:.*}", appHandler(s.roleHandler))
 	r.Handle("/healthz", appHandler(s.healthHandler))

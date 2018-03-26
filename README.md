@@ -80,9 +80,8 @@ role. See this [StackOverflow post](http://stackoverflow.com/a/33850060) for mor
 ### kube2iam daemonset
 
 Run the kube2iam container as a daemonset (so that it runs on each worker) with `hostNetwork: true`.
-The kube2iam daemon and iptables rule (see below) need to run before all other pods that would require 
-access to AWS resources.  
-
+The kube2iam daemon and iptables rule (see below) need to run before all other pods that would require
+access to AWS resources.
 
 ```yaml
 apiVersion: extensions/v1beta1
@@ -267,7 +266,9 @@ metadata:
       ["role-arn"]
   name: default
 ```
-_Note:_ You can also use glob-based matching for namespace restrictions, which works nicely with the path-based namespacing supported for AWS IAM roles. 
+
+_Note:_ You can also use glob-based matching for namespace restrictions, which works nicely with the path-based 
+namespacing supported for AWS IAM roles. 
 
 Example: to allow all roles prefixed with `my-custom-path/` to be assumed by pods in the default namespace, the 
 default namespace would be annotated as follows:
@@ -371,12 +372,11 @@ spec:
             privileged: true
 ```
 
-
 ### Debug
 
 By using the --debug flag you can enable some extra features making debugging easier:
 
-- `/debug/store` endpoint enabled to dump knowledge of namespaces and role association.
+* `/debug/store` endpoint enabled to dump knowledge of namespaces and role association.
 
 ### Base ARN auto discovery
 
@@ -412,6 +412,7 @@ Usage of ./build/bin/darwin/kube2iam:
       --iam-role-key string                 Pod annotation key used to retrieve the IAM role (default "iam.amazonaws.com/role")
       --insecure                            Kubernetes server should be accessed without verifying the TLS. Testing only
       --iptables                            Add iptables rule (also requires --host-ip)
+      --log-format string                   Log format (text/json) (default "text")
       --log-level string                    Log level (default "info")
       --metadata-addr string                Address for the ec2 metadata (default "169.254.169.254")
       --namespace-key string                Namespace annotation key used to retrieve the IAM roles allowed (value in annotation should be json array) (default "iam.amazonaws.com/allowed-roles")
@@ -426,7 +427,7 @@ Usage of ./build/bin/darwin/kube2iam:
 * Build and push dev image to docker hub: `make docker-dev DOCKER_REPO=<your docker hub username>`
 * Update `deployment.yaml` as needed
 * Deploy to local kubernetes cluster: `kubectl create -f deployment.yaml` or
-`kubectl delete -f deployment.yaml && kubectl create -f deployment.yaml`
+  `kubectl delete -f deployment.yaml && kubectl create -f deployment.yaml`
 * Expose as service: `kubectl expose deployment kube2iam --type=NodePort`
 * Retrieve the services url: `minikube service kube2iam --url`
 * Test your changes e.g. `curl -is $(minikube service kube2iam --url)/healthz`

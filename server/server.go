@@ -28,6 +28,7 @@ const (
 	defaultCacheSyncAttempts = 10
 	defaultIAMRoleKey        = "iam.amazonaws.com/role"
 	defaultLogLevel          = "info"
+	defaultLogFormat         = "text"
 	defaultMaxElapsedTime    = 2 * time.Second
 	defaultMaxInterval       = 1 * time.Second
 	defaultMetadataAddress   = "169.254.169.254"
@@ -48,6 +49,7 @@ type Server struct {
 	HostIP                  string
 	NamespaceKey            string
 	LogLevel                string
+	LogFormat               string
 	AddIPTablesRule         bool
 	AutoDiscoverBaseArn     bool
 	AutoDiscoverDefaultRole bool
@@ -308,6 +310,7 @@ func NewServer() *Server {
 		IAMRoleKey:            defaultIAMRoleKey,
 		BackoffMaxInterval:    defaultMaxInterval,
 		LogLevel:              defaultLogLevel,
+		LogFormat:             defaultLogFormat,
 		MetadataAddress:       defaultMetadataAddress,
 		NamespaceKey:          defaultNamespaceKey,
 	}

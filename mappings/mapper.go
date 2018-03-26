@@ -16,6 +16,7 @@ type RoleMapper struct {
 	defaultRoleARN       string
 	iamRoleKey           string
 	namespaceKey         string
+	roleAliasConfigMaps  map[string][]string
 	namespaceRestriction bool
 	iam                  *iam.Client
 	store                store
@@ -26,6 +27,7 @@ type store interface {
 	PodByIP(string) (*v1.Pod, error)
 	ListNamespaces() []string
 	NamespaceByName(string) (*v1.Namespace, error)
+	ConfigMap(name, ns string) (*v1.ConfigMap, error)
 }
 
 // RoleMappingResult represents the relevant information for a given mapping request
@@ -71,7 +73,33 @@ func (r *RoleMapper) extractRoleARN(pod *v1.Pod) (string, error) {
 		rawRoleName = r.defaultRoleARN
 	}
 
+	roleAlias, err := r.findRoleAlias(rawRoleName)
+	if err != nil {
+		return "", err
+	}
+
+	if roleAlias != "" {
+		rawRoleName = roleAlias
+	}
+
 	return r.iam.RoleARN(rawRoleName), nil
+}
+
+func (r *RoleMapper) findRoleAlias(roleName string) (string, error) {
+	for ns, names := range r.roleAliasConfigMaps {
+		for _, name := range names {
+			cm, err := r.store.ConfigMap(name, ns)
+			if err != nil {
+				return "", err
+			}
+
+			if roleAlias, ok := cm.Data[roleName]; ok {
+				return roleAlias, nil
+			}
+		}
+	}
+
+	return "", nil
 }
 
 // checkRoleForNamespace checks the 'database' for a role allowed in a namespace,
@@ -105,6 +133,7 @@ func (r *RoleMapper) DumpDebugInfo() map[string]interface{} {
 	rolesByIP := make(map[string]string)
 	namespacesByIP := make(map[string]string)
 	rolesByNamespace := make(map[string][]string)
+	roleAliasesByNamespace := make(map[string]map[string]string)
 
 	for _, ip := range r.store.ListPodIPs() {
 		// When pods have `hostNetwork: true` they share an IP and we receive an error
@@ -124,19 +153,46 @@ func (r *RoleMapper) DumpDebugInfo() map[string]interface{} {
 		}
 	}
 
+	for ns, cmns := range r.roleAliasConfigMaps {
+		for _, cmn := range cmns {
+			cm, err := r.store.ConfigMap(cmn, ns)
+			if err == nil {
+				cmm, ok := roleAliasesByNamespace[ns]
+				if !ok {
+					cmm = make(map[string]string)
+					roleAliasesByNamespace[ns] = cmm
+				}
+
+				for k, v := range cm.Data {
+					cmm[k] = v
+				}
+			}
+		}
+	}
+
 	output["rolesByIP"] = rolesByIP
 	output["namespaceByIP"] = namespacesByIP
 	output["rolesByNamespace"] = rolesByNamespace
+	output["roleAlisesByNamespace"] = roleAliasesByNamespace
 	return output
 }
 
 // NewRoleMapper returns a new RoleMapper for use.
-func NewRoleMapper(roleKey string, defaultRole string, namespaceRestriction bool, namespaceKey string, iamInstance *iam.Client, kubeStore store) *RoleMapper {
+func NewRoleMapper(
+	roleKey string,
+	defaultRole string,
+	namespaceRestriction bool,
+	namespaceKey string,
+	roleAliasConfigMaps map[string][]string,
+	iamInstance *iam.Client,
+	kubeStore store,
+) *RoleMapper {
 	return &RoleMapper{
 		defaultRoleARN:       iamInstance.RoleARN(defaultRole),
 		iamRoleKey:           roleKey,
 		namespaceKey:         namespaceKey,
 		namespaceRestriction: namespaceRestriction,
+		roleAliasConfigMaps:  roleAliasConfigMaps,
 		iam:                  iamInstance,
 		store:                kubeStore,
 	}

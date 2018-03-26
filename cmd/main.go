@@ -12,6 +12,8 @@ import (
 	"github.com/jtblin/kube2iam/version"
 )
 
+var roleAliasConfigMapsFlag []string
+
 // addFlags adds the command line flags.
 func addFlags(s *server.Server, fs *pflag.FlagSet) {
 	fs.StringVar(&s.APIServer, "api-server", s.APIServer, "Endpoint for the api server")
@@ -29,6 +31,7 @@ func addFlags(s *server.Server, fs *pflag.FlagSet) {
 	fs.StringVar(&s.HostInterface, "host-interface", "docker0", "Host interface for proxying AWS metadata")
 	fs.BoolVar(&s.NamespaceRestriction, "namespace-restrictions", false, "Enable namespace restrictions")
 	fs.StringVar(&s.NamespaceKey, "namespace-key", s.NamespaceKey, "Namespace annotation key used to retrieve the IAM roles allowed (value in annotation should be json array)")
+	fs.StringSliceVar(&roleAliasConfigMapsFlag, "role-alias-config-map", nil, "Namespace and name of config map that stores role aliases specified in the format of NAMESPACE:CONFIG_MAP_NAME")
 	fs.StringVar(&s.HostIP, "host-ip", s.HostIP, "IP address of host")
 	fs.DurationVar(&s.BackoffMaxInterval, "backoff-max-interval", s.BackoffMaxInterval, "Max interval for backoff when querying for role.")
 	fs.DurationVar(&s.BackoffMaxElapsedTime, "backoff-max-elapsed-time", s.BackoffMaxElapsedTime, "Max elapsed time for backoff when querying for role.")
@@ -56,6 +59,8 @@ func main() {
 	if s.Version {
 		version.PrintVersionAndExit()
 	}
+
+	s.RoleAliasConfigMaps = parseRoleAliasConfigMapsFlag(roleAliasConfigMapsFlag)
 
 	if s.BaseRoleARN != "" {
 		if !iam.IsValidBaseARN(s.BaseRoleARN) {
@@ -104,4 +109,27 @@ func main() {
 	if err := s.Run(s.APIServer, s.APIToken, s.Insecure); err != nil {
 		log.Fatalf("%s", err)
 	}
+}
+
+func parseRoleAliasConfigMapsFlag(roleAliasConfigMapsFlag []string) map[string][]string {
+	roleAliasConfigMaps := make(map[string][]string)
+
+	for _, flag := range roleAliasConfigMapsFlag {
+		s := strings.SplitN(flag, ":", 2)
+		if len(s) != 2 {
+			log.Fatalf("Invalid --role-alias-config-map %s, expected NAMESPACE:CONFIG_MAP_NAME", flag)
+		}
+
+		ns := s[0]
+		cm := s[1]
+
+		cms := roleAliasConfigMaps[ns]
+		if len(cms) == 0 {
+			cms = make([]string, 0)
+		}
+		cms = append(cms, cm)
+		roleAliasConfigMaps[ns] = cms
+	}
+
+	return roleAliasConfigMaps
 }

@@ -12,7 +12,7 @@ Provide IAM credentials to containers running inside a kubernetes cluster based 
 
 Traditionally in AWS, service level isolation is done using IAM roles. IAM roles are attributed through instance
 profiles and are accessible by services through the transparent usage by the aws-sdk of the ec2 metadata API.
-When using the aws-sdk, a call is made to the ec2 metadata API which provides temporary credentials
+When using the aws-sdk, a call is made to the EC2 metadata API which provides temporary credentials
 that are then used to make calls to the AWS service.
 
 ## Problem statement
@@ -26,8 +26,8 @@ IAM roles. This is not acceptable from a security perspective.
 
 The solution is to redirect the traffic that is going to the ec2 metadata API for docker containers to a container
 running on each instance, make a call to the AWS API to retrieve temporary credentials and return these to the caller.
-Other calls will be proxied to the ec2 metadata API. This container will need to run with host networking enabled
-so that it can call the ec2 metadata API itself.
+Other calls will be proxied to the EC2 metadata API. This container will need to run with host networking enabled
+so that it can call the EC2 metadata API itself.
 
 ## Usage
 
@@ -110,7 +110,7 @@ spec:
 
 ### iptables
 
-To prevent containers from directly accessing the ec2 metadata API and gaining unwanted access to AWS resources,
+To prevent containers from directly accessing the EC2 metadata API and gaining unwanted access to AWS resources,
 the traffic to `169.254.169.254` must be proxied for docker containers.
 
 ```bash
@@ -136,6 +136,7 @@ different than `docker0` depending on which virtual network you use e.g.
 * for CNI, use `cni0`
 * for weave use `weave`
 * for flannel use `cni0`
+* for [kube-router](https://github.com/cloudnativelabs/kube-router) use `kube-bridge`
 
 ```yaml
 apiVersion: extensions/v1beta1
@@ -266,9 +267,10 @@ metadata:
   name: default
 ```
 
-_Note:_ You can also use glob-based matching for namespace restrictions, which works nicely with the path-based namespacing supported for AWS IAM roles.
+_Note:_ You can also use glob-based matching for namespace restrictions, which works nicely with the path-based 
+namespacing supported for AWS IAM roles. 
 
-Example: to allow all roles prefixed with `my-custom-path/` to be assuemd by pods in the default namespace, the
+Example: to allow all roles prefixed with `my-custom-path/` to be assumed by pods in the default namespace, the 
 default namespace would be annotated as follows:
 
 ```yaml
@@ -281,6 +283,95 @@ metadata:
   name: default
 ```
 
+### RBAC Setup
+
+This is the basic RBAC setup to get kube2iam working correctly when your cluster is using rbac. Below is the bare minimum to get kube2iam working.
+
+First we need to make a service account.
+
+```yaml
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kube2iam
+  namespace: kube-system
+```
+
+Next we need to setup roles and binding for the the process.
+
+```yaml
+---
+apiVersion: v1
+items:
+  - apiVersion: rbac.authorization.k8s.io/v1beta1
+    kind: ClusterRole
+    metadata:
+      name: kube2iam
+    rules:
+      - apiGroups: [""]
+        resources: ["namespaces","pods"]
+        verbs: ["get","watch","list"]
+  - apiVersion: rbac.authorization.k8s.io/v1beta1
+    kind: ClusterRoleBinding
+    metadata:
+      name: kube2iam
+    subjects:
+    - kind: ServiceAccount
+      name: kube2iam
+      namespace: kube-system
+    roleRef:
+      kind: ClusterRole
+      name: kube2iam
+      apiGroup: rbac.authorization.k8s.io
+kind: List
+```
+
+You will notice this lives in the kube-system namespace to allow for easier seperation between system services and other services.
+
+Here is what a kube2iam daemonset yaml might look like.
+
+```yaml
+---
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: kube2iam
+  namespace: kube-system
+  labels:
+    app: kube2iam
+spec:
+  template:
+    metadata:
+      labels:
+        name: kube2iam
+    spec:
+      serviceAccountName: kube2iam
+      hostNetwork: true
+      containers:
+        - image: jtblin/kube2iam:latest
+          imagePullPolicy: Always
+          name: kube2iam
+          args:
+            - "--app-port=8181"
+            - "--base-role-arn=arn:aws:iam::xxxxxxx:role/"
+            - "--iptables=true"
+            - "--host-ip=$(HOST_IP)"
+            - "--host-interface=weave"
+            - "--verbose"
+          env:
+            - name: HOST_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          ports:
+            - containerPort: 8181
+              hostPort: 8181
+              name: http
+          securityContext:
+            privileged: true
+```
+
 ### Debug
 
 By using the --debug flag you can enable some extra features making debugging easier:
@@ -289,11 +380,11 @@ By using the --debug flag you can enable some extra features making debugging ea
 
 ### Base ARN auto discovery
 
-By using the `--auto-discover-base-arn` flag, kube2iam will auto discover the base arn via the ec2 metadata service.
+By using the `--auto-discover-base-arn` flag, kube2iam will auto discover the base ARN via the EC2 metadata service.
 
 ### Using ec2 instance role as default role
 
-By using the `--auto-discover-default-role` flag, kube2iam will auto discover the base arn and the iam role attached to
+By using the `--auto-discover-default-role` flag, kube2iam will auto discover the base ARN and the IAM role attached to
 the instance and use it as the fallback role to use when annotation is not set.
 
 ### Options

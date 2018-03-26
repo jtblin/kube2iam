@@ -102,6 +102,12 @@ spec:
           name: kube2iam
           args:
             - "--base-role-arn=arn:aws:iam::123456789012:role/"
+            - "--node=$(NODE_NAME)"
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
           ports:
             - containerPort: 8181
               hostPort: 8181
@@ -159,11 +165,16 @@ spec:
             - "--base-role-arn=arn:aws:iam::123456789012:role/"
             - "--iptables=true"
             - "--host-ip=$(HOST_IP)"
+            - "--node=$(NODE_NAME)"
           env:
             - name: HOST_IP
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
           ports:
             - containerPort: 8181
               hostPort: 8181

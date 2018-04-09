@@ -84,7 +84,7 @@ The kube2iam daemon and iptables rule (see below) need to run before all other p
 access to AWS resources.
 
 ```yaml
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: kube2iam
@@ -145,7 +145,7 @@ different than `docker0` depending on which virtual network you use e.g.
 * for [kube-router](https://github.com/cloudnativelabs/kube-router) use `kube-bridge`
 
 ```yaml
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: kube2iam
@@ -217,7 +217,7 @@ resource spec.
 Example for a `Deployment`:
 
 ```yaml
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: nginx-deployment
@@ -240,7 +240,7 @@ spec:
 Example for a `CronJob`:
 
 ```yaml
-apiVersion: batch/v2alpha1
+apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: my-cronjob
@@ -315,7 +315,7 @@ Next we need to setup roles and binding for the the process.
 ---
 apiVersion: v1
 items:
-  - apiVersion: rbac.authorization.k8s.io/v1beta1
+  - apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
       name: kube2iam
@@ -323,7 +323,7 @@ items:
       - apiGroups: [""]
         resources: ["namespaces","pods"]
         verbs: ["get","watch","list"]
-  - apiVersion: rbac.authorization.k8s.io/v1beta1
+  - apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
       name: kube2iam
@@ -344,7 +344,7 @@ Here is what a kube2iam daemonset yaml might look like.
 
 ```yaml
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: kube2iam

@@ -28,6 +28,7 @@ const (
 	defaultCacheSyncAttempts = 10
 	defaultIAMRoleKey        = "iam.amazonaws.com/role"
 	defaultLogLevel          = "info"
+	defaultLogFormat         = "text"
 	defaultMaxElapsedTime    = 2 * time.Second
 	defaultMaxInterval       = 1 * time.Second
 	defaultMetadataAddress   = "169.254.169.254"
@@ -46,10 +47,12 @@ type Server struct {
 	MetadataAddress          string
 	HostInterface            string
 	HostIP                   string
+	NodeName                 string
 	NamespaceKey             string
 	LogLevel                 string
+	LogFormat                string
 	AddIPTablesRule          bool
-	RemoveIPTablesRuleOnExit bool
+  RemoveIPTablesRuleOnExit bool
 	AutoDiscoverBaseArn      bool
 	AutoDiscoverDefaultRole  bool
 	Debug                    bool
@@ -265,8 +268,8 @@ func write(logger *log.Entry, w http.ResponseWriter, s string) {
 }
 
 // Run runs the specified Server.
-func (s *Server) Run(host, token string, insecure bool) error {
-	k, err := k8s.NewClient(host, token, insecure)
+func (s *Server) Run(host, token, nodeName string, insecure bool) error {
+	k, err := k8s.NewClient(host, token, nodeName, insecure)
 	if err != nil {
 		return err
 	}
@@ -293,6 +296,7 @@ func (s *Server) Run(host, token string, insecure bool) error {
 		// This is a potential security risk if enabled in some clusters, hence the flag
 		r.Handle("/debug/store", appHandler(s.debugStoreHandler))
 	}
+	r.Handle("/{version}/meta-data/iam/security-credentials", appHandler(s.securityCredentialsHandler))
 	r.Handle("/{version}/meta-data/iam/security-credentials/", appHandler(s.securityCredentialsHandler))
 	r.Handle("/{version}/meta-data/iam/security-credentials/{role:.*}", appHandler(s.roleHandler))
 	r.Handle("/healthz", appHandler(s.healthHandler))
@@ -310,6 +314,7 @@ func NewServer() *Server {
 		IAMRoleKey:            defaultIAMRoleKey,
 		BackoffMaxInterval:    defaultMaxInterval,
 		LogLevel:              defaultLogLevel,
+		LogFormat:             defaultLogFormat,
 		MetadataAddress:       defaultMetadataAddress,
 		NamespaceKey:          defaultNamespaceKey,
 	}

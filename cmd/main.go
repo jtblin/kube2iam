@@ -33,8 +33,10 @@ func addFlags(s *server.Server, fs *pflag.FlagSet) {
 	fs.BoolVar(&s.NamespaceRestriction, "namespace-restrictions", false, "Enable namespace restrictions")
 	fs.StringVar(&s.NamespaceKey, "namespace-key", s.NamespaceKey, "Namespace annotation key used to retrieve the IAM roles allowed (value in annotation should be json array)")
 	fs.StringVar(&s.HostIP, "host-ip", s.HostIP, "IP address of host")
+	fs.StringVar(&s.NodeName, "node", s.NodeName, "Name of the node where kube2iam is running")
 	fs.DurationVar(&s.BackoffMaxInterval, "backoff-max-interval", s.BackoffMaxInterval, "Max interval for backoff when querying for role.")
 	fs.DurationVar(&s.BackoffMaxElapsedTime, "backoff-max-elapsed-time", s.BackoffMaxElapsedTime, "Max elapsed time for backoff when querying for role.")
+	fs.StringVar(&s.LogFormat, "log-format", s.LogFormat, "Log format (text/json)")
 	fs.StringVar(&s.LogLevel, "log-level", s.LogLevel, "Log level")
 	fs.BoolVar(&s.Verbose, "verbose", false, "Verbose")
 	fs.BoolVar(&s.Version, "version", false, "Print the version and exits")
@@ -54,6 +56,10 @@ func main() {
 		log.SetLevel(log.DebugLevel)
 	} else {
 		log.SetLevel(logLevel)
+	}
+
+	if strings.ToLower(s.LogFormat) == "json" {
+		log.SetFormatter(&log.JSONFormatter{})
 	}
 
 	if s.Version {
@@ -108,7 +114,7 @@ func main() {
 
 	signalChan := make(chan os.Signal)
 	go func() {
-		if err := s.Run(s.APIServer, s.APIToken, s.Insecure); err != nil {
+		if err := s.Run(s.APIServer, s.APIToken, s.NodeName, s.Insecure); err != nil {
 			log.Errorf("%s", err)
 			signalChan <- syscall.SIGABRT // On error, just quit now by faking a signal
 		}

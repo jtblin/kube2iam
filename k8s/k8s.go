@@ -27,11 +27,16 @@ type Client struct {
 	namespaceIndexer    cache.Indexer
 	podController       *cache.Controller
 	podIndexer          cache.Indexer
+	nodeName            string
 }
 
 // Returns a cache.ListWatch that gets all changes to pods.
 func (k8s *Client) createPodLW() *cache.ListWatch {
-	return cache.NewListWatchFromClient(k8s.CoreV1().RESTClient(), "pods", v1.NamespaceAll, selector.Everything())
+	fieldSelector := selector.Everything()
+	if k8s.nodeName != "" {
+		fieldSelector = selector.OneTermEqualSelector("spec.nodeName", k8s.nodeName)
+	}
+	return cache.NewListWatchFromClient(k8s.CoreV1().RESTClient(), "pods", v1.NamespaceAll, fieldSelector)
 }
 
 // WatchForPods watches for pod changes.
@@ -119,7 +124,7 @@ func (k8s *Client) NamespaceByName(namespaceName string) (*v1.Namespace, error) 
 }
 
 // NewClient returns a new kubernetes client.
-func NewClient(host, token string, insecure bool) (*Client, error) {
+func NewClient(host, token, nodeName string, insecure bool) (*Client, error) {
 	var config *rest.Config
 	var err error
 	if host != "" && token != "" {
@@ -138,5 +143,5 @@ func NewClient(host, token string, insecure bool) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Client{Clientset: client}, nil
+	return &Client{Clientset: client, nodeName: nodeName}, nil
 }

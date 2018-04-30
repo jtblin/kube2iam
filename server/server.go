@@ -70,6 +70,8 @@ type Server struct {
 	NamespaceRestriction       bool
 	Verbose                    bool
 	Version                    bool
+	DisableSensitiveMetadata   bool
+	DisableUserData            bool
 	iam                        *iam.Client
 	k8s                        *k8s.Client
 	roleMapper                 *mappings.RoleMapper
@@ -268,6 +270,10 @@ func (s *Server) debugStoreHandler(logger *log.Entry, w http.ResponseWriter, r *
 	write(logger, w, string(o))
 }
 
+func (s *Server) emptyResponseHandler(logger *log.Entry, w http.ResponseWriter, r *http.Request) {
+       w.Header().Set("Server", "EC2ws")
+}
+
 func (s *Server) securityCredentialsHandler(logger *log.Entry, w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Server", "EC2ws")
 	remoteIP := parseRemoteAddr(r.RemoteAddr)
@@ -370,6 +376,25 @@ func (s *Server) Run(host, token, nodeName string, insecure bool) error {
 	if s.Debug {
 		// This is a potential security risk if enabled in some clusters, hence the flag
 		r.Handle("/debug/store", newAppHandler("debugStoreHandler", s.debugStoreHandler))
+	}
+
+	emptyResponseHandler := newAppHandler("emptyResponseHandler", s.emptyResponseHandler)
+	if s.DisableUserData {
+		r.Handle("/{version}/user-data", emptyResponseHandler)
+		r.Handle("/{version}/user-data/{path:.*}", emptyResponseHandler)
+	}
+	if s.DisableSensitiveMetadata {
+		// permit instance identity document, but not its signatures
+		r.Handle("/{version}/dynamic/instance-identity/document", newAppHandler("reserveProxyHandler", s.reverseProxyHandler))
+		r.Handle("/{version}/dynamic/instance-identity/{path:.+}", emptyResponseHandler)
+		// hide public keys, disk configuration, security group & iam information
+		r.Handle("/{version}/meta-data/public-keys/{path:.*}", emptyResponseHandler)
+		r.Handle("/{version}/meta-data/block-device-mapping/{path:.*}", emptyResponseHandler)
+		r.Handle("/{version}/meta-data/network/{path:.*}", emptyResponseHandler)
+		r.Handle("/{version}/meta-data/security-groups", emptyResponseHandler)
+		r.Handle("/{version}/meta-data/security-groups/{path:.*}", emptyResponseHandler)
+		r.Handle("/{version}/meta-data/iam/info", emptyResponseHandler)
+		r.Handle("/{version}/meta-data/iam/info/{path:.*}", emptyResponseHandler)
 	}
 	r.Handle("/{version}/meta-data/iam/security-credentials", securityHandler)
 	r.Handle("/{version}/meta-data/iam/security-credentials/", securityHandler)

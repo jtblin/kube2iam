@@ -143,6 +143,7 @@ different than `docker0` depending on which virtual network you use e.g.
 * for weave use `weave`
 * for flannel use `cni0`
 * for [kube-router](https://github.com/cloudnativelabs/kube-router) use `kube-bridge`
+* for [OpenShift](https://www.openshift.org/) use `tun0`
 
 ```yaml
 apiVersion: extensions/v1beta1

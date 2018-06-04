@@ -1,0 +1,15 @@
+steps:
+
+  - name: "Build all"
+    command: .buildkite/build.sh
+    branches: 'master'
+    agents:
+      queue: chef
+
+  - wait
+
+  - name: "Publish :docker: image and to registry :rocket:"
+    command: .buildkite/publish.sh
+    branches: 'master'
+    agents:
+      queue: chef

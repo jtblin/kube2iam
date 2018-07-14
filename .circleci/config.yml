@@ -1,0 +1,100 @@
+version: 2.0
+
+build_jobs: &build_jobs
+  jobs:
+    - build-amd64
+    - build-arm64
+    - build-armhf
+    - push-manifest:
+        requires:
+          - build-amd64
+          - build-arm64
+          - build-armhf
+
+workflows:
+  version: 2
+  commit:
+    <<: *build_jobs
+  nightly:
+    <<: *build_jobs
+    triggers:
+      - schedule:
+          cron: "0 0 * * *"
+          filters:
+            branches:
+              only:
+                - master
+
+shared: &shared
+  docker:
+    - image: docker:stable-git
+  steps:
+    - checkout
+
+    - setup_remote_docker:
+        docker_layer_caching: true
+
+    - run:
+        name: Install build dependencies.
+        command: apk add --no-cache bash curl git jq make perl tree
+
+    - run:
+        name: Add dynamic shared vars to env.
+        command: |
+          .circleci/load-env.sh
+
+    - run:
+        name: Install go.
+        command: |
+          source $BASH_ENV
+          .circleci/install-go.sh
+
+    - run:
+        name: Build binary.
+        command: |
+          source $BASH_ENV
+          .circleci/build-binary.sh
+
+    - run:
+        name: Build and push Docker image.
+        command: |
+          source $BASH_ENV
+          .circleci/build-image.sh
+
+jobs:
+  build-amd64:
+    <<: *shared
+    environment:
+      GOARCH: amd64
+      TAG: amd64
+      TARGET: amd64
+      QEMU_ARCH: amd64
+  build-arm64:
+    <<: *shared
+    environment:
+      GOARCH: arm64
+      QEMU_ARCH: aarch64
+      TAG: arm64
+      TARGET: arm64v8
+  build-armhf:
+    <<: *shared
+    environment:
+      GOARCH: arm
+      QEMU_ARCH: arm
+      TAG: arm
+      TARGET: arm32v6
+
+  push-manifest:
+    docker:
+      - image: docker:18
+    steps:
+      - checkout
+      - setup_remote_docker
+
+      - run:
+          name: Add dynamic shared vars to env.
+          command: |
+            apk add --no-cache bash curl jq
+            .circleci/load-env.sh
+            .circleci/install-manifest-tool.sh
+            .circleci/push-manifest.sh

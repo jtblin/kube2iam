@@ -1,36 +1,37 @@
-ORG_PATH="github.com/jtblin"
+ARCHITECTURES := amd64 arm64 arm
 BINARY_NAME := kube2iam
-REPO_PATH="$(ORG_PATH)/$(BINARY_NAME)"
-VERSION_VAR := $(REPO_PATH)/version.Version
-GIT_VAR := $(REPO_PATH)/version.GitCommit
-BUILD_DATE_VAR := $(REPO_PATH)/version.BuildDate
-REPO_VERSION := $$(git describe --abbrev=0 --tags)
 BUILD_DATE := $$(date +%Y-%m-%d-%H:%M)
-GIT_HASH := $$(git rev-parse --short HEAD)
-GOBUILD_VERSION_ARGS := -ldflags "-s -X $(VERSION_VAR)=$(REPO_VERSION) -X $(GIT_VAR)=$(GIT_HASH) -X $(BUILD_DATE_VAR)=$(BUILD_DATE)"
-# useful for other docker repos
-DOCKER_REPO ?= jtblin
-IMAGE_NAME := $(DOCKER_REPO)/$(BINARY_NAME)
-ARCH ?= darwin
-METALINTER_CONCURRENCY ?= 4
-METALINTER_DEADLINE ?= 180
+BUILD_DATE_VAR := $(REPO_PATH)/version.BuildDate
 # useful for passing --build-arg http_proxy :)
 DOCKER_BUILD_FLAGS :=
+ # useful for other docker repos
+DOCKER_REPO ?= jtblin
+GIT_HASH := $$(git rev-parse --short HEAD)
+GOARCH ?= amd64
+METALINTER_CONCURRENCY ?= 4
+METALINTER_DEADLINE ?= 180
+ORG_PATH="github.com/jtblin"
+REPO_PATH="$(ORG_PATH)/$(BINARY_NAME)"
+REPO_VERSION := $$(git describe --abbrev=0 --tags)
+VERSION_VAR := $(REPO_PATH)/version.Version
+GIT_VAR := $(REPO_PATH)/version.GitCommit
+GOBUILD_VERSION_ARGS := -ldflags "-s -X $(VERSION_VAR)=$(REPO_VERSION) -X $(GIT_VAR)=$(GIT_HASH) -X $(BUILD_DATE_VAR)=$(BUILD_DATE)"
+IMAGE_NAME := $(DOCKER_REPO)/$(BINARY_NAME)
 
 setup:
-	go get -v -u github.com/Masterminds/glide
-	go get -v -u github.com/githubnemo/CompileDaemon
-	go get -v -u github.com/alecthomas/gometalinter
-	go get -v -u github.com/jstemmer/go-junit-report
-	go get -v github.com/mattn/goveralls
-	gometalinter --install --update
+	GOARCH=amd64 go get github.com/Masterminds/glide
+	GOARCH=amd64 go get github.com/githubnemo/CompileDaemon
+	# go get -v -u github.com/alecthomas/gometalinter
+	# go get -v -u github.com/jstemmer/go-junit-report
+	# go get -v github.com/mattn/goveralls
+	# gometalinter --install
 	glide install --strip-vendor
 
 build: *.go fmt
-	go build -o build/bin/$(ARCH)/$(BINARY_NAME) $(GOBUILD_VERSION_ARGS) github.com/jtblin/$(BINARY_NAME)/cmd
+	GOOS=linux GOARCH=$(GOARCH) go build -o build/bin/$(GOARCH)/$(BINARY_NAME)  $(GOBUILD_VERSION_ARGS) github.com/jtblin/$(BINARY_NAME)/cmd
 
 build-race: *.go fmt
-	go build -race -o build/bin/$(ARCH)/$(BINARY_NAME) $(GOBUILD_VERSION_ARGS) github.com/jtblin/$(BINARY_NAME)/cmd
+	go build -race -o build/bin/$(GOARCH)/$(BINARY_NAME) $(GOBUILD_VERSION_ARGS) github.com/jtblin/$(BINARY_NAME)/cmd
 
 build-all:
 	go build $$(glide nv)
@@ -81,7 +82,19 @@ watch:
 	CompileDaemon -color=true -build "make test"
 
 cross:
-	CGO_ENABLED=0 GOOS=linux go build -o build/bin/linux/$(BINARY_NAME) $(GOBUILD_VERSION_ARGS) -a -installsuffix cgo  github.com/jtblin/$(BINARY_NAME)/cmd
+	CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH) \
+		go build -o build/bin/linux/$(GOARCH)/$(BINARY_NAME) \
+		$(GOBUILD_VERSION_ARGS) -a -installsuffix cgo  \
+		github.com/jtblin/$(BINARY_NAME)/cmd ; \
+
+cross-all:
+	@for GO_ARCH in $(ARCHITECTURES); do \
+		CGO_ENABLED=0 GOOS=linux GOARCH=$(GO_ARCH) \
+			go build -o build/bin/linux/$(GO_ARCH)/$(BINARY_NAME) \
+			$(GOBUILD_VERSION_ARGS) -a -installsuffix cgo  \
+			github.com/jtblin/$(BINARY_NAME)/cmd ; \
+	done
+
 
 docker: cross
 	docker build -t $(IMAGE_NAME):$(GIT_HASH) . $(DOCKER_BUILD_FLAGS)

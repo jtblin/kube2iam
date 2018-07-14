@@ -1,9 +1,10 @@
-FROM alpine:3.7
+ARG target
+FROM $target/alpine
 
-RUN apk --no-cache add \
-    ca-certificates \
-    iptables
+COPY qemu-* .dummy /usr/bin/
 
-COPY build/bin/linux/kube2iam /bin/kube2iam
+RUN apk --no-cache add ca-certificates iptables
+
+COPY kube2iam /bin/kube2iam
 
 ENTRYPOINT ["kube2iam"]

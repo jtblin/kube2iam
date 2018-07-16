@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/jtblin/kube2iam.svg?branch=master)](https://travis-ci.org/jtblin/kube2iam)
 [![GitHub tag](https://img.shields.io/github/tag/jtblin/kube2iam.svg?maxAge=86400)](https://github.com/atlassian/gostatsd)
-[![Docker Pulls](https://img.shields.io/docker/pulls/jtblin/kube2iam.svg)]()
+[![Docker Pulls](https://img.shields.io/docker/pulls/jtblin/kube2iam.svg)](https://hub.docker.com/r/jtblin/kube2iam/)
 [![Go Report Card](https://goreportcard.com/badge/github.com/jtblin/kube2iam)](https://goreportcard.com/report/github.com/jtblin/kube2iam)
 [![license](https://img.shields.io/github/license/jtblin/kube2iam.svg)](https://github.com/jtblin/kube2iam/blob/master/LICENSE)
 
@@ -84,7 +84,7 @@ The kube2iam daemon and iptables rule (see below) need to run before all other p
 access to AWS resources.
 
 ```yaml
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: kube2iam
@@ -144,9 +144,10 @@ different than `docker0` depending on which virtual network you use e.g.
 * for flannel use `cni0`
 * for [kube-router](https://github.com/cloudnativelabs/kube-router) use `kube-bridge`
 * for [OpenShift](https://www.openshift.org/) use `tun0`
+* for [Cilium](https://www.cilium.io) use `lxc+`
 
 ```yaml
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: kube2iam
@@ -218,7 +219,7 @@ resource spec.
 Example for a `Deployment`:
 
 ```yaml
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: nginx-deployment
@@ -241,7 +242,7 @@ spec:
 Example for a `CronJob`:
 
 ```yaml
-apiVersion: batch/v2alpha1
+apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: my-cronjob
@@ -316,7 +317,7 @@ Next we need to setup roles and binding for the the process.
 ---
 apiVersion: v1
 items:
-  - apiVersion: rbac.authorization.k8s.io/v1beta1
+  - apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
       name: kube2iam
@@ -324,7 +325,7 @@ items:
       - apiGroups: [""]
         resources: ["namespaces","pods"]
         verbs: ["get","watch","list"]
-  - apiVersion: rbac.authorization.k8s.io/v1beta1
+  - apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
       name: kube2iam
@@ -345,7 +346,7 @@ Here is what a kube2iam daemonset yaml might look like.
 
 ```yaml
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: kube2iam

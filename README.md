@@ -143,6 +143,7 @@ different than `docker0` depending on which virtual network you use e.g.
 * for weave use `weave`
 * for flannel use `cni0`
 * for [kube-router](https://github.com/cloudnativelabs/kube-router) use `kube-bridge`
+* for [OpenShift](https://www.openshift.org/) use `tun0`
 * for [Cilium](https://www.cilium.io) use `lxc+`
 
 ```yaml
@@ -383,6 +384,101 @@ spec:
           securityContext:
             privileged: true
 ```
+
+### Using on OpenShift
+
+To use `kube2iam` on OpenShift one needs to configure additional resources. A complete example looks like this:
+```yaml
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kube2iam
+  namespace: kube-system
+---
+apiVersion: v1
+items:
+  - apiVersion: rbac.authorization.k8s.io/v1beta1
+    kind: ClusterRole
+    metadata:
+      name: kube2iam
+    rules:
+      - apiGroups: [""]
+        resources: ["namespaces","pods"]
+        verbs: ["get","watch","list"]
+  - apiVersion: rbac.authorization.k8s.io/v1beta1
+    kind: ClusterRoleBinding
+    metadata:
+      name: kube2iam
+    subjects:
+    - kind: ServiceAccount
+      name: kube2iam
+      namespace: kube-system
+    roleRef:
+      kind: ClusterRole
+      name: kube2iam
+      apiGroup: rbac.authorization.k8s.io
+kind: List
+---
+kind: SecurityContextConstraints
+apiVersion: v1
+metadata:
+  name: kube2iam
+allowPrivilegedContainer: true
+allowHostPorts: true
+allowHostNetwork: true
+runAsUser:
+  type: RunAsAny
+seLinuxContext:
+  type: MustRunAs
+users:
+- system:serviceacount:kube-system:kube2iam
+---
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: kube2iam
+  namespace: kube-system
+  labels:
+    app: kube2iam
+spec:
+  selector:
+    matchLabels:
+      name: kube2iam
+  template:
+    metadata:
+      labels:
+        name: kube2iam
+    spec:
+      serviceAccountName: kube2iam
+      hostNetwork: true
+      nodeSelector:
+        role: app
+      containers:
+        - image: docker.io/jtblin/kube2iam:latest
+          imagePullPolicy: Always
+          name: kube2iam
+          args:
+            - "--app-port=8181"
+            - "--auto-discover-base-arn"
+            - "--iptables=true"
+            - "--host-ip=$(HOST_IP)"
+            - "--host-interface=tun0"
+            - "--verbose"
+          env:
+            - name: HOST_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          ports:
+            - containerPort: 8181
+              hostPort: 8181
+              name: http
+          securityContext:
+            privileged: true
+```
+
+**Note**: In (OpenShift) multi-tenancy setups it is recommended to restrict the assumable roles on the namespace level to prevent cross-namespace trust stealing.
 
 ### Debug
 

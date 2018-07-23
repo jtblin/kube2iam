@@ -146,6 +146,7 @@ different than `docker0` depending on which virtual network you use e.g.
 * for [kube-router](https://github.com/cloudnativelabs/kube-router) use `kube-bridge`
 * for [OpenShift](https://www.openshift.org/) use `tun0`
 * for [Cilium](https://www.cilium.io) use `lxc+`
+* for [Amazon EKS](https://aws.amazon.com/eks) use `eni+`
 
 ```yaml
 apiVersion: apps/v1

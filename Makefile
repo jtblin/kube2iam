@@ -23,6 +23,7 @@ setup:
 	go get -v -u github.com/alecthomas/gometalinter
 	go get -v -u github.com/jstemmer/go-junit-report
 	go get -v github.com/mattn/goveralls
+	go get -v github.com/dnephin/govet
 	gometalinter --install --update
 	glide install --strip-vendor
 

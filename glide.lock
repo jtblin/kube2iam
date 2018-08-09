@@ -1,5 +1,5 @@
-hash: 2fa814425c37f34733925c12b59999f78c0987413d75abf4daf6302acbe3bca7
-updated: 2017-10-10T03:19:39.283210376Z
+hash: 25f155e74cb6fa3cad899d2f88bf202caf700ad95230c72dc39133cac40406bf
+updated: 2018-08-08T17:22:09.409309+10:00
 imports:
 - name: cloud.google.com/go
   version: 3b1ae45394a234c385be014e9a488f2bb6eef821
@@ -32,6 +32,10 @@ imports:
   - private/protocol/rest
   - private/protocol/xml/xmlutil
   - service/sts
+- name: github.com/beorn7/perks
+  version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
+  subpackages:
+  - quantile
 - name: github.com/blang/semver
   version: 31b736133b98f26d5e078ec9eb591666edfd091f
 - name: github.com/cenk/backoff
@@ -111,8 +115,33 @@ imports:
   - buffer
   - jlexer
   - jwriter
+- name: github.com/matttproud/golang_protobuf_extensions
+  version: c12348ce28de40eed0136aa2b644d0ee0650e56c
+  subpackages:
+  - pbutil
 - name: github.com/pborman/uuid
   version: ca53cad383cad2479bbba7f7a1a05797ec1386e4
+- name: github.com/prometheus/client_golang
+  version: 967789050ba94deca04a5e84cce8ad472ce313c1
+  subpackages:
+  - prometheus
+  - prometheus/promhttp
+- name: github.com/prometheus/client_model
+  version: 99fa1f4be8e564e8a6b613da7fa6f46c9edafc6c
+  subpackages:
+  - go
+- name: github.com/prometheus/common
+  version: e4aa40a9169a88835b849a6efb71e05dc04b88f0
+  subpackages:
+  - expfmt
+  - internal/bitbucket.org/ww/goautoneg
+  - model
+- name: github.com/prometheus/procfs
+  version: 54d17b57dd7d4a3aa092476596b3f8a933bde349
+  subpackages:
+  - internal/util
+  - nfs
+  - xfs
 - name: github.com/PuerkitoBio/purell
   version: 8a290539e2e8629dbc4e6bad948158f790ec31f4
 - name: github.com/PuerkitoBio/urlesc
@@ -120,7 +149,7 @@ imports:
 - name: github.com/ryanuber/go-glob
   version: 256dc444b735e061061cf46c809487313d5b0065
 - name: github.com/sirupsen/logrus
-  version: f006c2ac4710855cf0f916dd6b77acf6b048dc6e
+  version: 3e01752db0189b9157070a0e1668a620f9a85da2
 - name: github.com/spf13/pflag
   version: dabebe21bf790f782ea4c7bbd2efc430de182afd
 - name: github.com/ugorji/go

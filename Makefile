@@ -23,7 +23,6 @@ setup:
 	go get -v -u github.com/alecthomas/gometalinter
 	go get -v -u github.com/jstemmer/go-junit-report
 	go get -v github.com/mattn/goveralls
-	go get -v github.com/dnephin/govet
 	gometalinter --install --update
 	glide install --strip-vendor
 
@@ -68,7 +67,7 @@ check:
 	go install ./cmd
 
 	gometalinter --concurrency=$(METALINTER_CONCURRENCY) --deadline=$(METALINTER_DEADLINE)s ./... --vendor --linter='errcheck:errcheck:-ignore=net:Close' --cyclo-over=20 \
-		--linter='vet:govet --no-recurse -composites=false:PATH:LINE:MESSAGE' --disable=interfacer --dupl-threshold=50
+		--linter='vet:go vet --no-recurse -composites=false:PATH:LINE:MESSAGE' --disable=interfacer --dupl-threshold=50
 
 check-all:
 	go install ./cmd

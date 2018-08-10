@@ -91,6 +91,9 @@ metadata:
   labels:
     app: kube2iam
 spec:
+  selector:
+    matchLabels:
+      name: kube2iam
   template:
     metadata:
       labels:
@@ -155,6 +158,9 @@ metadata:
   labels:
     app: kube2iam
 spec:
+  selector:
+    matchLabels:
+      name: kube2iam
   template:
     metadata:
       labels:
@@ -355,6 +361,9 @@ metadata:
   labels:
     app: kube2iam
 spec:
+  selector:
+    matchLabels:
+      name: kube2iam
   template:
     metadata:
       labels:

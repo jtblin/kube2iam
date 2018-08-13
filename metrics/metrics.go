@@ -14,7 +14,9 @@ import (
 const (
 	namespace          = "kube2iam"
 
+	// IamSuccessCode is the code used for metrics when an IAM request succeeds.
 	IamSuccessCode     = "Success"
+	// IamUnknownFailCode is the code used for metrics when an IAM request fails with an error not reported by AWS.
 	IamUnknownFailCode = "UnknownError"
 )
 

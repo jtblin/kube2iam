@@ -212,7 +212,7 @@ func (s *Server) doHealthcheck() {
 		return
 	}
 	if resp.StatusCode != 200 {
-		errMsg := fmt.Sprintf("Error getting instance id, got status: %+s", resp.Status)
+		errMsg = fmt.Sprintf("Error getting instance id, got status: %+s", resp.Status)
 		log.Error(errMsg)
 		return
 	}

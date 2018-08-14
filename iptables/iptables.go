@@ -8,6 +8,16 @@ import (
 	"github.com/coreos/go-iptables/iptables"
 )
 
+var ipt *iptables.IPTables
+
+func init() {
+	var err error
+	ipt, err = iptables.New()
+	if err != nil {
+		panic(err)
+	}
+}
+
 // AddRule adds the required rule to the host's nat table.
 func AddRule(appPort, metadataAddress, hostInterface, hostIP string) error {
 
@@ -19,12 +29,15 @@ func AddRule(appPort, metadataAddress, hostInterface, hostIP string) error {
 		return errors.New("--host-ip must be set")
 	}
 
-	ipt, err := iptables.New()
-	if err != nil {
-		return err
-	}
-
 	return ipt.AppendUnique(
+		"nat", "PREROUTING", "-p", "tcp", "-d", metadataAddress, "--dport", "80",
+		"-j", "DNAT", "--to-destination", hostIP+":"+appPort, "-i", hostInterface,
+	)
+}
+
+// DeleteRule deletes the specified rule from the host's nat table.
+func DeleteRule(appPort, metadataAddress, hostInterface, hostIP string) error {
+	return ipt.Delete(
 		"nat", "PREROUTING", "-p", "tcp", "-d", metadataAddress, "--dport", "80",
 		"-j", "DNAT", "--to-destination", hostIP+":"+appPort, "-i", hostInterface,
 	)

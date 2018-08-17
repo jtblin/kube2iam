@@ -2,6 +2,8 @@ package mappings
 
 import (
 	"fmt"
+	"regexp"
+	"strings"
 
 	glob "github.com/ryanuber/go-glob"
 	log "github.com/sirupsen/logrus"
@@ -13,12 +15,13 @@ import (
 
 // RoleMapper handles relevant logic around associating IPs with a given IAM role
 type RoleMapper struct {
-	defaultRoleARN       string
-	iamRoleKey           string
-	namespaceKey         string
-	namespaceRestriction bool
-	iam                  *iam.Client
-	store                store
+	defaultRoleARN             string
+	iamRoleKey                 string
+	namespaceKey               string
+	namespaceRestriction       bool
+	iam                        *iam.Client
+	store                      store
+	namespaceRestrictionFormat string
 }
 
 type store interface {
@@ -90,10 +93,23 @@ func (r *RoleMapper) checkRoleForNamespace(roleArn string, namespace string) boo
 	ar := kube2iam.GetNamespaceRoleAnnotation(ns, r.namespaceKey)
 	for _, rolePattern := range ar {
 		normalized := r.iam.RoleARN(rolePattern)
-		if glob.Glob(normalized, roleArn) {
-			log.Debugf("Role: %s matched %s on namespace:%s.", roleArn, rolePattern, namespace)
-			return true
+
+		if strings.ToLower(r.namespaceRestrictionFormat) == "regexp" {
+			matched, err := regexp.MatchString(normalized, roleArn)
+			if err != nil {
+				log.Errorf("Namespace annotation %s caused an error when trying to match: %s for namespace: %s", rolePattern, roleArn, namespace)
+			}
+			if matched {
+				log.Debugf("Role: %s matched %s on namespace:%s.", roleArn, rolePattern, namespace)
+				return true
+			}
+		} else {
+			if glob.Glob(normalized, roleArn) {
+				log.Debugf("Role: %s matched %s on namespace:%s.", roleArn, rolePattern, namespace)
+				return true
+			}
 		}
+
 	}
 	log.Warnf("Role: %s on namespace: %s not found.", roleArn, namespace)
 	return false
@@ -131,7 +147,7 @@ func (r *RoleMapper) DumpDebugInfo() map[string]interface{} {
 }
 
 // NewRoleMapper returns a new RoleMapper for use.
-func NewRoleMapper(roleKey string, defaultRole string, namespaceRestriction bool, namespaceKey string, iamInstance *iam.Client, kubeStore store) *RoleMapper {
+func NewRoleMapper(roleKey string, defaultRole string, namespaceRestriction bool, namespaceKey string, iamInstance *iam.Client, kubeStore store, namespaceRestrictionFormat string) *RoleMapper {
 	return &RoleMapper{
 		defaultRoleARN:       iamInstance.RoleARN(defaultRole),
 		iamRoleKey:           roleKey,
@@ -139,5 +155,6 @@ func NewRoleMapper(roleKey string, defaultRole string, namespaceRestriction bool
 		namespaceRestriction: namespaceRestriction,
 		iam:                  iamInstance,
 		store:                kubeStore,
+		namespaceRestrictionFormat: namespaceRestrictionFormat,
 	}
 }

@@ -28,6 +28,7 @@ func addFlags(s *server.Server, fs *pflag.FlagSet) {
 	fs.BoolVar(&s.AutoDiscoverDefaultRole, "auto-discover-default-role", false, "Queries EC2 Metadata to determine the default Iam Role and base ARN, cannot be used with --default-role, overwrites any previous setting for --base-role-arn")
 	fs.StringVar(&s.HostInterface, "host-interface", "docker0", "Host interface for proxying AWS metadata")
 	fs.BoolVar(&s.NamespaceRestriction, "namespace-restrictions", false, "Enable namespace restrictions")
+	fs.StringVar(&s.NamespaceRestrictionFormat, "namespace-restriction-format", s.NamespaceRestrictionFormat, "Namespace Restriction Format (glob/regexp)")
 	fs.StringVar(&s.NamespaceKey, "namespace-key", s.NamespaceKey, "Namespace annotation key used to retrieve the IAM roles allowed (value in annotation should be json array)")
 	fs.StringVar(&s.HostIP, "host-ip", s.HostIP, "IP address of host")
 	fs.StringVar(&s.NodeName, "node", s.NodeName, "Name of the node where kube2iam is running")

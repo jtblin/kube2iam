@@ -224,6 +224,7 @@ func (s *Server) roleHandler(logger *log.Entry, w http.ResponseWriter, r *http.R
 	}
 
 	roleLogger := logger.WithFields(log.Fields{
+		"pod.name":     roleMapping.Name,
 		"pod.iam.role": roleMapping.Role,
 		"ns.name":      roleMapping.Namespace,
 	})
@@ -238,7 +239,8 @@ func (s *Server) roleHandler(logger *log.Entry, w http.ResponseWriter, r *http.R
 		return
 	}
 
-	credentials, err := s.iam.AssumeRole(wantedRoleARN, remoteIP)
+	externalID := fmt.Sprintf("kube2iam/%s/%s", roleMapping.Namespace, roleMapping.Name)
+	credentials, err := s.iam.AssumeRole(wantedRoleARN, remoteIP, externalID)
 	if err != nil {
 		roleLogger.Errorf("Error assuming role %+v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)

@@ -73,7 +73,7 @@ func sessionName(roleARN, remoteIP string) string {
 }
 
 // AssumeRole returns an IAM role Credentials using AWS STS.
-func (iam *Client) AssumeRole(roleARN, remoteIP string) (*Credentials, error) {
+func (iam *Client) AssumeRole(roleARN, remoteIP string, externalID string) (*Credentials, error) {
 	item, err := cache.Fetch(roleARN, ttl, func() (interface{}, error) {
 		sess, err := session.NewSession()
 		if err != nil {
@@ -84,6 +84,7 @@ func (iam *Client) AssumeRole(roleARN, remoteIP string) (*Credentials, error) {
 			DurationSeconds: aws.Int64(int64(ttl.Seconds() * 2)),
 			RoleArn:         aws.String(roleARN),
 			RoleSessionName: aws.String(sessionName(roleARN, remoteIP)),
+			ExternalId:      aws.String(externalID),
 		})
 		if err != nil {
 			return nil, err

@@ -36,6 +36,7 @@ type RoleMappingResult struct {
 	Role      string
 	IP        string
 	Namespace string
+	Name      string
 }
 
 // GetRoleMapping returns the normalized iam RoleMappingResult based on IP address
@@ -53,7 +54,7 @@ func (r *RoleMapper) GetRoleMapping(IP string) (*RoleMappingResult, error) {
 
 	// Determine if normalized role is allowed to be used in pod's namespace
 	if r.checkRoleForNamespace(role, pod.GetNamespace()) {
-		return &RoleMappingResult{Role: role, Namespace: pod.GetNamespace(), IP: IP}, nil
+		return &RoleMappingResult{Role: role, Namespace: pod.GetNamespace(), Name: pod.GetName(), IP: IP}, nil
 	}
 
 	return nil, fmt.Errorf("Role requested %s not valid for namespace of pod at %s with namespace %s", role, IP, pod.GetNamespace())

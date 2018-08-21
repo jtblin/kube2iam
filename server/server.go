@@ -35,7 +35,7 @@ const (
 	defaultMetadataAddress            = "169.254.169.254"
 	defaultNamespaceKey               = "iam.amazonaws.com/allowed-roles"
 	defaultNamespaceRestrictionFormat = "glob"
-    healthcheckInterval               = 30 * time.Secon
+	healthcheckInterval               = 30 * time.Second
 )
 
 // Keeps track of the names of registered handlers for metric value/label initialization
@@ -185,7 +185,7 @@ func (s *Server) beginPollHealthcheck(interval time.Duration) {
 		s.healthcheckTicker = time.NewTicker(interval)
 		go func() {
 			for {
-				<- s.healthcheckTicker.C
+				<-s.healthcheckTicker.C
 				s.doHealthcheck()
 			}
 		}()
@@ -198,7 +198,7 @@ func (s *Server) doHealthcheck() {
 	var errMsg string
 	defer func() {
 		var healthcheckResult float64 = 1
-		s.HealthcheckFailReason = errMsg  // Is empty if no error
+		s.HealthcheckFailReason = errMsg // Is empty if no error
 		if err != nil || len(errMsg) > 0 {
 			healthcheckResult = 0
 		}
@@ -385,7 +385,7 @@ func (s *Server) Run(host, token, nodeName string, insecure bool) error {
 func NewServer() *Server {
 	return &Server{
 		AppPort:                    defaultAppPort,
-        MetricsPort:                defaultAppPort
+		MetricsPort:                defaultAppPort,
 		BackoffMaxElapsedTime:      defaultMaxElapsedTime,
 		IAMRoleKey:                 defaultIAMRoleKey,
 		BackoffMaxInterval:         defaultMaxInterval,
@@ -394,6 +394,6 @@ func NewServer() *Server {
 		MetadataAddress:            defaultMetadataAddress,
 		NamespaceKey:               defaultNamespaceKey,
 		NamespaceRestrictionFormat: defaultNamespaceRestrictionFormat,
-	    HealthcheckFailReason:      "Healthcheck not yet performed",
+		HealthcheckFailReason:      "Healthcheck not yet performed",
 	}
 }

@@ -220,7 +220,7 @@ You can use `--default-role` to set a fallback role to use when annotation is no
 
 #### ReplicaSet, CronJob, Deployment, etc.
 
-When creating higher-level abstractions than pods, you need to pass the annotation in the pod template of the  
+When creating higher-level abstractions than pods, you need to pass the annotation in the pod template of the
 resource spec.
 
 Example for a `Deployment`:
@@ -287,10 +287,10 @@ metadata:
   name: default
 ```
 
-_Note:_ You can also use glob-based matching for namespace restrictions, which works nicely with the path-based 
+_Note:_ You can also use glob-based matching for namespace restrictions, which works nicely with the path-based
 namespacing supported for AWS IAM roles.
 
-Example: to allow all roles prefixed with `my-custom-path/` to be assumed by pods in the default namespace, the 
+Example: to allow all roles prefixed with `my-custom-path/` to be assumed by pods in the default namespace, the
 default namespace would be annotated as follows:
 
 ```yaml
@@ -518,6 +518,12 @@ By using the `--auto-discover-base-arn` flag, kube2iam will auto discover the ba
 By using the `--auto-discover-default-role` flag, kube2iam will auto discover the base ARN and the IAM role attached to
 the instance and use it as the fallback role to use when annotation is not set.
 
+### AWS STS Endpoint and Regions
+
+STS is a unique service in that it is actually considered a global service that defaults to endpoint at **https://sts.amazonaws.com**, regardless of your region setting. However, unlike other global services (e.g. CloudFront, IAM), STS also has regional endpoints which can only be explicitly used programatically. The use of a regional sts endpoint can reduce the latency for STS requests.
+
+`kube2iam` supports the use of STS regional endpoints by using the `--use-regional-sts-endpoint` flag as well as by setting the appropriate `AWS_REGION` environment variable in your daemonset environment. With these two settings configured, `kube2iam` will use the STS api endpoint for that region. If you enable debug level logging, the sts endpoint used to retrieve credentials will be logged.
+
 ### Options
 
 By default, `kube2iam` will use the in-cluster method to connect to the kubernetes master, and use the
@@ -527,29 +533,32 @@ ARN in the annotation.
 
 ```bash
 $ kube2iam --help
-Usage of ./build/bin/darwin/kube2iam:
-      --api-server string                   Endpoint for the api server
-      --api-token string                    Token to authenticate with the api server
-      --app-port string                     Http port (default "8181")
-      --auto-discover-base-arn              Queries EC2 Metadata to determine the base ARN
-      --auto-discover-default-role          Queries EC2 Metadata to determine the default Iam Role and base ARN, cannot be used with --default-role, overwrites any previous setting for --base-role-arn
-      --backoff-max-elapsed-time duration   Max elapsed time for backoff when querying for role. (default 2s)
-      --backoff-max-interval duration       Max interval for backoff when querying for role. (default 1s)
-      --base-role-arn string                Base role ARN
-      --debug                               Enable debug features
-      --default-role string                 Fallback role to use when annotation is not set
-      --host-interface string               Host interface for proxying AWS metadata (default "docker0")
-      --host-ip string                      IP address of host
-      --iam-role-key string                 Pod annotation key used to retrieve the IAM role (default "iam.amazonaws.com/role")
-      --insecure                            Kubernetes server should be accessed without verifying the TLS. Testing only
-      --iptables                            Add iptables rule (also requires --host-ip)
-      --log-format string                   Log format (text/json) (default "text")
-      --log-level string                    Log level (default "info")
-      --metadata-addr string                Address for the ec2 metadata (default "169.254.169.254")
-      --namespace-key string                Namespace annotation key used to retrieve the IAM roles allowed (value in annotation should be json array) (default "iam.amazonaws.com/allowed-roles")
-      --namespace-restrictions              Enable namespace restrictions
-      --verbose                             Verbose
-      --version                             Print the version and exits
+Usage of kube2iam:
+      --api-server string                     Endpoint for the api server
+      --api-token string                      Token to authenticate with the api server
+      --app-port string                       Http port (default "8181")
+      --auto-discover-base-arn                Queries EC2 Metadata to determine the base ARN
+      --auto-discover-default-role            Queries EC2 Metadata to determine the default Iam Role and base ARN, cannot be used with --default-role, overwrites any previous setting for --base-role-arn
+      --backoff-max-elapsed-time duration     Max elapsed time for backoff when querying for role. (default 2s)
+      --backoff-max-interval duration         Max interval for backoff when querying for role. (default 1s)
+      --base-role-arn string                  Base role ARN
+      --debug                                 Enable debug features
+      --default-role string                   Fallback role to use when annotation is not set
+      --host-interface string                 Host interface for proxying AWS metadata (default "docker0")
+      --host-ip string                        IP address of host
+      --iam-role-key string                   Pod annotation key used to retrieve the IAM role (default "iam.amazonaws.com/role")
+      --insecure                              Kubernetes server should be accessed without verifying the TLS. Testing only
+      --iptables                              Add iptables rule (also requires --host-ip)
+      --log-format string                     Log format (text/json) (default "text")
+      --log-level string                      Log level (default "info")
+      --metadata-addr string                  Address for the ec2 metadata (default "169.254.169.254")
+      --namespace-key string                  Namespace annotation key used to retrieve the IAM roles allowed (value in annotation should be json array) (default "iam.amazonaws.com/allowed-roles")
+      --namespace-restriction-format string   Namespace Restriction Format (glob/regexp) (default "glob")
+      --namespace-restrictions                Enable namespace restrictions
+      --node string                           Name of the node where kube2iam is running
+      --use-regional-sts-endpoint             use the regional sts endpoint if AWS_REGION is set
+      --verbose                               Verbose
+      --version                               Print the version and exits
 ```
 
 ## Development loop

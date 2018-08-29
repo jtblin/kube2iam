@@ -9,6 +9,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/ec2metadata"
+	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/karlseguin/ccache"
@@ -23,7 +24,9 @@ const (
 
 // Client represents an IAM client.
 type Client struct {
-	BaseARN string
+	BaseARN             string
+	Endpoint            string
+	UseRegionalEndpoint bool
 }
 
 // Credentials represent the security Credentials response.
@@ -72,6 +75,44 @@ func sessionName(roleARN, remoteIP string) string {
 	return fmt.Sprintf("%.[2]*[1]s", name, maxSessNameLength)
 }
 
+// GetEndpointFromRegion formas a standard sts endpoint url given a region
+func GetEndpointFromRegion(region string) string {
+	endpoint := fmt.Sprintf("https://sts.%s.amazonaws.com", region)
+	if strings.HasPrefix(region, "cn-") {
+		endpoint = fmt.Sprintf("https://sts.%s.amazonaws.com.cn", region)
+	}
+	return endpoint
+}
+
+// IsValidRegion tests for a vaild region name
+func IsValidRegion(promisedLand string) bool {
+	partitions := endpoints.DefaultResolver().(endpoints.EnumPartitions).Partitions()
+	for _, p := range partitions {
+		for region := range p.Regions() {
+			if promisedLand == region {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// EndpointFor implements the endpoints.Resolver interface for use with sts
+func (iam *Client) EndpointFor(service, region string, optFns ...func(*endpoints.Options)) (endpoints.ResolvedEndpoint, error) {
+	// only for sts service
+	if service == "sts" {
+		// only if a valid region is explicitly set
+		if IsValidRegion(region) {
+			iam.Endpoint = GetEndpointFromRegion(region)
+			return endpoints.ResolvedEndpoint{
+				URL:           iam.Endpoint,
+				SigningRegion: region,
+			}, nil
+		}
+	}
+	return endpoints.DefaultResolver().EndpointFor(service, region, optFns...)
+}
+
 // AssumeRole returns an IAM role Credentials using AWS STS.
 func (iam *Client) AssumeRole(roleARN, remoteIP string) (*Credentials, error) {
 	item, err := cache.Fetch(roleARN, ttl, func() (interface{}, error) {
@@ -79,7 +120,11 @@ func (iam *Client) AssumeRole(roleARN, remoteIP string) (*Credentials, error) {
 		if err != nil {
 			return nil, err
 		}
-		svc := sts.New(sess, &aws.Config{LogLevel: aws.LogLevel(2)})
+		config := aws.NewConfig().WithLogLevel(2)
+		if iam.UseRegionalEndpoint {
+			config = config.WithEndpointResolver(iam)
+		}
+		svc := sts.New(sess, config)
 		resp, err := svc.AssumeRole(&sts.AssumeRoleInput{
 			DurationSeconds: aws.Int64(int64(ttl.Seconds() * 2)),
 			RoleArn:         aws.String(roleARN),
@@ -106,6 +151,10 @@ func (iam *Client) AssumeRole(roleARN, remoteIP string) (*Credentials, error) {
 }
 
 // NewClient returns a new IAM client.
-func NewClient(baseARN string) *Client {
-	return &Client{BaseARN: baseARN}
+func NewClient(baseARN string, regional bool) *Client {
+	return &Client{
+		BaseARN:             baseARN,
+		Endpoint:            "sts.amazonaws.com",
+		UseRegionalEndpoint: regional,
+	}
 }

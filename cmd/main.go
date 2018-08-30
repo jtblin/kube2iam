@@ -37,6 +37,7 @@ func addFlags(s *server.Server, fs *pflag.FlagSet) {
 	fs.DurationVar(&s.BackoffMaxElapsedTime, "backoff-max-elapsed-time", s.BackoffMaxElapsedTime, "Max elapsed time for backoff when querying for role.")
 	fs.StringVar(&s.LogFormat, "log-format", s.LogFormat, "Log format (text/json)")
 	fs.StringVar(&s.LogLevel, "log-level", s.LogLevel, "Log level")
+	fs.BoolVar(&s.UseRegionalStsEndpoint, "use-regional-sts-endpoint", false, "use the regional sts endpoint if AWS_REGION is set")
 	fs.BoolVar(&s.Verbose, "verbose", false, "Verbose")
 	fs.BoolVar(&s.Version, "version", false, "Print the version and exits")
 }

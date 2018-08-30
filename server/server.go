@@ -193,9 +193,13 @@ func (s *Server) beginPollHealthcheck(interval time.Duration) {
 }
 
 func (s *Server) doHealthcheck() {
-	// Track the healthcheck status as a metric value
+	// Track the healthcheck status as a metric value. Running this function in the background on a timer
+	// allows us to update both the /healthz endpoint and healthcheck metric value at once and keep them in sync.
 	var err error
 	var errMsg string
+	// This deferred function stores the reason for failure in a Server struct member by parsing the error object
+	// produced during the healthcheck, if any. It also stores a different metric value for the healthcheck depending
+	// on whether it passed or failed.
 	defer func() {
 		var healthcheckResult float64 = 1
 		s.HealthcheckFailReason = errMsg // Is empty if no error
@@ -233,6 +237,10 @@ type HealthResponse struct {
 }
 
 func (s *Server) healthHandler(logger *log.Entry, w http.ResponseWriter, r *http.Request) {
+	// healthHandler reports the last result of a timed healthcheck that repeats in the background.
+	// The healthcheck logic is performed in doHealthcheck and saved into Server struct fields.
+	// This "caching" of results allows the healthcheck to be monitored at a high request rate by external systems
+	// without fear of overwhelming any rate limits with AWS or other dependencies.
 	if len(s.HealthcheckFailReason) > 0 {
 		http.Error(w, s.HealthcheckFailReason, http.StatusInternalServerError)
 		return

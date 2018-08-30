@@ -518,6 +518,17 @@ By using the `--auto-discover-base-arn` flag, kube2iam will auto discover the ba
 By using the `--auto-discover-default-role` flag, kube2iam will auto discover the base ARN and the IAM role attached to
 the instance and use it as the fallback role to use when annotation is not set.
 
+### Metrics
+
+`kube2iam` exports a number of [Prometheus](https://github.com/prometheus/prometheus) metrics to assist with monitoring
+the system's performance. By default, these are exported at the `/metrics` HTTP endpoint on the
+application server port (specified by `--app-port`). This does not always make sense, as anything with access to the
+application server port can assume roles via `kube2iam`. To mitigate this use the `--metrics-port` argument to specify
+a different port that will host the `/metrics` endpoint.
+
+All of the exported metrics are prefixed with `kube2iam_`. See the [Prometheus documentation](https://prometheus.io/docs/prometheus/latest/getting_started/)
+for more information on how to get up and running with Prometheus.
+
 ### Options
 
 By default, `kube2iam` will use the in-cluster method to connect to the kubernetes master, and use the
@@ -530,7 +541,8 @@ $ kube2iam --help
 Usage of ./build/bin/darwin/kube2iam:
       --api-server string                   Endpoint for the api server
       --api-token string                    Token to authenticate with the api server
-      --app-port string                     Http port (default "8181")
+      --app-port string                     Http port for kube2iam server (default "8181")
+      --metrics-port string                 Http port for Prometheus metrics (if unspecified it is set to the value of --app-port)
       --auto-discover-base-arn              Queries EC2 Metadata to determine the base ARN
       --auto-discover-default-role          Queries EC2 Metadata to determine the default Iam Role and base ARN, cannot be used with --default-role, overwrites any previous setting for --base-role-arn
       --backoff-max-elapsed-time duration   Max elapsed time for backoff when querying for role. (default 2s)

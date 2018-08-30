@@ -77,6 +77,17 @@ func sessionName(roleARN, remoteIP string) string {
 	return fmt.Sprintf("%.[2]*[1]s", name, maxSessNameLength)
 }
 
+// Helper to format IAM return codes for metric labeling
+func getIAMCode(err error) string {
+	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			return awsErr.Code()
+		}
+		return metrics.IamUnknownFailCode
+	}
+	return metrics.IamSuccessCode
+}
+
 // GetEndpointFromRegion formas a standard sts endpoint url given a region
 func GetEndpointFromRegion(region string) string {
 	endpoint := fmt.Sprintf("https://sts.%s.amazonaws.com", region)
@@ -113,16 +124,6 @@ func (iam *Client) EndpointFor(service, region string, optFns ...func(*endpoints
 		}
 	}
 	return endpoints.DefaultResolver().EndpointFor(service, region, optFns...)
-
-// Helper to format IAM return codes for metric labeling
-func getIAMCode(err error) string {
-	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok {
-			return awsErr.Code()
-		}
-		return metrics.IamUnknownFailCode
-	}
-	return metrics.IamSuccessCode
 }
 
 // AssumeRole returns an IAM role Credentials using AWS STS.

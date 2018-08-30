@@ -524,6 +524,17 @@ STS is a unique service in that it is actually considered a global service that 
 
 `kube2iam` supports the use of STS regional endpoints by using the `--use-regional-sts-endpoint` flag as well as by setting the appropriate `AWS_REGION` environment variable in your daemonset environment. With these two settings configured, `kube2iam` will use the STS api endpoint for that region. If you enable debug level logging, the sts endpoint used to retrieve credentials will be logged.
 
+### Metrics
+
+`kube2iam` exports a number of [Prometheus](https://github.com/prometheus/prometheus) metrics to assist with monitoring
+the system's performance. By default, these are exported at the `/metrics` HTTP endpoint on the
+application server port (specified by `--app-port`). This does not always make sense, as anything with access to the
+application server port can assume roles via `kube2iam`. To mitigate this use the `--metrics-port` argument to specify
+a different port that will host the `/metrics` endpoint.
+
+All of the exported metrics are prefixed with `kube2iam_`. See the [Prometheus documentation](https://prometheus.io/docs/prometheus/latest/getting_started/)
+for more information on how to get up and running with Prometheus.
+
 ### Options
 
 By default, `kube2iam` will use the in-cluster method to connect to the kubernetes master, and use the
@@ -536,7 +547,7 @@ $ kube2iam --help
 Usage of kube2iam:
       --api-server string                     Endpoint for the api server
       --api-token string                      Token to authenticate with the api server
-      --app-port string                       Http port (default "8181")
+      --app-port string                       Kube2iam server http port (default "8181")
       --auto-discover-base-arn                Queries EC2 Metadata to determine the base ARN
       --auto-discover-default-role            Queries EC2 Metadata to determine the default Iam Role and base ARN, cannot be used with --default-role, overwrites any previous setting for --base-role-arn
       --backoff-max-elapsed-time duration     Max elapsed time for backoff when querying for role. (default 2s)
@@ -552,6 +563,7 @@ Usage of kube2iam:
       --log-format string                     Log format (text/json) (default "text")
       --log-level string                      Log level (default "info")
       --metadata-addr string                  Address for the ec2 metadata (default "169.254.169.254")
+      --metrics-port string                   Metrics server http port (default: same as kube2iam server port) (default "8181")
       --namespace-key string                  Namespace annotation key used to retrieve the IAM roles allowed (value in annotation should be json array) (default "iam.amazonaws.com/allowed-roles")
       --namespace-restriction-format string   Namespace Restriction Format (glob/regexp) (default "glob")
       --namespace-restrictions                Enable namespace restrictions

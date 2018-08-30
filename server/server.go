@@ -9,18 +9,19 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/cenk/backoff"
 	"github.com/gorilla/mux"
-	log "github.com/sirupsen/logrus"
-	"k8s.io/client-go/tools/cache"
-
 	"github.com/jtblin/kube2iam"
 	"github.com/jtblin/kube2iam/iam"
 	"github.com/jtblin/kube2iam/k8s"
 	"github.com/jtblin/kube2iam/mappings"
+	"github.com/jtblin/kube2iam/metrics"
+	log "github.com/sirupsen/logrus"
+	"k8s.io/client-go/tools/cache"
 )
 
 const (
@@ -34,7 +35,11 @@ const (
 	defaultMetadataAddress            = "169.254.169.254"
 	defaultNamespaceKey               = "iam.amazonaws.com/allowed-roles"
 	defaultNamespaceRestrictionFormat = "glob"
+	healthcheckInterval               = 30 * time.Second
 )
+
+// Keeps track of the names of registered handlers for metric value/label initialization
+var registeredHandlerNames []string
 
 // Server encapsulates all of the parameters necessary for starting up
 // the server. These can either be set via command line or directly.
@@ -42,6 +47,7 @@ type Server struct {
 	APIServer                  string
 	APIToken                   string
 	AppPort                    string
+	MetricsPort                string
 	BaseRoleARN                string
 	DefaultIAMRole             string
 	IAMRoleKey                 string
@@ -67,9 +73,17 @@ type Server struct {
 	roleMapper                 *mappings.RoleMapper
 	BackoffMaxElapsedTime      time.Duration
 	BackoffMaxInterval         time.Duration
+	InstanceID                 string
+	HealthcheckFailReason      string
+	healthcheckTicker          *time.Ticker
 }
 
-type appHandler func(*log.Entry, http.ResponseWriter, *http.Request)
+type appHandlerFunc func(*log.Entry, http.ResponseWriter, *http.Request)
+
+type appHandler struct {
+	name string
+	fn   appHandlerFunc
+}
 
 type responseWriter struct {
 	http.ResponseWriter
@@ -87,13 +101,23 @@ func newResponseWriter(w http.ResponseWriter) *responseWriter {
 
 // ServeHTTP implements the net/http server Handler interface
 // and recovers from panics.
-func (fn appHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *appHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	logger := log.WithFields(log.Fields{
 		"req.method": r.Method,
 		"req.path":   r.URL.Path,
 		"req.remote": parseRemoteAddr(r.RemoteAddr),
 	})
-	start := time.Now()
+	rw := newResponseWriter(w)
+
+	// Set up a prometheus timer to track the request duration. It returns the timer value when
+	// observed and stores it in timeSecs to report in logs. A function polls the Request and responseWriter
+	// for the correct labels at observation time.
+	var timeSecs float64
+	lvsProducer := func() []string {
+		return []string{strconv.Itoa(rw.statusCode), r.Method, h.name}
+	}
+	timer := metrics.NewFunctionTimer(metrics.HTTPRequestSec, lvsProducer, &timeSecs)
+
 	defer func() {
 		var err error
 		if rec := recover(); rec != nil {
@@ -110,13 +134,18 @@ func (fn appHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	}()
-	rw := newResponseWriter(w)
-	fn(logger, rw, r)
+	h.fn(logger, rw, r)
+	timer.ObserveDuration()
+	latencyNanoseconds := timeSecs * 1e9
 	if r.URL.Path != "/healthz" {
-		latency := time.Since(start)
-		logger.WithFields(log.Fields{"res.duration": latency.Nanoseconds(), "res.status": rw.statusCode}).
-			Infof("%s %s (%d) took %d ns", r.Method, r.URL.Path, rw.statusCode, latency.Nanoseconds())
+		logger.WithFields(log.Fields{"res.duration": latencyNanoseconds, "res.status": rw.statusCode}).
+			Infof("%s %s (%d) took %d ns", r.Method, r.URL.Path, rw.statusCode, latencyNanoseconds)
 	}
+}
+
+func newAppHandler(name string, fn appHandlerFunc) *appHandler {
+	registeredHandlerNames = append(registeredHandlerNames, name)
+	return &appHandler{name: name, fn: fn}
 }
 
 func parseRemoteAddr(addr string) string {
@@ -151,6 +180,57 @@ func (s *Server) getRoleMapping(IP string) (*mappings.RoleMappingResult, error) 
 	return roleMapping, nil
 }
 
+func (s *Server) beginPollHealthcheck(interval time.Duration) {
+	if s.healthcheckTicker == nil {
+		s.doHealthcheck()
+		s.healthcheckTicker = time.NewTicker(interval)
+		go func() {
+			for {
+				<-s.healthcheckTicker.C
+				s.doHealthcheck()
+			}
+		}()
+	}
+}
+
+func (s *Server) doHealthcheck() {
+	// Track the healthcheck status as a metric value. Running this function in the background on a timer
+	// allows us to update both the /healthz endpoint and healthcheck metric value at once and keep them in sync.
+	var err error
+	var errMsg string
+	// This deferred function stores the reason for failure in a Server struct member by parsing the error object
+	// produced during the healthcheck, if any. It also stores a different metric value for the healthcheck depending
+	// on whether it passed or failed.
+	defer func() {
+		var healthcheckResult float64 = 1
+		s.HealthcheckFailReason = errMsg // Is empty if no error
+		if err != nil || len(errMsg) > 0 {
+			healthcheckResult = 0
+		}
+		metrics.HealthcheckStatus.Set(healthcheckResult)
+	}()
+
+	resp, err := http.Get(fmt.Sprintf("http://%s/latest/meta-data/instance-id", s.MetadataAddress))
+	if err != nil {
+		errMsg = fmt.Sprintf("Error getting instance id %+v", err)
+		log.Errorf(errMsg)
+		return
+	}
+	if resp.StatusCode != 200 {
+		errMsg = fmt.Sprintf("Error getting instance id, got status: %+s", resp.Status)
+		log.Error(errMsg)
+		return
+	}
+	defer resp.Body.Close()
+	instanceID, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		errMsg = fmt.Sprintf("Error reading response body %+v", err)
+		log.Errorf(errMsg)
+		return
+	}
+	s.InstanceID = string(instanceID)
+}
+
 // HealthResponse represents a response for the health check.
 type HealthResponse struct {
 	HostIP     string `json:"hostIP"`
@@ -158,26 +238,16 @@ type HealthResponse struct {
 }
 
 func (s *Server) healthHandler(logger *log.Entry, w http.ResponseWriter, r *http.Request) {
-	resp, err := http.Get(fmt.Sprintf("http://%s/latest/meta-data/instance-id", s.MetadataAddress))
-	if err != nil {
-		log.Errorf("Error getting instance id %+v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	// healthHandler reports the last result of a timed healthcheck that repeats in the background.
+	// The healthcheck logic is performed in doHealthcheck and saved into Server struct fields.
+	// This "caching" of results allows the healthcheck to be monitored at a high request rate by external systems
+	// without fear of overwhelming any rate limits with AWS or other dependencies.
+	if len(s.HealthcheckFailReason) > 0 {
+		http.Error(w, s.HealthcheckFailReason, http.StatusInternalServerError)
 		return
 	}
-	if resp.StatusCode != 200 {
-		msg := fmt.Sprintf("Error getting instance id, got status: %+s", resp.Status)
-		log.Error(msg)
-		http.Error(w, msg, http.StatusInternalServerError)
-		return
-	}
-	defer resp.Body.Close()
-	instanceID, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Errorf("Error reading response body %+v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	health := &HealthResponse{InstanceID: string(instanceID), HostIP: s.HostIP}
+
+	health := &HealthResponse{InstanceID: s.InstanceID, HostIP: s.HostIP}
 	w.Header().Add("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(health); err != nil {
 		log.Errorf("Error sending json %+v", err)
@@ -289,21 +359,35 @@ func (s *Server) Run(host, token, nodeName string, insecure bool) error {
 		log.Debugln("Caches have been synced.  Proceeding with server.")
 	}
 
+	// Begin healthchecking
+	s.beginPollHealthcheck(healthcheckInterval)
+
 	r := mux.NewRouter()
+	securityHandler := newAppHandler("securityCredentialsHandler", s.securityCredentialsHandler)
 
 	if s.Debug {
 		// This is a potential security risk if enabled in some clusters, hence the flag
-		r.Handle("/debug/store", appHandler(s.debugStoreHandler))
+		r.Handle("/debug/store", newAppHandler("debugStoreHandler", s.debugStoreHandler))
 	}
-	r.Handle("/{version}/meta-data/iam/security-credentials", appHandler(s.securityCredentialsHandler))
-	r.Handle("/{version}/meta-data/iam/security-credentials/", appHandler(s.securityCredentialsHandler))
-	r.Handle("/{version}/meta-data/iam/security-credentials/{role:.*}", appHandler(s.roleHandler))
-	r.Handle("/healthz", appHandler(s.healthHandler))
-	r.Handle("/{path:.*}", appHandler(s.reverseProxyHandler))
+	r.Handle("/{version}/meta-data/iam/security-credentials", securityHandler)
+	r.Handle("/{version}/meta-data/iam/security-credentials/", securityHandler)
+	r.Handle(
+		"/{version}/meta-data/iam/security-credentials/{role:.*}",
+		newAppHandler("roleHandler", s.roleHandler))
+	r.Handle("/healthz", newAppHandler("healthHandler", s.healthHandler))
+
+	if s.MetricsPort == s.AppPort {
+		r.Handle("/metrics", metrics.GetHandler())
+	} else {
+		metrics.StartMetricsServer(s.MetricsPort)
+	}
+
+	// This has to be registered last so that it catches fall-throughs
+	r.Handle("/{path:.*}", newAppHandler("reverseProxyHandler", s.reverseProxyHandler))
 
 	log.Infof("Listening on port %s", s.AppPort)
 	if err := http.ListenAndServe(":"+s.AppPort, r); err != nil {
-		log.Fatalf("Error creating http server: %+v", err)
+		log.Fatalf("Error creating kube2iam http server: %+v", err)
 	}
 	return nil
 }
@@ -312,6 +396,7 @@ func (s *Server) Run(host, token, nodeName string, insecure bool) error {
 func NewServer() *Server {
 	return &Server{
 		AppPort:                    defaultAppPort,
+		MetricsPort:                defaultAppPort,
 		BackoffMaxElapsedTime:      defaultMaxElapsedTime,
 		IAMRoleKey:                 defaultIAMRoleKey,
 		BackoffMaxInterval:         defaultMaxInterval,
@@ -320,5 +405,6 @@ func NewServer() *Server {
 		MetadataAddress:            defaultMetadataAddress,
 		NamespaceKey:               defaultNamespaceKey,
 		NamespaceRestrictionFormat: defaultNamespaceRestrictionFormat,
+		HealthcheckFailReason:      "Healthcheck not yet performed",
 	}
 }

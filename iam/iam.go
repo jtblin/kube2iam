@@ -21,7 +21,6 @@ var cache = ccache.New(ccache.Configure())
 
 const (
 	maxSessNameLength = 64
-	ttl               = time.Minute * 15
 )
 
 // Client represents an IAM client.
@@ -127,9 +126,9 @@ func (iam *Client) EndpointFor(service, region string, optFns ...func(*endpoints
 }
 
 // AssumeRole returns an IAM role Credentials using AWS STS.
-func (iam *Client) AssumeRole(roleARN, remoteIP string) (*Credentials, error) {
+func (iam *Client) AssumeRole(roleARN, remoteIP string, sessionTTL time.Duration) (*Credentials, error) {
 	hitCache := true
-	item, err := cache.Fetch(roleARN, ttl, func() (interface{}, error) {
+	item, err := cache.Fetch(roleARN, sessionTTL, func() (interface{}, error) {
 		hitCache = false
 
 		// Set up a prometheus timer to track the AWS request duration. It stores the timer value when
@@ -151,7 +150,7 @@ func (iam *Client) AssumeRole(roleARN, remoteIP string) (*Credentials, error) {
 		}
 		svc := sts.New(sess, config)
 		resp, err := svc.AssumeRole(&sts.AssumeRoleInput{
-			DurationSeconds: aws.Int64(int64(ttl.Seconds() * 2)),
+			DurationSeconds: aws.Int64(int64(sessionTTL.Seconds() * 2)),
 			RoleArn:         aws.String(roleARN),
 			RoleSessionName: aws.String(sessionName(roleARN, remoteIP)),
 		})

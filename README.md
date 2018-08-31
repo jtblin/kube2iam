@@ -553,6 +553,7 @@ Usage of kube2iam:
       --backoff-max-elapsed-time duration     Max elapsed time for backoff when querying for role. (default 2s)
       --backoff-max-interval duration         Max interval for backoff when querying for role. (default 1s)
       --base-role-arn string                  Base role ARN
+      --iam-role-session-ttl                  Length of session when assuming the roles (default 15m)
       --debug                                 Enable debug features
       --default-role string                   Fallback role to use when annotation is not set
       --host-interface string                 Host interface for proxying AWS metadata (default "docker0")

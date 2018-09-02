@@ -141,7 +141,7 @@ func (h *appHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	latencyNanoseconds := timeSecs * 1e9
 	if r.URL.Path != "/healthz" {
 		logger.WithFields(log.Fields{"res.duration": latencyNanoseconds, "res.status": rw.statusCode}).
-			Infof("%s %s (%d) took %d ns", r.Method, r.URL.Path, rw.statusCode, latencyNanoseconds)
+			Infof("%s %s (%d) took %f ns", r.Method, r.URL.Path, rw.statusCode, latencyNanoseconds)
 	}
 }
 

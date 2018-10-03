@@ -4,6 +4,6 @@ RUN apk --no-cache add \
     ca-certificates \
     iptables
 
-ADD build/bin/linux/kube2iam /bin/kube2iam
+COPY build/bin/linux/kube2iam /bin/kube2iam
 
 ENTRYPOINT ["kube2iam"]

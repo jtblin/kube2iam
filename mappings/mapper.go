@@ -17,6 +17,7 @@ import (
 type RoleMapper struct {
 	defaultRoleARN             string
 	iamRoleKey                 string
+	externalId                 string
 	namespaceKey               string
 	namespaceRestriction       bool
 	iam                        *iam.Client
@@ -33,9 +34,10 @@ type store interface {
 
 // RoleMappingResult represents the relevant information for a given mapping request
 type RoleMappingResult struct {
-	Role      string
-	IP        string
-	Namespace string
+	Role       string
+	ExternalId string
+	IP         string
+	Namespace  string
 }
 
 // GetRoleMapping returns the normalized iam RoleMappingResult based on IP address
@@ -51,9 +53,19 @@ func (r *RoleMapper) GetRoleMapping(IP string) (*RoleMappingResult, error) {
 		return nil, err
 	}
 
+	externalId, err := r.extractExternalId(pod)
+	if err != nil {
+		return nil, err
+	}
+
 	// Determine if normalized role is allowed to be used in pod's namespace
 	if r.checkRoleForNamespace(role, pod.GetNamespace()) {
-		return &RoleMappingResult{Role: role, Namespace: pod.GetNamespace(), IP: IP}, nil
+		return &RoleMappingResult{
+			Role: role,
+			ExternalId: externalId,
+			Namespace: pod.GetNamespace(),
+			IP: IP,
+		}, nil
 	}
 
 	return nil, fmt.Errorf("Role requested %s not valid for namespace of pod at %s with namespace %s", role, IP, pod.GetNamespace())
@@ -77,6 +89,18 @@ func (r *RoleMapper) extractRoleARN(pod *v1.Pod) (string, error) {
 	return r.iam.RoleARN(rawRoleName), nil
 }
 
+// extractExternalId extracts the external id string if it's there, defaults to ""
+func (r *RoleMapper) extractExternalId(pod *v1.Pod) (string, error) {
+	rawExternalId, annotationPresent := pod.GetAnnotations()[r.externalId]
+
+	if !annotationPresent {
+		log.Debug("Defaulting external ID to empty string, will be ignored in sts.AssumeRole")
+		rawExternalId = ""
+	}
+
+	return string(rawExternalId), nil
+}
+
 // checkRoleForNamespace checks the 'database' for a role allowed in a namespace,
 // returns true if the role is found, otheriwse false
 func (r *RoleMapper) checkRoleForNamespace(roleArn string, namespace string) bool {
@@ -86,7 +110,7 @@ func (r *RoleMapper) checkRoleForNamespace(roleArn string, namespace string) boo
 
 	ns, err := r.store.NamespaceByName(namespace)
 	if err != nil {
-		log.Debug("Unable to find an indexed namespace of %s", namespace)
+		log.Debugf("Unable to find an indexed namespace of %s", namespace)
 		return false
 	}
 
@@ -147,14 +171,15 @@ func (r *RoleMapper) DumpDebugInfo() map[string]interface{} {
 }
 
 // NewRoleMapper returns a new RoleMapper for use.
-func NewRoleMapper(roleKey string, defaultRole string, namespaceRestriction bool, namespaceKey string, iamInstance *iam.Client, kubeStore store, namespaceRestrictionFormat string) *RoleMapper {
+func NewRoleMapper(roleKey string, externalId string, defaultRole string, namespaceRestriction bool, namespaceKey string, iamInstance *iam.Client, kubeStore store, namespaceRestrictionFormat string) *RoleMapper {
 	return &RoleMapper{
-		defaultRoleARN:       iamInstance.RoleARN(defaultRole),
-		iamRoleKey:           roleKey,
-		namespaceKey:         namespaceKey,
-		namespaceRestriction: namespaceRestriction,
-		iam:                  iamInstance,
-		store:                kubeStore,
+		defaultRoleARN:             iamInstance.RoleARN(defaultRole),
+		iamRoleKey:                 roleKey,
+		externalId:                 externalId,
+		namespaceKey:               namespaceKey,
+		namespaceRestriction:       namespaceRestriction,
+		iam:                        iamInstance,
+		store:                      kubeStore,
 		namespaceRestrictionFormat: namespaceRestrictionFormat,
 	}
 }

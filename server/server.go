@@ -28,6 +28,7 @@ const (
 	defaultAppPort                    = "8181"
 	defaultCacheSyncAttempts          = 10
 	defaultIAMRoleKey                 = "iam.amazonaws.com/role"
+	defaultExternalIdKey              = "iam.amazonaws.com/external-id"
 	defaultLogLevel                   = "info"
 	defaultLogFormat                  = "text"
 	defaultMaxElapsedTime             = 2 * time.Second
@@ -52,6 +53,7 @@ type Server struct {
 	BaseRoleARN                string
 	DefaultIAMRole             string
 	IAMRoleKey                 string
+	ExternalIdKey              string
 	IAMRoleSessionTTL          time.Duration
 	MetadataAddress            string
 	HostInterface              string
@@ -297,8 +299,9 @@ func (s *Server) roleHandler(logger *log.Entry, w http.ResponseWriter, r *http.R
 	}
 
 	roleLogger := logger.WithFields(log.Fields{
-		"pod.iam.role": roleMapping.Role,
-		"ns.name":      roleMapping.Namespace,
+		"pod.iam.role":        roleMapping.Role,
+		"pod.iam.external_id": roleMapping.ExternalId,
+		"ns.name":             roleMapping.Namespace,
 	})
 
 	wantedRole := mux.Vars(r)["role"]
@@ -311,7 +314,7 @@ func (s *Server) roleHandler(logger *log.Entry, w http.ResponseWriter, r *http.R
 		return
 	}
 
-	credentials, err := s.iam.AssumeRole(wantedRoleARN, remoteIP, s.IAMRoleSessionTTL)
+	credentials, err := s.iam.AssumeRole(wantedRoleARN, roleMapping.ExternalId, remoteIP, s.IAMRoleSessionTTL)
 	if err != nil {
 		roleLogger.Errorf("Error assuming role %+v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -346,7 +349,7 @@ func (s *Server) Run(host, token, nodeName string, insecure bool) error {
 	s.k8s = k
 	s.iam = iam.NewClient(s.BaseRoleARN, s.UseRegionalStsEndpoint)
 	log.Debugln("Caches have been synced.  Proceeding with server.")
-	s.roleMapper = mappings.NewRoleMapper(s.IAMRoleKey, s.DefaultIAMRole, s.NamespaceRestriction, s.NamespaceKey, s.iam, s.k8s, s.NamespaceRestrictionFormat)
+	s.roleMapper = mappings.NewRoleMapper(s.IAMRoleKey, s.ExternalIdKey, s.DefaultIAMRole, s.NamespaceRestriction, s.NamespaceKey, s.iam, s.k8s, s.NamespaceRestrictionFormat)
 	podSynched := s.k8s.WatchForPods(kube2iam.NewPodHandler(s.IAMRoleKey))
 	namespaceSynched := s.k8s.WatchForNamespaces(kube2iam.NewNamespaceHandler(s.NamespaceKey))
 
@@ -401,6 +404,7 @@ func NewServer() *Server {
 		MetricsPort:                defaultAppPort,
 		BackoffMaxElapsedTime:      defaultMaxElapsedTime,
 		IAMRoleKey:                 defaultIAMRoleKey,
+		ExternalIdKey:              defaultExternalIdKey,
 		BackoffMaxInterval:         defaultMaxInterval,
 		LogLevel:                   defaultLogLevel,
 		LogFormat:                  defaultLogFormat,

@@ -89,6 +89,7 @@ func TestCheckRoleForNamespace(t *testing.T) {
 	var roleCheckTests = []struct {
 		test                       string
 		namespaceRestriction       bool
+		externalId                 string
 		defaultArn                 string
 		namespace                  string
 		namespaceAnnotations       map[string]string
@@ -99,6 +100,14 @@ func TestCheckRoleForNamespace(t *testing.T) {
 		{
 			test:                 "No restrictions",
 			namespaceRestriction: false,
+			roleARN:              "arn:aws:iam::123456789012:role/explicit-role",
+			namespace:            "default",
+			expectedResult:       true,
+		},
+		{
+			test:                 "No restrictions with external-id",
+			namespaceRestriction: false,
+			externalId:           "test-external-id-secret-is-not-secret",
 			roleARN:              "arn:aws:iam::123456789012:role/explicit-role",
 			namespace:            "default",
 			expectedResult:       true,
@@ -352,6 +361,7 @@ func TestCheckRoleForNamespace(t *testing.T) {
 		t.Run(tt.test, func(t *testing.T) {
 			rp := NewRoleMapper(
 				roleKey,
+				tt.externalId,
 				tt.defaultArn,
 				tt.namespaceRestriction,
 				namespaceKey,

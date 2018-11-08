@@ -12,8 +12,53 @@ import (
 const (
 	defaultBaseRole = "arn:aws:iam::123456789012:role/"
 	roleKey         = "roleKey"
+	externalIDKey   = "externalIDKey"
 	namespaceKey    = "namespaceKey"
 )
+
+func TestExtractExternalID(t *testing.T) {
+	var roleExtractionTests = []struct {
+		test               string
+		annotations        map[string]string
+		expectedExternalID string
+		expectError bool
+	}{
+		{
+			test:        "No external-id annotation",
+			annotations: map[string]string{},
+			expectedExternalID: "",
+		},
+		{
+			test:        "No default, has annotation",
+			annotations: map[string]string{externalIDKey: "secret-secrets-are-no-fun"},
+			expectedExternalID: "secret-secrets-are-no-fun",
+		},
+	}
+	for _, tt := range roleExtractionTests {
+		t.Run(tt.test, func(t *testing.T) {
+			rp := RoleMapper{}
+			rp.externalIDKey = "externalIDKey"
+			rp.iam = &iam.Client{BaseARN: defaultBaseRole}
+
+			pod := &v1.Pod{}
+			pod.Annotations = tt.annotations
+
+			resp, err := rp.extractExternalID(pod)
+			if tt.expectError && err == nil {
+				t.Error("Expected error however didn't recieve one")
+				return
+			}
+			if !tt.expectError && err != nil {
+				t.Errorf("Didn't expect error but recieved %s", err)
+				return
+			}
+			if resp != tt.expectedExternalID {
+				t.Errorf("Response [%s] did not equal expected [%s]", resp, tt.expectedExternalID)
+				return
+			}
+		})
+	}
+}
 
 func TestExtractRoleARN(t *testing.T) {
 	var roleExtractionTests = []struct {

@@ -17,7 +17,7 @@ import (
 type RoleMapper struct {
 	defaultRoleARN             string
 	iamRoleKey                 string
-	externalID                 string
+	externalIDKey              string
 	namespaceKey               string
 	namespaceRestriction       bool
 	iam                        *iam.Client
@@ -58,7 +58,7 @@ func (r *RoleMapper) GetRoleMapping(IP string) (*RoleMappingResult, error) {
 		return nil, err
 	}
 
-	// Determine if normalized role is allowed to be used in pod's namespace
+// Determine if normalized role is allowed to be used in pod's namespace
 	if r.checkRoleForNamespace(role, pod.GetNamespace()) {
 		return &RoleMappingResult{
 			Role: role,
@@ -91,7 +91,7 @@ func (r *RoleMapper) extractRoleARN(pod *v1.Pod) (string, error) {
 
 // extractExternalID extracts the external id string if it's there, defaults to ""
 func (r *RoleMapper) extractExternalID(pod *v1.Pod) (string, error) {
-	rawExternalID, annotationPresent := pod.GetAnnotations()[r.externalID]
+	rawExternalID, annotationPresent := pod.GetAnnotations()[r.externalIDKey]
 
 	if !annotationPresent {
 		log.Debug("Defaulting external ID to empty string, will be ignored in sts.AssumeRole")
@@ -171,11 +171,11 @@ func (r *RoleMapper) DumpDebugInfo() map[string]interface{} {
 }
 
 // NewRoleMapper returns a new RoleMapper for use.
-func NewRoleMapper(roleKey string, externalID string, defaultRole string, namespaceRestriction bool, namespaceKey string, iamInstance *iam.Client, kubeStore store, namespaceRestrictionFormat string) *RoleMapper {
+func NewRoleMapper(roleKey string, externalIDKey string, defaultRole string, namespaceRestriction bool, namespaceKey string, iamInstance *iam.Client, kubeStore store, namespaceRestrictionFormat string) *RoleMapper {
 	return &RoleMapper{
 		defaultRoleARN:             iamInstance.RoleARN(defaultRole),
 		iamRoleKey:                 roleKey,
-		externalID:                 externalID,
+		externalIDKey:              externalIDKey,
 		namespaceKey:               namespaceKey,
 		namespaceRestriction:       namespaceRestriction,
 		iam:                        iamInstance,

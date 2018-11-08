@@ -17,7 +17,7 @@ import (
 type RoleMapper struct {
 	defaultRoleARN             string
 	iamRoleKey                 string
-	externalId                 string
+	externalID                 string
 	namespaceKey               string
 	namespaceRestriction       bool
 	iam                        *iam.Client
@@ -35,7 +35,7 @@ type store interface {
 // RoleMappingResult represents the relevant information for a given mapping request
 type RoleMappingResult struct {
 	Role       string
-	ExternalId string
+	ExternalID string
 	IP         string
 	Namespace  string
 }
@@ -53,7 +53,7 @@ func (r *RoleMapper) GetRoleMapping(IP string) (*RoleMappingResult, error) {
 		return nil, err
 	}
 
-	externalId, err := r.extractExternalId(pod)
+	externalID, err := r.extractExternalID(pod)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +62,7 @@ func (r *RoleMapper) GetRoleMapping(IP string) (*RoleMappingResult, error) {
 	if r.checkRoleForNamespace(role, pod.GetNamespace()) {
 		return &RoleMappingResult{
 			Role: role,
-			ExternalId: externalId,
+			ExternalID: externalID,
 			Namespace: pod.GetNamespace(),
 			IP: IP,
 		}, nil
@@ -89,16 +89,16 @@ func (r *RoleMapper) extractRoleARN(pod *v1.Pod) (string, error) {
 	return r.iam.RoleARN(rawRoleName), nil
 }
 
-// extractExternalId extracts the external id string if it's there, defaults to ""
-func (r *RoleMapper) extractExternalId(pod *v1.Pod) (string, error) {
-	rawExternalId, annotationPresent := pod.GetAnnotations()[r.externalId]
+// extractExternalID extracts the external id string if it's there, defaults to ""
+func (r *RoleMapper) extractExternalID(pod *v1.Pod) (string, error) {
+	rawExternalID, annotationPresent := pod.GetAnnotations()[r.externalID]
 
 	if !annotationPresent {
 		log.Debug("Defaulting external ID to empty string, will be ignored in sts.AssumeRole")
-		rawExternalId = ""
+		rawExternalID = ""
 	}
 
-	return string(rawExternalId), nil
+	return rawExternalID, nil
 }
 
 // checkRoleForNamespace checks the 'database' for a role allowed in a namespace,
@@ -171,11 +171,11 @@ func (r *RoleMapper) DumpDebugInfo() map[string]interface{} {
 }
 
 // NewRoleMapper returns a new RoleMapper for use.
-func NewRoleMapper(roleKey string, externalId string, defaultRole string, namespaceRestriction bool, namespaceKey string, iamInstance *iam.Client, kubeStore store, namespaceRestrictionFormat string) *RoleMapper {
+func NewRoleMapper(roleKey string, externalID string, defaultRole string, namespaceRestriction bool, namespaceKey string, iamInstance *iam.Client, kubeStore store, namespaceRestrictionFormat string) *RoleMapper {
 	return &RoleMapper{
 		defaultRoleARN:             iamInstance.RoleARN(defaultRole),
 		iamRoleKey:                 roleKey,
-		externalId:                 externalId,
+		externalID:                 externalID,
 		namespaceKey:               namespaceKey,
 		namespaceRestriction:       namespaceRestriction,
 		iam:                        iamInstance,

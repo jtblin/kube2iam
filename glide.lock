@@ -216,7 +216,7 @@ imports:
   - pkg/util/runtime
   - pkg/util/wait
 - name: k8s.io/client-go
-  version: e121606b0d09b2e1c467183ee46217fa85a6b672
+  version: 249fa7a1d3aa05d8e423e8de91ffedd5a58243f5
   subpackages:
   - discovery
   - kubernetes

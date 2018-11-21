@@ -70,9 +70,9 @@ func GetInstanceIAMRole() (string, error) {
 	return iamRole, nil
 }
 
-func sessionName(roleARN, remoteIP string) string {
+func sessionName(roleARN, externalID string, remoteIP string) string {
 	idx := strings.LastIndex(roleARN, "/")
-	name := fmt.Sprintf("%s-%s", getHash(remoteIP), roleARN[idx+1:])
+	name := fmt.Sprintf("%s-%s-%s", getHash(remoteIP), roleARN[idx+1:], getHash(externalID))
 	return fmt.Sprintf("%.[2]*[1]s", name, maxSessNameLength)
 }
 
@@ -128,7 +128,8 @@ func (iam *Client) EndpointFor(service, region string, optFns ...func(*endpoints
 // AssumeRole returns an IAM role Credentials using AWS STS.
 func (iam *Client) AssumeRole(roleARN, externalID string, remoteIP string, sessionTTL time.Duration) (*Credentials, error) {
 	hitCache := true
-	item, err := cache.Fetch(roleARN, sessionTTL, func() (interface{}, error) {
+	roleCacheKey := roleARN + ":" + externalID
+	item, err := cache.Fetch(roleCacheKey, sessionTTL, func() (interface{}, error) {
 		hitCache = false
 
 		// Set up a prometheus timer to track the AWS request duration. It stores the timer value when
@@ -152,7 +153,7 @@ func (iam *Client) AssumeRole(roleARN, externalID string, remoteIP string, sessi
 		assumeRoleInput := &sts.AssumeRoleInput{
 			DurationSeconds: aws.Int64(int64(sessionTTL.Seconds() * 2)),
 			RoleArn:         aws.String(roleARN),
-			RoleSessionName: aws.String(sessionName(roleARN, remoteIP)),
+			RoleSessionName: aws.String(sessionName(roleARN, externalID, remoteIP)),
 		}
 		if externalID != "" {
 			assumeRoleInput.ExternalId = aws.String(externalID)
@@ -174,7 +175,7 @@ func (iam *Client) AssumeRole(roleARN, externalID string, remoteIP string, sessi
 		}, nil
 	})
 	if hitCache {
-		metrics.IamCacheHitCount.WithLabelValues(roleARN).Inc()
+		metrics.IamCacheHitCount.WithLabelValues(roleCacheKey).Inc()
 	}
 	if err != nil {
 		return nil, err

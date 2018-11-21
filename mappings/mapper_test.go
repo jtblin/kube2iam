@@ -21,16 +21,15 @@ func TestExtractExternalID(t *testing.T) {
 		test               string
 		annotations        map[string]string
 		expectedExternalID string
-		expectError bool
 	}{
 		{
-			test:        "No external-id annotation",
-			annotations: map[string]string{},
+			test:               "No external-id annotation",
+			annotations:        map[string]string{},
 			expectedExternalID: "",
 		},
 		{
-			test:        "No default, has annotation",
-			annotations: map[string]string{externalIDKey: "secret-secrets-are-no-fun"},
+			test:               "No default, has annotation",
+			annotations:        map[string]string{externalIDKey: "secret-secrets-are-no-fun"},
 			expectedExternalID: "secret-secrets-are-no-fun",
 		},
 	}
@@ -43,15 +42,7 @@ func TestExtractExternalID(t *testing.T) {
 			pod := &v1.Pod{}
 			pod.Annotations = tt.annotations
 
-			resp, err := rp.extractExternalID(pod)
-			if tt.expectError && err == nil {
-				t.Error("Expected error however didn't recieve one")
-				return
-			}
-			if !tt.expectError && err != nil {
-				t.Errorf("Didn't expect error but recieved %s", err)
-				return
-			}
+			resp := rp.extractExternalID(pod)
 			if resp != tt.expectedExternalID {
 				t.Errorf("Response [%s] did not equal expected [%s]", resp, tt.expectedExternalID)
 				return

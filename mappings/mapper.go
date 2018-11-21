@@ -53,18 +53,15 @@ func (r *RoleMapper) GetRoleMapping(IP string) (*RoleMappingResult, error) {
 		return nil, err
 	}
 
-	externalID, err := r.extractExternalID(pod)
-	if err != nil {
-		return nil, err
-	}
+	externalID := r.extractExternalID(pod)
 
 // Determine if normalized role is allowed to be used in pod's namespace
 	if r.checkRoleForNamespace(role, pod.GetNamespace()) {
 		return &RoleMappingResult{
-			Role: role,
+			Role:       role,
 			ExternalID: externalID,
-			Namespace: pod.GetNamespace(),
-			IP: IP,
+			Namespace:  pod.GetNamespace(),
+			IP:         IP,
 		}, nil
 	}
 
@@ -90,7 +87,7 @@ func (r *RoleMapper) extractRoleARN(pod *v1.Pod) (string, error) {
 }
 
 // extractExternalID extracts the external id string if it's there, defaults to ""
-func (r *RoleMapper) extractExternalID(pod *v1.Pod) (string, error) {
+func (r *RoleMapper) extractExternalID(pod *v1.Pod) string {
 	rawExternalID, annotationPresent := pod.GetAnnotations()[r.externalIDKey]
 
 	if !annotationPresent {
@@ -98,7 +95,7 @@ func (r *RoleMapper) extractExternalID(pod *v1.Pod) (string, error) {
 		rawExternalID = ""
 	}
 
-	return rawExternalID, nil
+	return rawExternalID
 }
 
 // checkRoleForNamespace checks the 'database' for a role allowed in a namespace,

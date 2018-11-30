@@ -5,7 +5,8 @@ import (
 	"time"
 
 	"github.com/jtblin/kube2iam"
-	v1 "k8s.io/api/core/v1"
+	log "github.com/sirupsen/logrus"
+	"k8s.io/api/core/v1"
 	selector "k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
@@ -97,13 +98,22 @@ func (k8s *Client) PodByIP(IP string) (*v1.Pod, error) {
 	}
 
 	if len(pods) == 1 {
-		return pods[0].(*v1.Pod), nil
+		p, ok := pods[0].(*v1.Pod)
+		if !ok {
+			return nil, fmt.Errorf("pods[0] is not *v1.Pod! %v", pods[0])
+		}
+		return p, nil
 	}
 
 	//This happens with `hostNetwork: true` pods
 	podNames := make([]string, len(pods))
 	for i, pod := range pods {
-		podNames[i] = pod.(*v1.Pod).ObjectMeta.Name
+		p, ok := pod.(*v1.Pod)
+		if !ok {
+			log.Errorf("pods[%d] is not *v1.Pod! %v", i, pod)
+		} else {
+			podNames[i] = p.ObjectMeta.Name
+		}
 	}
 	return nil, fmt.Errorf("%d pods (%v) with the ip %s indexed", len(pods), podNames, IP)
 }

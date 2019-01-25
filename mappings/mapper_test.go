@@ -392,5 +392,5 @@ func (k *storeMock) NamespaceByName(ns string) (*v1.Namespace, error) {
 		nns.Annotations = k.annotations
 		return nns, nil
 	}
-	return nil, fmt.Errorf("Namepsace isn't present")
+	return nil, fmt.Errorf("namespace isn't present")
 }

@@ -75,6 +75,8 @@ check-all:
 		--linter='vet:govet --no-recurse:PATH:LINE:MESSAGE' --dupl-threshold=50
 		--dupl-threshold=50
 
+travis-checks: build test-race check bench-race
+
 watch:
 	CompileDaemon -color=true -build "make test"
 

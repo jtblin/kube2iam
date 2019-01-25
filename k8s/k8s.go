@@ -93,7 +93,7 @@ func (k8s *Client) PodByIP(IP string) (*v1.Pod, error) {
 	}
 
 	if len(pods) == 0 {
-		return nil, fmt.Errorf("Pod with specificed IP not found")
+		return nil, fmt.Errorf("pod with specificed IP not found")
 	}
 
 	if len(pods) == 1 {
@@ -117,7 +117,7 @@ func (k8s *Client) NamespaceByName(namespaceName string) (*v1.Namespace, error) 
 	}
 
 	if len(namespace) == 0 {
-		return nil, fmt.Errorf("Namespace was not found")
+		return nil, fmt.Errorf("namespace was not found")
 	}
 
 	return namespace[0].(*v1.Namespace), nil

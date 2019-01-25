@@ -56,7 +56,7 @@ func (r *RoleMapper) GetRoleMapping(IP string) (*RoleMappingResult, error) {
 		return &RoleMappingResult{Role: role, Namespace: pod.GetNamespace(), IP: IP}, nil
 	}
 
-	return nil, fmt.Errorf("Role requested %s not valid for namespace of pod at %s with namespace %s", role, IP, pod.GetNamespace())
+	return nil, fmt.Errorf("role requested %s not valid for namespace of pod at %s with namespace %s", role, IP, pod.GetNamespace())
 }
 
 // extractQualifiedRoleName extracts a fully qualified ARN for a given pod,
@@ -66,7 +66,7 @@ func (r *RoleMapper) extractRoleARN(pod *v1.Pod) (string, error) {
 	rawRoleName, annotationPresent := pod.GetAnnotations()[r.iamRoleKey]
 
 	if !annotationPresent && r.defaultRoleARN == "" {
-		return "", fmt.Errorf("Unable to find role for IP %s", pod.Status.PodIP)
+		return "", fmt.Errorf("unable to find role for IP %s", pod.Status.PodIP)
 	}
 
 	if !annotationPresent {

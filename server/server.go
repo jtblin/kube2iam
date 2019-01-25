@@ -129,7 +129,7 @@ func (h *appHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			case error:
 				err = t
 			default:
-				err = errors.New("Unknown error")
+				err = errors.New("unknown error")
 			}
 			logger.WithField("res.status", http.StatusInternalServerError).
 				Errorf("PANIC error processing request: %+v", err)

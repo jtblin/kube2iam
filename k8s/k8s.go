@@ -5,10 +5,10 @@ import (
 	"time"
 
 	"github.com/jtblin/kube2iam"
+	v1 "k8s.io/api/core/v1"
+	selector "k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/pkg/api/v1"
-	selector "k8s.io/client-go/pkg/fields"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 )
@@ -23,9 +23,9 @@ const (
 // Client represents a kubernetes client.
 type Client struct {
 	*kubernetes.Clientset
-	namespaceController *cache.Controller
+	namespaceController cache.Controller
 	namespaceIndexer    cache.Indexer
-	podController       *cache.Controller
+	podController       cache.Controller
 	podIndexer          cache.Indexer
 	nodeName            string
 }
@@ -129,9 +129,9 @@ func NewClient(host, token, nodeName string, insecure bool) (*Client, error) {
 	var err error
 	if host != "" && token != "" {
 		config = &rest.Config{
-			Host:        host,
-			BearerToken: token,
-			Insecure:    insecure,
+			Host:            host,
+			BearerToken:     token,
+			TLSClientConfig: rest.TLSClientConfig{Insecure: insecure},
 		}
 	} else {
 		config, err = rest.InClusterConfig()

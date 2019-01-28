@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	log "github.com/sirupsen/logrus"
-	"k8s.io/client-go/pkg/api/unversioned"
-	"k8s.io/client-go/pkg/api/v1"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -74,7 +74,8 @@ func (p *PodHandler) OnDelete(obj interface{}) {
 func isPodActive(p *v1.Pod) bool {
 	podDeleted := false
 	if p.DeletionTimestamp != nil {
-		podDeleted = p.DeletionTimestamp.Before(unversioned.Now())
+		now := metav1.Now()
+		podDeleted = p.DeletionTimestamp.Before(&now)
 	}
 	return p.Status.PodIP != "" &&
 		v1.PodSucceeded != p.Status.Phase &&

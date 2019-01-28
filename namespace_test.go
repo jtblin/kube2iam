@@ -3,7 +3,7 @@ package kube2iam
 import (
 	"testing"
 
-	"k8s.io/client-go/pkg/api/v1"
+	v1 "k8s.io/api/core/v1"
 )
 
 func TestGetNamespaceRoleAnnotation(t *testing.T) {

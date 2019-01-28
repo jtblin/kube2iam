@@ -11,12 +11,14 @@ import:
 - package: github.com/karlseguin/ccache
 - package: github.com/spf13/pflag
 - package: k8s.io/apimachinery
-- package: k8s.io/client-go
-  version: v2.0.0
+  version: kubernetes-1.10.12
   subpackages:
   - pkg/api/v1
-  - kubernetes
   - pkg/fields
+- package: k8s.io/client-go
+  version: v10.0.0
+  subpackages:
+  - kubernetes
   - rest
 - package: github.com/cenk/backoff
 - package: github.com/coreos/go-iptables
@@ -30,3 +32,8 @@ import:
   version: v0.9.0-pre1
   subpackages:
   - prometheus/promhttp
+- package: github.com/go-errors/errors
+- package: k8s.io/api
+  version: kubernetes-1.10.12
+  subpackages:
+  - core/v1

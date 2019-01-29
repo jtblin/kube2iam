@@ -1,0 +1,8 @@
+commonLabels:
+  app.kubernetes.io/name: kube2iam
+
+namespace: kube-system
+
+resources:
+- daemonset.yaml
+- rbac.yaml

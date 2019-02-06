@@ -1,0 +1,17 @@
+bases:
+- github.com/jtblin/kube2iam//kustomize/base
+
+commonLabels:
+  app.kubernetes.io/name: kube2iam
+
+imageTags:
+- name: jtblin/kube2iam
+  newTag: 0.10.6
+
+namespace: kube2iam
+
+patches:
+- daemonset.yaml
+
+resources:
+- podsecuritypolicy.yaml

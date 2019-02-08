@@ -5,7 +5,6 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -72,15 +71,10 @@ func (p *PodHandler) OnDelete(obj interface{}) {
 }
 
 func isPodActive(p *v1.Pod) bool {
-	podDeleted := false
-	if p.DeletionTimestamp != nil {
-		now := metav1.Now()
-		podDeleted = p.DeletionTimestamp.Before(&now)
-	}
 	return p.Status.PodIP != "" &&
 		v1.PodSucceeded != p.Status.Phase &&
 		v1.PodFailed != p.Status.Phase &&
-		!podDeleted
+		p.DeletionTimestamp != nil
 }
 
 // PodIPIndexFunc maps a given Pod to it's IP for caching.

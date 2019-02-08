@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: kube2iam
+spec:
+  template:
+    spec:
+      containers:
+      - name: kube2iam
+        args:
+        - --auto-discover-default-role
+        - --host-interface=cali+
+        - --host-ip=$(HOST_IP)
+        - --iptables=true
+        - --node=$(NODE_NAME)
+        - --verbose
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8181
+            scheme: HTTP
+        resources:
+          limits:
+            cpu: 250m
+            memory: 256Mi
+          requests:
+            cpu: 250m
+            memory: 256Mi
+      securityContext:
+        runAsUser: 0

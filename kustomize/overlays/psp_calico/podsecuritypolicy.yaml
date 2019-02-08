@@ -1,0 +1,78 @@
+---
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  annotations:
+    apparmor.security.beta.kubernetes.io/allowedProfileNames: "runtime/default"
+    apparmor.security.beta.kubernetes.io/defaultProfileName:  "runtime/default"
+    seccomp.security.alpha.kubernetes.io/allowedProfileNames: "docker/default"
+    seccomp.security.alpha.kubernetes.io/defaultProfileName:  "docker/default"
+  labels:
+    app.kubernetes.io/name: kube2iam
+  name: kube2iam
+spec:
+  allowedCapabilities: []
+  allowPrivilegeEscalation: true
+  fsGroup:
+    rule: MustRunAs
+    ranges:
+    - min: 1
+      max: 65535
+  hostIPC: false
+  hostNetwork: true
+  hostPID: false
+  hostPorts:
+  - min: 8181
+    max: 8181
+  privileged: true
+  readOnlyRootFilesystem: false
+  requiredDropCapabilities:
+  - ALL
+  runAsUser:
+    rule: RunAsAny
+  seLinux:
+    # assumes AppArmor instead of SELinux
+    rule: RunAsAny
+  supplementalGroups:
+    rule: MustRunAs
+    ranges:
+    - min: 1
+      max: 65535
+  volumes:
+  - configMap
+  - downwardAPI
+  - emptyDir
+  - persistentVolumeClaim
+  - projected
+  - secret
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    app.kubernetes.io/name: kube2iam
+  name: kube2iam
+rules:
+- apiGroups:
+  - policy
+  resourceNames:
+  - kube2iam
+  resources:
+  - podsecuritypolicies
+  verbs:
+  - use
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/name: kube2iam
+  name: kube2iam
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kube2iam
+subjects:
+- kind: ServiceAccount
+  name: kube2iam
+...

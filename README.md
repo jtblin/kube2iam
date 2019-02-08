@@ -137,6 +137,8 @@ iptables \
 This rule can be added automatically by setting `--iptables=true`, setting the `HOST_IP` environment
 variable, and running the container in a privileged security context.
 
+**Warning**: It is possible that other pods are started on an instance before kube2iam has started. Using `--iptables=true` (instead of applying the rule before starting the kubelet) **could give those pods the opportunity to access the real EC2 metadata API, assume the role of the EC2 instance and thereby have all permissions the instance role has** (including assuming potential other roles). Use with care if you don't trust the users of your kubernetes cluster or if you are running pods (that could be exploited) that have permissions to create other pods (e.g. controllers / operators).
+
 Note that the interface `--in-interface` above or using the `--host-interface` cli flag may be
 different than `docker0` depending on which virtual network you use e.g.
 

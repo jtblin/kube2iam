@@ -4,9 +4,9 @@ REPO_PATH="$(ORG_PATH)/$(BINARY_NAME)"
 VERSION_VAR := $(REPO_PATH)/version.Version
 GIT_VAR := $(REPO_PATH)/version.GitCommit
 BUILD_DATE_VAR := $(REPO_PATH)/version.BuildDate
-REPO_VERSION ?= $$(git describe --abbrev=0 --tags)
-BUILD_DATE := $$(date +%Y-%m-%d-%H:%M)
-GIT_HASH := $$(git rev-parse --short HEAD)
+REPO_VERSION ?= $(shell git describe --abbrev=0 --tags)
+BUILD_DATE := $(shell date +%Y-%m-%d-%H:%M)
+GIT_HASH := $(shell git rev-parse --short HEAD)
 GOBUILD_VERSION_ARGS := -ldflags "-s -X $(VERSION_VAR)=$(REPO_VERSION) -X $(GIT_VAR)=$(GIT_HASH) -X $(BUILD_DATE_VAR)=$(BUILD_DATE)"
 # useful for other docker repos
 DOCKER_REPO ?= jtblin

@@ -18,6 +18,7 @@ install:
   - make setup
 
 script:
+  - make version
   - make build
   - make test-race
   - make check

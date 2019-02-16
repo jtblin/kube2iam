@@ -2,7 +2,6 @@ package main
 
 import (
 	"strings"
-	"time"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"

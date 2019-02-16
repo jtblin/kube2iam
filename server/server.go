@@ -45,39 +45,40 @@ var registeredHandlerNames []string
 // Server encapsulates all of the parameters necessary for starting up
 // the server. These can either be set via command line or directly.
 type Server struct {
-	APIServer                  string
-	APIToken                   string
-	AppPort                    string
-	MetricsPort                string
-	BaseRoleARN                string
-	DefaultIAMRole             string
-	IAMRoleKey                 string
-	IAMRoleSessionTTL          time.Duration
-	MetadataAddress            string
-	HostInterface              string
-	HostIP                     string
-	NodeName                   string
-	NamespaceKey               string
-	LogLevel                   string
-	LogFormat                  string
-	NamespaceRestrictionFormat string
-	UseRegionalStsEndpoint     bool
-	AddIPTablesRule            bool
-	AutoDiscoverBaseArn        bool
-	AutoDiscoverDefaultRole    bool
-	Debug                      bool
-	Insecure                   bool
-	NamespaceRestriction       bool
-	Verbose                    bool
-	Version                    bool
-	iam                        *iam.Client
-	k8s                        *k8s.Client
-	roleMapper                 *mappings.RoleMapper
-	BackoffMaxElapsedTime      time.Duration
-	BackoffMaxInterval         time.Duration
-	InstanceID                 string
-	HealthcheckFailReason      string
-	healthcheckTicker          *time.Ticker
+	APIServer                     string
+	APIToken                      string
+	AppPort                       string
+	MetricsPort                   string
+	BaseRoleARN                   string
+	DefaultIAMRole                string
+	IAMRoleKey                    string
+	IAMRoleSessionTTL             time.Duration
+	MetadataAddress               string
+	HostInterface                 string
+	HostIP                        string
+	NodeName                      string
+	NamespaceKey                  string
+	LogLevel                      string
+	LogFormat                     string
+	NamespaceRestrictionFormat    string
+	UseRegionalStsEndpoint        bool
+	AddIPTablesRule               bool
+	AutoDiscoverBaseArn           bool
+	AutoDiscoverDefaultRole       bool
+	Debug                         bool
+	Insecure                      bool
+	NamespaceRestriction          bool
+	Verbose                       bool
+	Version                       bool
+	iam                           *iam.Client
+	k8s                           *k8s.Client
+	roleMapper                    *mappings.RoleMapper
+	BackoffMaxElapsedTime         time.Duration
+	BackoffMaxInterval            time.Duration
+	IPTablesBackoffMaxElapsedTime time.Duration
+	InstanceID                    string
+	HealthcheckFailReason         string
+	healthcheckTicker             *time.Ticker
 }
 
 type appHandlerFunc func(*log.Entry, http.ResponseWriter, *http.Request)

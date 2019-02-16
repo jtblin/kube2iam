@@ -2,6 +2,7 @@ package main
 
 import (
 	"strings"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
@@ -36,6 +37,7 @@ func addFlags(s *server.Server, fs *pflag.FlagSet) {
 	fs.StringVar(&s.NodeName, "node", s.NodeName, "Name of the node where kube2iam is running")
 	fs.DurationVar(&s.BackoffMaxInterval, "backoff-max-interval", s.BackoffMaxInterval, "Max interval for backoff when querying for role.")
 	fs.DurationVar(&s.BackoffMaxElapsedTime, "backoff-max-elapsed-time", s.BackoffMaxElapsedTime, "Max elapsed time for backoff when querying for role.")
+	fs.DurationVar(&s.IPTablesBackoffMaxElapsedTime, "iptables-backoff-max-elapsed-time", s.IPTablesBackoffMaxElapsedTime, "Max elapsed time for backoff when adding iptables rules.")
 	fs.StringVar(&s.LogFormat, "log-format", s.LogFormat, "Log format (text/json)")
 	fs.StringVar(&s.LogLevel, "log-level", s.LogLevel, "Log level")
 	fs.BoolVar(&s.UseRegionalStsEndpoint, "use-regional-sts-endpoint", false, "use the regional sts endpoint if AWS_REGION is set")
@@ -106,8 +108,23 @@ func main() {
 	}
 
 	if s.AddIPTablesRule {
-		if err := iptables.AddRule(s.AppPort, s.MetadataAddress, s.HostInterface, s.HostIP); err != nil {
-			log.Fatalf("%s", err)
+		if s.IPTablesBackoffMaxElapsedTime {
+			operation := func() error {
+				return iptables.AddRule(s.AppPort, s.MetadataAddress, s.HostInterface, s.HostIP)
+			}
+
+			iptablesBackoff := backoff.NewExponentialBackOff()
+			iptablesBackoff.MaxElapsedTime = s.IPTablesBackoffMaxElapsedTime * time.Second
+
+			iptablesBackoff := backoff.NewExponentialBackOff()
+			err := backoff.Retry(operation, iptablesBackoff)
+			if err != nil {
+				log.Fatalf("%s", err)
+			}
+		} else {
+			if err := iptables.AddRule(s.AppPort, s.MetadataAddress, s.HostInterface, s.HostIP); err != nil {
+				log.Fatalf("%s", err)
+			}
 		}
 	}
 

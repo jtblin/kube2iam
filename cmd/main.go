@@ -108,23 +108,16 @@ func main() {
 	}
 
 	if s.AddIPTablesRule {
-		if s.IPTablesBackoffMaxElapsedTime != nil {
-			iptablesOperation := func() error {
-				return iptables.AddRule(s.AppPort, s.MetadataAddress, s.HostInterface, s.HostIP)
-			}
+		iptablesOperation := func() error {
+			return iptables.AddRule(s.AppPort, s.MetadataAddress, s.HostInterface, s.HostIP)
+		}
 
-			iptablesBackoff := backoff.NewExponentialBackOff()
-			iptablesBackoff.MaxElapsedTime = s.IPTablesBackoffMaxElapsedTime * time.Second
+		iptablesBackoff := backoff.NewExponentialBackOff()
+		iptablesBackoff.MaxElapsedTime = s.IPTablesBackoffMaxElapsedTime
 
-			iptablesBackoff := backoff.NewExponentialBackOff()
-			err = backoff.Retry(iptablesOperation, iptablesBackoff)
-			if err != nil {
-				log.Fatalf("%s", err)
-			}
-		} else {
-			if err := iptables.AddRule(s.AppPort, s.MetadataAddress, s.HostInterface, s.HostIP); err != nil {
-				log.Fatalf("%s", err)
-			}
+		err = backoff.Retry(iptablesOperation, iptablesBackoff)
+		if err != nil {
+			log.Fatalf("%s", err)
 		}
 	}
 

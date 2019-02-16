@@ -31,6 +31,7 @@ const (
 	defaultLogLevel                   = "info"
 	defaultLogFormat                  = "text"
 	defaultMaxElapsedTime             = 2 * time.Second
+	defaultIPTablesMaxElapsedTime     = 1 * time.Second
 	defaultIAMRoleSessionTTL          = 15 * time.Minute
 	defaultMaxInterval                = 1 * time.Second
 	defaultMetadataAddress            = "169.254.169.254"
@@ -398,17 +399,18 @@ func (s *Server) Run(host, token, nodeName string, insecure bool) error {
 // NewServer will create a new Server with default values.
 func NewServer() *Server {
 	return &Server{
-		AppPort:                    defaultAppPort,
-		MetricsPort:                defaultAppPort,
-		BackoffMaxElapsedTime:      defaultMaxElapsedTime,
-		IAMRoleKey:                 defaultIAMRoleKey,
-		BackoffMaxInterval:         defaultMaxInterval,
-		LogLevel:                   defaultLogLevel,
-		LogFormat:                  defaultLogFormat,
-		MetadataAddress:            defaultMetadataAddress,
-		NamespaceKey:               defaultNamespaceKey,
-		NamespaceRestrictionFormat: defaultNamespaceRestrictionFormat,
-		HealthcheckFailReason:      "Healthcheck not yet performed",
-		IAMRoleSessionTTL:          defaultIAMRoleSessionTTL,
+		AppPort:                       defaultAppPort,
+		MetricsPort:                   defaultAppPort,
+		BackoffMaxElapsedTime:         defaultMaxElapsedTime,
+		IPTablesBackoffMaxElapsedTime: defaultIPTablesMaxElapsedTime,
+		IAMRoleKey:                    defaultIAMRoleKey,
+		BackoffMaxInterval:            defaultMaxInterval,
+		LogLevel:                      defaultLogLevel,
+		LogFormat:                     defaultLogFormat,
+		MetadataAddress:               defaultMetadataAddress,
+		NamespaceKey:                  defaultNamespaceKey,
+		NamespaceRestrictionFormat:    defaultNamespaceRestrictionFormat,
+		HealthcheckFailReason:         "Healthcheck not yet performed",
+		IAMRoleSessionTTL:             defaultIAMRoleSessionTTL,
 	}
 }

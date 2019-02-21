@@ -39,6 +39,8 @@ spec:
   selector:
     matchLabels:
       name: kube2iam
+  updateStrategy:
+    type: RollingUpdate
   template:
     metadata:
       labels:

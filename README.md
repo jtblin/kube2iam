@@ -710,13 +710,14 @@ Usage of kube2iam:
       --backoff-max-elapsed-time duration     Max elapsed time for backoff when querying for role. (default 2s)
       --backoff-max-interval duration         Max interval for backoff when querying for role. (default 1s)
       --base-role-arn string                  Base role ARN
-      --iam-role-session-ttl                  Length of session when assuming the roles (default 15m)
       --debug                                 Enable debug features
       --default-role string                   Fallback role to use when annotation is not set
       --host-interface string                 Host interface for proxying AWS metadata (default "docker0")
       --host-ip string                        IP address of host
+      --iam-role-error-ttl duration           TTL for caching assume role errors
       --iam-role-key string                   Pod annotation key used to retrieve the IAM role (default "iam.amazonaws.com/role")
       --iam-external-id string                Pod annotation key used to retrieve the IAM ExternalId (default "iam.amazonaws.com/external-id")
+      --iam-role-session-ttl duration         TTL for the assume role session (default 15m0s)
       --insecure                              Kubernetes server should be accessed without verifying the TLS. Testing only
       --iptables                              Add iptables rule (also requires --host-ip)
       --kubeconfig string                     Path to kubeconfig
@@ -733,6 +734,7 @@ Usage of kube2iam:
       --use-regional-sts-endpoint             use the regional sts endpoint if AWS_REGION is set
       --verbose                               Verbose
       --version                               Print the version and exits
+
 ```
 
 ## Development loop

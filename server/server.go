@@ -32,6 +32,7 @@ const (
 	defaultLogFormat                  = "text"
 	defaultMaxElapsedTime             = 2 * time.Second
 	defaultIAMRoleSessionTTL          = 15 * time.Minute
+	defaultIAMRoleErrorTTL            = 0
 	defaultMaxInterval                = 1 * time.Second
 	defaultMetadataAddress            = "169.254.169.254"
 	defaultNamespaceKey               = "iam.amazonaws.com/allowed-roles"
@@ -53,6 +54,7 @@ type Server struct {
 	DefaultIAMRole             string
 	IAMRoleKey                 string
 	IAMRoleSessionTTL          time.Duration
+	IAMRoleErrorTTL            time.Duration
 	MetadataAddress            string
 	HostInterface              string
 	HostIP                     string
@@ -311,7 +313,7 @@ func (s *Server) roleHandler(logger *log.Entry, w http.ResponseWriter, r *http.R
 		return
 	}
 
-	credentials, err := s.iam.AssumeRole(wantedRoleARN, remoteIP, s.IAMRoleSessionTTL)
+	credentials, err := s.iam.AssumeRole(wantedRoleARN, remoteIP, s.IAMRoleSessionTTL, s.IAMRoleErrorTTL)
 	if err != nil {
 		roleLogger.Errorf("Error assuming role %+v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -409,5 +411,6 @@ func NewServer() *Server {
 		NamespaceRestrictionFormat: defaultNamespaceRestrictionFormat,
 		HealthcheckFailReason:      "Healthcheck not yet performed",
 		IAMRoleSessionTTL:          defaultIAMRoleSessionTTL,
+		IAMRoleErrorTTL:            defaultIAMRoleErrorTTL,
 	}
 }

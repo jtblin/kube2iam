@@ -21,6 +21,8 @@ import (
 
 var cache = ccache.New(ccache.Configure())
 
+var errorCache = ccache.New(ccache.Configure())
+
 const (
 	maxSessNameLength = 64
 )
@@ -50,6 +52,7 @@ type Client struct {
 	Region              RegionClient
 	IMDS                IMDSClient
 	Cache               *ccache.Cache
+	ErrorCache          *ccache.Cache
 }
 
 // Credentials represent the security Credentials response.
@@ -177,6 +180,13 @@ func (iam *Client) getCache() *ccache.Cache {
 	return cache
 }
 
+func (iam *Client) getErrorCache() *ccache.Cache {
+	if iam.ErrorCache != nil {
+		return iam.ErrorCache
+	}
+	return errorCache
+}
+
 // Regions list to validate input region name
 //
 // https://stackoverflow.com/a/69935735/3945261
@@ -206,9 +216,13 @@ func (iam *Client) getRegions() (*ec2.DescribeRegionsOutput, error) {
 }
 
 // AssumeRole returns an IAM role Credentials using AWS STS.
-func (iam *Client) AssumeRole(roleARN, externalID string, remoteIP string, sessionTTL time.Duration) (*Credentials, error) {
+func (iam *Client) AssumeRole(roleARN, externalID string, remoteIP string, sessionTTL time.Duration, errorTTL time.Duration) (*Credentials, error) {
 	hitCache := true
 	item, err := iam.getCache().Fetch(roleARN, sessionTTL, func() (interface{}, error) {
+		errItem := iam.getErrorCache().Get(roleARN)
+		if errItem != nil && !errItem.Expired() {
+			return nil, errItem.Value().(error)
+		}
 		hitCache = false
 
 		// Set up a prometheus timer to track the AWS request duration. It stores the timer value when
@@ -222,6 +236,7 @@ func (iam *Client) AssumeRole(roleARN, externalID string, remoteIP string, sessi
 
 		regions, err := iam.getRegions()
 		if err != nil {
+			iam.getErrorCache().Set(roleARN, err, errorTTL)
 			return nil, err
 		}
 
@@ -244,6 +259,7 @@ func (iam *Client) AssumeRole(roleARN, externalID string, remoteIP string, sessi
 				config.WithEndpointResolverWithOptions(customSTSResolver), //nolint:staticcheck
 			)
 			if err != nil {
+				iam.getErrorCache().Set(roleARN, err, errorTTL)
 				return nil, err
 			}
 			svc = sts.NewFromConfig(cfg)
@@ -264,6 +280,7 @@ func (iam *Client) AssumeRole(roleARN, externalID string, remoteIP string, sessi
 		// https://github.com/aws/aws-sdk-go-v2/blob/credentials/v1.12.10/credentials/stscreds/assume_role_provider.go#L270
 		resp, err := svc.AssumeRole(context.TODO(), &assumeRoleInput)
 		if err != nil {
+			iam.getErrorCache().Set(roleARN, err, errorTTL)
 			return nil, err
 		}
 

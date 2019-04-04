@@ -26,6 +26,7 @@ import (
 
 const (
 	defaultAppPort                    = "8181"
+	defaultAppListen                  = "0.0.0.0"
 	defaultCacheSyncAttempts          = 10
 	defaultIAMRoleKey                 = "iam.amazonaws.com/role"
 	defaultLogLevel                   = "info"
@@ -48,6 +49,7 @@ type Server struct {
 	APIServer                  string
 	APIToken                   string
 	AppPort                    string
+	AppListen                  string
 	MetricsPort                string
 	BaseRoleARN                string
 	DefaultIAMRole             string
@@ -381,14 +383,14 @@ func (s *Server) Run(host, token, nodeName string, insecure bool) error {
 	if s.MetricsPort == s.AppPort {
 		r.Handle("/metrics", metrics.GetHandler())
 	} else {
-		metrics.StartMetricsServer(s.MetricsPort)
+		metrics.StartMetricsServer(s.AppListen,s.MetricsPort)
 	}
 
 	// This has to be registered last so that it catches fall-throughs
 	r.Handle("/{path:.*}", newAppHandler("reverseProxyHandler", s.reverseProxyHandler))
 
-	log.Infof("Listening on port %s", s.AppPort)
-	if err := http.ListenAndServe(":"+s.AppPort, r); err != nil {
+	log.Infof("Listening on  %s:%s", s.AppListen,s.AppPort)
+	if err := http.ListenAndServe(s.AppListen+":"+s.AppPort, r); err != nil {
 		log.Fatalf("Error creating kube2iam http server: %+v", err)
 	}
 	return nil
@@ -398,6 +400,7 @@ func (s *Server) Run(host, token, nodeName string, insecure bool) error {
 func NewServer() *Server {
 	return &Server{
 		AppPort:                    defaultAppPort,
+		AppListen:                  defaultAppListen,
 		MetricsPort:                defaultAppPort,
 		BackoffMaxElapsedTime:      defaultMaxElapsedTime,
 		IAMRoleKey:                 defaultIAMRoleKey,

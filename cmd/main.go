@@ -17,6 +17,7 @@ func addFlags(s *server.Server, fs *pflag.FlagSet) {
 	fs.StringVar(&s.APIServer, "api-server", s.APIServer, "Endpoint for the api server")
 	fs.StringVar(&s.APIToken, "api-token", s.APIToken, "Token to authenticate with the api server")
 	fs.StringVar(&s.AppPort, "app-port", s.AppPort, "Kube2iam server http port")
+	fs.StringVar(&s.AppListen, "app-listen", s.AppListen, "Kube2iam server http listen ip")
 	fs.StringVar(&s.MetricsPort, "metrics-port", s.MetricsPort, "Metrics server http port (default: same as kube2iam server port)")
 	fs.StringVar(&s.BaseRoleARN, "base-role-arn", s.BaseRoleARN, "Base role ARN")
 	fs.BoolVar(&s.Debug, "debug", s.Debug, "Enable debug features")

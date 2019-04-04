@@ -117,12 +117,12 @@ func init() {
 
 // StartMetricsServer registers a prometheus /metrics handler and starts a HTTP server
 // listening on the provided port to service it.
-func StartMetricsServer(metricsPort string) {
+func StartMetricsServer(listenAddress string,metricsPort string) {
 	r := mux.NewRouter()
 	r.Handle("/metrics", GetHandler())
 
 	go func() {
-		if err := http.ListenAndServe(":"+metricsPort, r); err != nil {
+		if err := http.ListenAndServe(listenAddress+":"+metricsPort, r); err != nil {
 			log.Fatalf("Error creating metrics http server: %+v", err)
 		}
 	}()

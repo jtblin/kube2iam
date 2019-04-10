@@ -86,7 +86,7 @@ func (r *RoleMapper) checkRoleForNamespace(roleArn string, namespace string) boo
 
 	ns, err := r.store.NamespaceByName(namespace)
 	if err != nil {
-		log.Debug("Unable to find an indexed namespace of %s", namespace)
+		log.Debugf("Unable to find an indexed namespace of %s", namespace)
 		return false
 	}
 
@@ -149,12 +149,12 @@ func (r *RoleMapper) DumpDebugInfo() map[string]interface{} {
 // NewRoleMapper returns a new RoleMapper for use.
 func NewRoleMapper(roleKey string, defaultRole string, namespaceRestriction bool, namespaceKey string, iamInstance *iam.Client, kubeStore store, namespaceRestrictionFormat string) *RoleMapper {
 	return &RoleMapper{
-		defaultRoleARN:       iamInstance.RoleARN(defaultRole),
-		iamRoleKey:           roleKey,
-		namespaceKey:         namespaceKey,
-		namespaceRestriction: namespaceRestriction,
-		iam:                  iamInstance,
-		store:                kubeStore,
+		defaultRoleARN:             iamInstance.RoleARN(defaultRole),
+		iamRoleKey:                 roleKey,
+		namespaceKey:               namespaceKey,
+		namespaceRestriction:       namespaceRestriction,
+		iam:                        iamInstance,
+		store:                      kubeStore,
 		namespaceRestrictionFormat: namespaceRestrictionFormat,
 	}
 }

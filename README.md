@@ -142,10 +142,10 @@ variable, and running the container in a privileged security context.
 Note that the interface `--in-interface` above or using the `--host-interface` cli flag may be
 different than `docker0` depending on which virtual network you use e.g.
 
-* for Calico, use `cali+` (the interface name is something like cali1234567890)(It is possible for [EKS to use Calico also](https://docs.aws.amazon.com/eks/latest/userguide/calico.html))
+* for Calico, use `cali+` (the interface name is something like cali1234567890)
 * for kops (on kubenet), use `cbr0`
 * for CNI, use `cni0`
-* for [EKS without calico](https://docs.aws.amazon.com/eks/latest/userguide/what-is-eks.html)/[amazon-vpc-cni-k8s](https://github.com/aws/amazon-vpc-cni-k8s), use `eni+`. (Each pod gets an interface like `eni4c0e15dfb05`)
+* for [EKS](https://docs.aws.amazon.com/eks/latest/userguide/what-is-eks.html)/[amazon-vpc-cni-k8s](https://github.com/aws/amazon-vpc-cni-k8s), even with calico installed uses `eni+`. (Each pod gets an interface like `eni4c0e15dfb05`)
 * for weave use `weave`
 * for flannel use `cni0`
 * for [kube-router](https://github.com/cloudnativelabs/kube-router) use `kube-bridge`

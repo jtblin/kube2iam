@@ -13,7 +13,7 @@ const fullArnPrefix = "arn:"
 
 // ARNRegexp is the regex to check that the base ARN is valid,
 // see http://docs.aws.amazon.com/IAM/latest/UserGuide/reference_identifiers.html#identifiers-arns.
-var ARNRegexp = regexp.MustCompile(`^arn:(\w|-)*:iam::\d+:role\/?(\w+|-|\/|\.)*$`)
+var ARNRegexp = regexp.MustCompile(`^arn:(\w|-)*:iam::\d+:role\/?(\w+|-|_|\/|\.)*$`)
 
 // IsValidBaseARN validates that the base ARN is valid.
 func IsValidBaseARN(arn string) bool {

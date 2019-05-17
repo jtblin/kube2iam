@@ -298,6 +298,12 @@ func (s *Server) roleHandler(logger *log.Entry, w http.ResponseWriter, r *http.R
 		return
 	}
 
+	externalId, err := s.GetExternalIdMapping(remoteIP)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
 	roleLogger := logger.WithFields(log.Fields{
 		"pod.iam.role": roleMapping.Role,
 		"ns.name":      roleMapping.Namespace,
@@ -313,9 +319,7 @@ func (s *Server) roleHandler(logger *log.Entry, w http.ResponseWriter, r *http.R
 		return
 	}
 
-	externalId := mux.Vars(r)["externalId"]
-
-	credentials, err := s.iam.AssumeRole(wantedRoleARN, remoteIP, s.IAMRoleSessionTTL, externalId)
+	credentials, err := s.iam.AssumeRole(wantedRoleARN, externalId, remoteIP, s.IAMRoleSessionTTL)
 	if err != nil {
 		roleLogger.Errorf("Error assuming role %+v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -379,7 +383,7 @@ func (s *Server) Run(host, token, nodeName string, insecure bool) error {
 	r.Handle("/{version}/meta-data/iam/security-credentials/", securityHandler)
 	r.Handle(
 		"/{version}/meta-data/iam/security-credentials/{role:.*}",
-		newAppHandler("roleHandler", s.roleHandler)).Queries("externalId", "{externalId}")
+		newAppHandler("roleHandler", s.roleHandler))
 	r.Handle("/healthz", newAppHandler("healthHandler", s.healthHandler))
 
 	if s.MetricsPort == s.AppPort {

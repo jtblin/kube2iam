@@ -197,6 +197,7 @@ spec:
 ### kubernetes annotation
 
 Add an `iam.amazonaws.com/role` annotation to your pods with the role that you want to assume for this pod.
+The optional `iam.amazonaws.com/external-id` will allow the use of an ExternalId as part of the assume role
 
 ```yaml
 apiVersion: v1
@@ -207,6 +208,7 @@ metadata:
     name: aws-cli
   annotations:
     iam.amazonaws.com/role: role-arn
+    iam.amazonaws.com/external-id: external-id
 spec:
   containers:
   - image: fstab/aws-cli
@@ -561,6 +563,7 @@ Usage of kube2iam:
       --host-interface string                 Host interface for proxying AWS metadata (default "docker0")
       --host-ip string                        IP address of host
       --iam-role-key string                   Pod annotation key used to retrieve the IAM role (default "iam.amazonaws.com/role")
+      --iam-external-id string                Pod annotation key used to retrieve the IAM ExternalId (default "iam.amazonaws.com/external-id")
       --insecure                              Kubernetes server should be accessed without verifying the TLS. Testing only
       --iptables                              Add iptables rule (also requires --host-ip)
       --log-format string                     Log format (text/json) (default "text")

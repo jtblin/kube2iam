@@ -17,6 +17,7 @@ import (
 type RoleMapper struct {
 	defaultRoleARN             string
 	iamRoleKey                 string
+	iamExternalIdKey           string
 	namespaceKey               string
 	namespaceRestriction       bool
 	iam                        *iam.Client
@@ -57,6 +58,19 @@ func (r *RoleMapper) GetRoleMapping(IP string) (*RoleMappingResult, error) {
 	}
 
 	return nil, fmt.Errorf("role requested %s not valid for namespace of pod at %s with namespace %s", role, IP, pod.GetNamespace())
+}
+
+// GetExternalIdMapping returns the externalId based on IP address
+func (r *RoleMapper) GetExternalIdMapping(IP string) (string, error) {
+	pod, err := r.store.PodByIP(IP)
+	// If attempting to get a Pod that maps to multiple IPs
+	if err != nil {
+		return nil, err
+	}
+
+	externalId, _ := pod.GetAnnotations()[r.iamExternalIdKey]
+
+	return externalId, nil
 }
 
 // extractQualifiedRoleName extracts a fully qualified ARN for a given pod,
@@ -147,10 +161,11 @@ func (r *RoleMapper) DumpDebugInfo() map[string]interface{} {
 }
 
 // NewRoleMapper returns a new RoleMapper for use.
-func NewRoleMapper(roleKey string, defaultRole string, namespaceRestriction bool, namespaceKey string, iamInstance *iam.Client, kubeStore store, namespaceRestrictionFormat string) *RoleMapper {
+func NewRoleMapper(roleKey string, externalIdKey string, defaultRole string, namespaceRestriction bool, namespaceKey string, iamInstance *iam.Client, kubeStore store, namespaceRestrictionFormat string) *RoleMapper {
 	return &RoleMapper{
 		defaultRoleARN:       iamInstance.RoleARN(defaultRole),
 		iamRoleKey:           roleKey,
+		iamExternalIdKey:     externalIdKey,
 		namespaceKey:         namespaceKey,
 		namespaceRestriction: namespaceRestriction,
 		iam:                  iamInstance,

@@ -65,7 +65,7 @@ func (r *RoleMapper) GetExternalIdMapping(IP string) (string, error) {
 	pod, err := r.store.PodByIP(IP)
 	// If attempting to get a Pod that maps to multiple IPs
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	externalId, _ := pod.GetAnnotations()[r.iamExternalIdKey]

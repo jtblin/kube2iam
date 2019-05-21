@@ -184,6 +184,26 @@ func (s *Server) getRoleMapping(IP string) (*mappings.RoleMappingResult, error) 
 	return roleMapping, nil
 }
 
+func (s *Server) getExternalIdMapping(IP string) (string, error) {
+	var externalId string
+	var err error
+	operation := func() error {
+		externalId, err = s.roleMapper.GetExternalIdMapping(IP)
+		return err
+	}
+
+	expBackoff := backoff.NewExponentialBackOff()
+	expBackoff.MaxInterval = s.BackoffMaxInterval
+	expBackoff.MaxElapsedTime = s.BackoffMaxElapsedTime
+
+	err = backoff.Retry(operation, expBackoff)
+	if err != nil {
+		return "", err
+	}
+
+	return externalId, nil
+}
+
 func (s *Server) beginPollHealthcheck(interval time.Duration) {
 	if s.healthcheckTicker == nil {
 		s.doHealthcheck()
@@ -298,7 +318,7 @@ func (s *Server) roleHandler(logger *log.Entry, w http.ResponseWriter, r *http.R
 		return
 	}
 
-	externalId, err := s.GetExternalIdMapping(remoteIP)
+	externalId, err := s.getExternalIdMapping(remoteIP)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return

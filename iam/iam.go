@@ -156,7 +156,7 @@ func (iam *Client) AssumeRole(roleARN, externalID string, remoteIP string, sessi
 		}
 		// Only inject the externalID if one was provided with the request
 		if (externalID != "") {
-			assumeRoleInput.SetExternalID(externalID)
+			assumeRoleInput.SetExternalId(externalID)
 		}
 		resp, err := svc.AssumeRole(&assumeRoleInput)
 		if err != nil {

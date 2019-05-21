@@ -12,7 +12,7 @@ import (
 const (
 	defaultBaseRole = "arn:aws:iam::123456789012:role/"
 	roleKey         = "roleKey"
-	externalIdKey   = "externalIdKey"
+	externalIDKey   = "externalIDKey"
 	namespaceKey    = "namespaceKey"
 )
 
@@ -59,8 +59,8 @@ func TestExtractRoleARN(t *testing.T) {
 			expectedARN: "arn:aws:iam::123456789012:role/explicit-default-role",
 		},
 		{
-			test:        "Default present, has annotations, has externalId",
-			annotations: map[string]string{roleKey: "something", externalIdKey: "externalId"},
+			test:        "Default present, has annotations, has externalID",
+			annotations: map[string]string{roleKey: "something", externalIDKey: "externalID"},
 			defaultRole: "explicit-default-role",
 			expectedARN: "arn:aws:iam::123456789012:role/something",
 		},
@@ -69,7 +69,7 @@ func TestExtractRoleARN(t *testing.T) {
 		t.Run(tt.test, func(t *testing.T) {
 			rp := RoleMapper{}
 			rp.iamRoleKey = "roleKey"
-			rp.iamExternalIdKey = "externalIdKey"
+			rp.iamExternalIDKey = "externalIDKey"
 			rp.defaultRoleARN = tt.defaultRole
 			rp.iam = &iam.Client{BaseARN: defaultBaseRole}
 
@@ -101,7 +101,7 @@ func TestCheckRoleForNamespace(t *testing.T) {
 		namespace                  string
 		namespaceAnnotations       map[string]string
 		roleARN                    string
-		externalId                 string
+		externalID                 string
 		namespaceRestrictionFormat string
 		expectedResult             bool
 	}{
@@ -361,7 +361,7 @@ func TestCheckRoleForNamespace(t *testing.T) {
 		t.Run(tt.test, func(t *testing.T) {
 			rp := NewRoleMapper(
 				roleKey,
-				externalIdKey,
+				externalIDKey,
 				tt.defaultArn,
 				tt.namespaceRestriction,
 				namespaceKey,

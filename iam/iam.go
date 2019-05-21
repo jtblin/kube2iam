@@ -126,7 +126,7 @@ func (iam *Client) EndpointFor(service, region string, optFns ...func(*endpoints
 }
 
 // AssumeRole returns an IAM role Credentials using AWS STS.
-func (iam *Client) AssumeRole(roleARN, externalId string, remoteIP string, sessionTTL time.Duration) (*Credentials, error) {
+func (iam *Client) AssumeRole(roleARN, externalID string, remoteIP string, sessionTTL time.Duration) (*Credentials, error) {
 	hitCache := true
 	item, err := cache.Fetch(roleARN, sessionTTL, func() (interface{}, error) {
 		hitCache = false
@@ -154,9 +154,9 @@ func (iam *Client) AssumeRole(roleARN, externalId string, remoteIP string, sessi
 			RoleArn:         aws.String(roleARN),
 			RoleSessionName: aws.String(sessionName(roleARN, remoteIP)),
 		}
-		// Only inject the externalId if one was provided with the request
-		if (externalId != "") {
-			assumeRoleInput.SetExternalId(externalId)
+		// Only inject the externalID if one was provided with the request
+		if (externalID != "") {
+			assumeRoleInput.SetExternalID(externalID)
 		}
 		resp, err := svc.AssumeRole(&assumeRoleInput)
 		if err != nil {

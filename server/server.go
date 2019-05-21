@@ -184,11 +184,11 @@ func (s *Server) getRoleMapping(IP string) (*mappings.RoleMappingResult, error) 
 	return roleMapping, nil
 }
 
-func (s *Server) getExternalIdMapping(IP string) (string, error) {
-	var externalId string
+func (s *Server) getExternalIDMapping(IP string) (string, error) {
+	var externalID string
 	var err error
 	operation := func() error {
-		externalId, err = s.roleMapper.GetExternalIdMapping(IP)
+		externalID, err = s.roleMapper.GetExternalIDMapping(IP)
 		return err
 	}
 
@@ -201,7 +201,7 @@ func (s *Server) getExternalIdMapping(IP string) (string, error) {
 		return "", err
 	}
 
-	return externalId, nil
+	return externalID, nil
 }
 
 func (s *Server) beginPollHealthcheck(interval time.Duration) {
@@ -318,7 +318,7 @@ func (s *Server) roleHandler(logger *log.Entry, w http.ResponseWriter, r *http.R
 		return
 	}
 
-	externalId, err := s.getExternalIdMapping(remoteIP)
+	externalID, err := s.getExternalIDMapping(remoteIP)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -339,7 +339,7 @@ func (s *Server) roleHandler(logger *log.Entry, w http.ResponseWriter, r *http.R
 		return
 	}
 
-	credentials, err := s.iam.AssumeRole(wantedRoleARN, externalId, remoteIP, s.IAMRoleSessionTTL)
+	credentials, err := s.iam.AssumeRole(wantedRoleARN, externalID, remoteIP, s.IAMRoleSessionTTL)
 	if err != nil {
 		roleLogger.Errorf("Error assuming role %+v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)

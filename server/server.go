@@ -28,7 +28,7 @@ const (
 	defaultAppPort                    = "8181"
 	defaultCacheSyncAttempts          = 10
 	defaultIAMRoleKey                 = "iam.amazonaws.com/role"
-	defaultIAMExternalId              = "iam.amazonaws.com/external-id"
+	defaultIAMExternalID              = "iam.amazonaws.com/external-id"
 	defaultLogLevel                   = "info"
 	defaultLogFormat                  = "text"
 	defaultMaxElapsedTime             = 2 * time.Second
@@ -53,7 +53,7 @@ type Server struct {
 	BaseRoleARN                string
 	DefaultIAMRole             string
 	IAMRoleKey                 string
-	IAMExternalId              string
+	IAMExternalID              string
 	IAMRoleSessionTTL          time.Duration
 	MetadataAddress            string
 	HostInterface              string
@@ -374,7 +374,7 @@ func (s *Server) Run(host, token, nodeName string, insecure bool) error {
 	s.k8s = k
 	s.iam = iam.NewClient(s.BaseRoleARN, s.UseRegionalStsEndpoint)
 	log.Debugln("Caches have been synced.  Proceeding with server.")
-	s.roleMapper = mappings.NewRoleMapper(s.IAMRoleKey, s.IAMExternalId, s.DefaultIAMRole, s.NamespaceRestriction, s.NamespaceKey, s.iam, s.k8s, s.NamespaceRestrictionFormat)
+	s.roleMapper = mappings.NewRoleMapper(s.IAMRoleKey, s.IAMExternalID, s.DefaultIAMRole, s.NamespaceRestriction, s.NamespaceKey, s.iam, s.k8s, s.NamespaceRestrictionFormat)
 	podSynched := s.k8s.WatchForPods(kube2iam.NewPodHandler(s.IAMRoleKey))
 	namespaceSynched := s.k8s.WatchForNamespaces(kube2iam.NewNamespaceHandler(s.NamespaceKey))
 
@@ -429,7 +429,7 @@ func NewServer() *Server {
 		MetricsPort:                defaultAppPort,
 		BackoffMaxElapsedTime:      defaultMaxElapsedTime,
 		IAMRoleKey:                 defaultIAMRoleKey,
-		IAMExternalId:              defaultIAMExternalId,
+		IAMExternalID:              defaultIAMExternalID,
 		BackoffMaxInterval:         defaultMaxInterval,
 		LogLevel:                   defaultLogLevel,
 		LogFormat:                  defaultLogFormat,

@@ -93,7 +93,7 @@ func (k8s *Client) PodByIP(IP string) (*v1.Pod, error) {
 	}
 
 	if len(pods) == 0 {
-		return nil, fmt.Errorf("pod with specificed IP not found")
+		return nil, fmt.Errorf("pod with specified IP not found")
 	}
 
 	if len(pods) == 1 {

@@ -251,7 +251,7 @@ spec:
 Example for a `CronJob`:
 
 ```yaml
-apiVersion: batch/v1
+apiVersion: batch/v1beta1
 kind: CronJob
 metadata:
   name: my-cronjob

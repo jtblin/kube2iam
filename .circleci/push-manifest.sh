@@ -26,4 +26,6 @@ push_manifest() {
 
 docker login -u "$DOCKERHUB_USER" -p "$DOCKERHUB_PASS"
 push_manifest "$VERSION"
-test "$CIRCLE_BRANCH" == 'master' && push_manifest 'latest'
+if test [ "$CIRCLE_BRANCH" == 'master' ]; then
+  push_manifest 'latest'
+fi

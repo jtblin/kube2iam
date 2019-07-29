@@ -28,6 +28,7 @@ const (
 	defaultAppPort                    = "8181"
 	defaultCacheSyncAttempts          = 10
 	defaultIAMRoleKey                 = "iam.amazonaws.com/role"
+	defaultIAMExternalID              = "iam.amazonaws.com/external-id"
 	defaultLogLevel                   = "info"
 	defaultLogFormat                  = "text"
 	defaultMaxElapsedTime             = 2 * time.Second
@@ -52,6 +53,7 @@ type Server struct {
 	BaseRoleARN                string
 	DefaultIAMRole             string
 	IAMRoleKey                 string
+	IAMExternalID              string
 	IAMRoleSessionTTL          time.Duration
 	MetadataAddress            string
 	HostInterface              string
@@ -182,6 +184,26 @@ func (s *Server) getRoleMapping(IP string) (*mappings.RoleMappingResult, error) 
 	return roleMapping, nil
 }
 
+func (s *Server) getExternalIDMapping(IP string) (string, error) {
+	var externalID string
+	var err error
+	operation := func() error {
+		externalID, err = s.roleMapper.GetExternalIDMapping(IP)
+		return err
+	}
+
+	expBackoff := backoff.NewExponentialBackOff()
+	expBackoff.MaxInterval = s.BackoffMaxInterval
+	expBackoff.MaxElapsedTime = s.BackoffMaxElapsedTime
+
+	err = backoff.Retry(operation, expBackoff)
+	if err != nil {
+		return "", err
+	}
+
+	return externalID, nil
+}
+
 func (s *Server) beginPollHealthcheck(interval time.Duration) {
 	if s.healthcheckTicker == nil {
 		s.doHealthcheck()
@@ -296,6 +318,12 @@ func (s *Server) roleHandler(logger *log.Entry, w http.ResponseWriter, r *http.R
 		return
 	}
 
+	externalID, err := s.getExternalIDMapping(remoteIP)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
 	roleLogger := logger.WithFields(log.Fields{
 		"pod.iam.role": roleMapping.Role,
 		"ns.name":      roleMapping.Namespace,
@@ -311,7 +339,7 @@ func (s *Server) roleHandler(logger *log.Entry, w http.ResponseWriter, r *http.R
 		return
 	}
 
-	credentials, err := s.iam.AssumeRole(wantedRoleARN, remoteIP, s.IAMRoleSessionTTL)
+	credentials, err := s.iam.AssumeRole(wantedRoleARN, externalID, remoteIP, s.IAMRoleSessionTTL)
 	if err != nil {
 		roleLogger.Errorf("Error assuming role %+v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -346,7 +374,7 @@ func (s *Server) Run(host, token, nodeName string, insecure bool) error {
 	s.k8s = k
 	s.iam = iam.NewClient(s.BaseRoleARN, s.UseRegionalStsEndpoint)
 	log.Debugln("Caches have been synced.  Proceeding with server.")
-	s.roleMapper = mappings.NewRoleMapper(s.IAMRoleKey, s.DefaultIAMRole, s.NamespaceRestriction, s.NamespaceKey, s.iam, s.k8s, s.NamespaceRestrictionFormat)
+	s.roleMapper = mappings.NewRoleMapper(s.IAMRoleKey, s.IAMExternalID, s.DefaultIAMRole, s.NamespaceRestriction, s.NamespaceKey, s.iam, s.k8s, s.NamespaceRestrictionFormat)
 	podSynched := s.k8s.WatchForPods(kube2iam.NewPodHandler(s.IAMRoleKey))
 	namespaceSynched := s.k8s.WatchForNamespaces(kube2iam.NewNamespaceHandler(s.NamespaceKey))
 
@@ -401,6 +429,7 @@ func NewServer() *Server {
 		MetricsPort:                defaultAppPort,
 		BackoffMaxElapsedTime:      defaultMaxElapsedTime,
 		IAMRoleKey:                 defaultIAMRoleKey,
+		IAMExternalID:              defaultIAMExternalID,
 		BackoffMaxInterval:         defaultMaxInterval,
 		LogLevel:                   defaultLogLevel,
 		LogFormat:                  defaultLogFormat,

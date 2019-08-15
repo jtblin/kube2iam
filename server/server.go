@@ -108,7 +108,8 @@ func newResponseWriter(w http.ResponseWriter) *responseWriter {
 func (h *appHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	logger := log.WithFields(log.Fields{
 		"req.method": r.Method,
-		"req.path":   r.URL.Path,
+		//"req.path":   r.URL.Path,
+		"req.agent": r.Header.Get("User-Agent"),
 		"req.remote": parseRemoteAddr(r.RemoteAddr),
 	})
 	rw := newResponseWriter(w)
@@ -140,10 +141,11 @@ func (h *appHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}()
 	h.fn(logger, rw, r)
 	timer.ObserveDuration()
-	latencyNanoseconds := timeSecs * 1e9
+	//latencyNanoseconds := timeSecs * 1e9
 	if r.URL.Path != "/healthz" {
-		logger.WithFields(log.Fields{"res.duration": latencyNanoseconds, "res.status": rw.statusCode}).
-			Infof("%s %s (%d) took %f ns", r.Method, r.URL.Path, rw.statusCode, latencyNanoseconds)
+		//logger.WithFields(log.Fields{"res.duration": latencyNanoseconds, "res.status": rw.statusCode}).
+		//	Infof("%s %s (%d) took %f ns", r.Method, r.URL.Path, rw.statusCode, latencyNanoseconds)
+		logger.Warnf("debug of the user-agent")
 	}
 }
 

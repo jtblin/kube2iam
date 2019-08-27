@@ -7,7 +7,7 @@ import (
 
 	glob "github.com/ryanuber/go-glob"
 	log "github.com/sirupsen/logrus"
-	"k8s.io/client-go/pkg/api/v1"
+	v1 "k8s.io/client-go/pkg/api/v1"
 
 	"github.com/jtblin/kube2iam"
 	"github.com/jtblin/kube2iam/iam"
@@ -34,7 +34,7 @@ type store interface {
 
 // RoleMappingResult represents the relevant information for a given mapping request
 type RoleMappingResult struct {
-	Role      string
+	Roles     []string
 	IP        string
 	Namespace string
 }
@@ -47,17 +47,19 @@ func (r *RoleMapper) GetRoleMapping(IP string) (*RoleMappingResult, error) {
 		return nil, err
 	}
 
-	role, err := r.extractRoleARN(pod)
+	roles, err := r.extractRoleARN(pod)
 	if err != nil {
 		return nil, err
 	}
 
 	// Determine if normalized role is allowed to be used in pod's namespace
-	if r.checkRoleForNamespace(role, pod.GetNamespace()) {
-		return &RoleMappingResult{Role: role, Namespace: pod.GetNamespace(), IP: IP}, nil
+	for _, role := range roles {
+		if !r.checkRoleForNamespace(role, pod.GetNamespace()) {
+			return nil, fmt.Errorf("role requested %s not valid for namespace of pod at %s with namespace %s", role, IP, pod.GetNamespace())
+		}
 	}
 
-	return nil, fmt.Errorf("role requested %s not valid for namespace of pod at %s with namespace %s", role, IP, pod.GetNamespace())
+	return &RoleMappingResult{Roles: roles, Namespace: pod.GetNamespace(), IP: IP}, nil
 }
 
 // GetExternalIDMapping returns the externalID based on IP address
@@ -76,19 +78,26 @@ func (r *RoleMapper) GetExternalIDMapping(IP string) (string, error) {
 // extractQualifiedRoleName extracts a fully qualified ARN for a given pod,
 // taking into consideration the appropriate fallback logic and defaulting
 // logic along with the namespace role restrictions
-func (r *RoleMapper) extractRoleARN(pod *v1.Pod) (string, error) {
-	rawRoleName, annotationPresent := pod.GetAnnotations()[r.iamRoleKey]
+func (r *RoleMapper) extractRoleARN(pod *v1.Pod) ([]string, error) {
+	rawRoleAnnotation, annotationPresent := pod.GetAnnotations()[r.iamRoleKey]
 
 	if !annotationPresent && r.defaultRoleARN == "" {
-		return "", fmt.Errorf("unable to find role for IP %s", pod.Status.PodIP)
+		return make([]string, 0), fmt.Errorf("unable to find role for IP %s", pod.Status.PodIP)
 	}
 
 	if !annotationPresent {
 		log.Warnf("Using fallback role for IP %s", pod.Status.PodIP)
-		rawRoleName = r.defaultRoleARN
+		rawRoleAnnotation = r.defaultRoleARN
 	}
 
-	return r.iam.RoleARN(rawRoleName), nil
+	rawRoles := strings.Split(rawRoleAnnotation, ",")
+
+	roleSlice := make([]string, 0)
+	for _, role := range rawRoles {
+		roleSlice = append(roleSlice, r.iam.RoleARN(role))
+	}
+
+	return roleSlice, nil
 }
 
 // checkRoleForNamespace checks the 'database' for a role allowed in a namespace,
@@ -163,13 +172,13 @@ func (r *RoleMapper) DumpDebugInfo() map[string]interface{} {
 // NewRoleMapper returns a new RoleMapper for use.
 func NewRoleMapper(roleKey string, externalIDKey string, defaultRole string, namespaceRestriction bool, namespaceKey string, iamInstance *iam.Client, kubeStore store, namespaceRestrictionFormat string) *RoleMapper {
 	return &RoleMapper{
-		defaultRoleARN:       iamInstance.RoleARN(defaultRole),
-		iamRoleKey:           roleKey,
-		iamExternalIDKey:     externalIDKey,
-		namespaceKey:         namespaceKey,
-		namespaceRestriction: namespaceRestriction,
-		iam:                  iamInstance,
-		store:                kubeStore,
+		defaultRoleARN:             iamInstance.RoleARN(defaultRole),
+		iamRoleKey:                 roleKey,
+		iamExternalIDKey:           externalIDKey,
+		namespaceKey:               namespaceKey,
+		namespaceRestriction:       namespaceRestriction,
+		iam:                        iamInstance,
+		store:                      kubeStore,
 		namespaceRestrictionFormat: namespaceRestrictionFormat,
 	}
 }

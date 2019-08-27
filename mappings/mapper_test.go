@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"k8s.io/client-go/pkg/api/v1"
-
 	"github.com/jtblin/kube2iam/iam"
+	v1 "k8s.io/client-go/pkg/api/v1"
 )
 
 const (
@@ -18,11 +17,11 @@ const (
 
 func TestExtractRoleARN(t *testing.T) {
 	var roleExtractionTests = []struct {
-		test        string
-		annotations map[string]string
-		defaultRole string
-		expectedARN string
-		expectError bool
+		test         string
+		annotations  map[string]string
+		defaultRole  string
+		expectedARNs []string
+		expectError  bool
 	}{
 		{
 			test:        "No default, no annotation",
@@ -30,39 +29,56 @@ func TestExtractRoleARN(t *testing.T) {
 			expectError: true,
 		},
 		{
-			test:        "No default, has annotation",
-			annotations: map[string]string{roleKey: "explicit-role"},
-			expectedARN: "arn:aws:iam::123456789012:role/explicit-role",
+			test:         "No default, has annotation",
+			annotations:  map[string]string{roleKey: "explicit-role"},
+			expectedARNs: []string{"arn:aws:iam::123456789012:role/explicit-role"},
 		},
 		{
-			test:        "Default present, no annotations",
-			annotations: map[string]string{},
-			defaultRole: "explicit-default-role",
-			expectedARN: "arn:aws:iam::123456789012:role/explicit-default-role",
+			test:         "No default, has annotations",
+			annotations:  map[string]string{roleKey: "explicit-role,second-explicit-role"},
+			expectedARNs: []string{"arn:aws:iam::123456789012:role/explicit-role", "arn:aws:iam::123456789012:role/second-explicit-role"},
 		},
 		{
-			test:        "Default present, has annotations",
-			annotations: map[string]string{roleKey: "something"},
-			defaultRole: "explicit-default-role",
-			expectedARN: "arn:aws:iam::123456789012:role/something",
+			test:         "Default present, no annotations",
+			annotations:  map[string]string{},
+			defaultRole:  "explicit-default-role",
+			expectedARNs: []string{"arn:aws:iam::123456789012:role/explicit-default-role"},
 		},
 		{
-			test:        "Default present, has full arn annotations",
-			annotations: map[string]string{roleKey: "arn:aws:iam::999999999999:role/explicit-arn"},
-			defaultRole: "explicit-default-role",
-			expectedARN: "arn:aws:iam::999999999999:role/explicit-arn",
+			test:         "Default present, has annotation",
+			annotations:  map[string]string{roleKey: "something"},
+			defaultRole:  "explicit-default-role",
+			expectedARNs: []string{"arn:aws:iam::123456789012:role/something"},
 		},
 		{
-			test:        "Default present, has different annotations",
-			annotations: map[string]string{"nonMatchingAnnotation": "something"},
-			defaultRole: "explicit-default-role",
-			expectedARN: "arn:aws:iam::123456789012:role/explicit-default-role",
+			test:         "Default present, has annotations",
+			annotations:  map[string]string{roleKey: "something,something2"},
+			defaultRole:  "explicit-default-role",
+			expectedARNs: []string{"arn:aws:iam::123456789012:role/something", "arn:aws:iam::123456789012:role/something2"},
 		},
 		{
-			test:        "Default present, has annotations, has externalID",
-			annotations: map[string]string{roleKey: "something", externalIDKey: "externalID"},
-			defaultRole: "explicit-default-role",
-			expectedARN: "arn:aws:iam::123456789012:role/something",
+			test:         "Default present, has full arn annotation",
+			annotations:  map[string]string{roleKey: "arn:aws:iam::999999999999:role/explicit-arn"},
+			defaultRole:  "explicit-default-role",
+			expectedARNs: []string{"arn:aws:iam::999999999999:role/explicit-arn"},
+		},
+		{
+			test:         "Default present, has full arn annotations",
+			annotations:  map[string]string{roleKey: "arn:aws:iam::999999999999:role/explicit-arn,arn:aws:iam::123456789012:role/explicit-arn-2"},
+			defaultRole:  "explicit-default-role",
+			expectedARNs: []string{"arn:aws:iam::999999999999:role/explicit-arn", "arn:aws:iam::123456789012:role/explicit-arn-2"},
+		},
+		{
+			test:         "Default present, has different annotations",
+			annotations:  map[string]string{"nonMatchingAnnotation": "something"},
+			defaultRole:  "explicit-default-role",
+			expectedARNs: []string{"arn:aws:iam::123456789012:role/explicit-default-role"},
+		},
+		{
+			test:         "Default present, has annotations, has externalID",
+			annotations:  map[string]string{roleKey: "something", externalIDKey: "externalID"},
+			defaultRole:  "explicit-default-role",
+			expectedARNs: []string{"arn:aws:iam::123456789012:role/something"},
 		},
 	}
 	for _, tt := range roleExtractionTests {
@@ -85,12 +101,24 @@ func TestExtractRoleARN(t *testing.T) {
 				t.Errorf("Didn't expect error but recieved %s", err)
 				return
 			}
-			if resp != tt.expectedARN {
-				t.Errorf("Response [%s] did not equal expected [%s]", resp, tt.expectedARN)
+			if !equal(resp, tt.expectedARNs) {
+				t.Errorf("Response [%s] did not equal expected [%s]", resp, tt.expectedARNs)
 				return
 			}
 		})
 	}
+}
+
+func equal(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i, v := range a {
+		if v != b[i] {
+			return false
+		}
+	}
+	return true
 }
 
 func TestCheckRoleForNamespace(t *testing.T) {

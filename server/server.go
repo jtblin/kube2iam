@@ -301,11 +301,14 @@ func (s *Server) securityCredentialsHandler(logger *log.Entry, w http.ResponseWr
 
 	// If a base ARN has been supplied and this is not cross-account then
 	// return a simple role-name, otherwise return the full ARN
-	if s.iam.BaseARN != "" && strings.HasPrefix(roleMapping.Role, s.iam.BaseARN) {
-		write(logger, w, strings.TrimPrefix(roleMapping.Role, s.iam.BaseARN))
-		return
+	for _, role := range roleMapping.Roles {
+		if s.iam.BaseARN != "" && strings.HasPrefix(role, s.iam.BaseARN) {
+			write(logger, w, strings.TrimPrefix(role, s.iam.BaseARN))
+			return
+		}
 	}
-	write(logger, w, roleMapping.Role)
+
+	write(logger, w, roleMapping.Roles[0])
 }
 
 func (s *Server) roleHandler(logger *log.Entry, w http.ResponseWriter, r *http.Request) {
@@ -325,18 +328,20 @@ func (s *Server) roleHandler(logger *log.Entry, w http.ResponseWriter, r *http.R
 	}
 
 	roleLogger := logger.WithFields(log.Fields{
-		"pod.iam.role": roleMapping.Role,
-		"ns.name":      roleMapping.Namespace,
+		"pod.iam.roles": roleMapping.Roles,
+		"ns.name":       roleMapping.Namespace,
 	})
 
 	wantedRole := mux.Vars(r)["role"]
 	wantedRoleARN := s.iam.RoleARN(wantedRole)
 
-	if wantedRoleARN != roleMapping.Role {
-		roleLogger.WithField("params.iam.role", wantedRole).
-			Error("Invalid role: does not match annotated role")
-		http.Error(w, fmt.Sprintf("Invalid role %s", wantedRole), http.StatusForbidden)
-		return
+	for _, role := range roleMapping.Roles {
+		if wantedRoleARN != role {
+			roleLogger.WithField("params.iam.roles", wantedRole).
+				Error("Invalid role: annotated roles do not include this role")
+			http.Error(w, fmt.Sprintf("Invalid role %s", wantedRole), http.StatusForbidden)
+			return
+		}
 	}
 
 	credentials, err := s.iam.AssumeRole(wantedRoleARN, externalID, remoteIP, s.IAMRoleSessionTTL)

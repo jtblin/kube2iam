@@ -7,7 +7,7 @@ import (
 
 	glob "github.com/ryanuber/go-glob"
 	log "github.com/sirupsen/logrus"
-	"k8s.io/client-go/pkg/api/v1"
+	v1 "k8s.io/client-go/pkg/api/v1"
 
 	"github.com/jtblin/kube2iam"
 	"github.com/jtblin/kube2iam/iam"
@@ -100,7 +100,7 @@ func (r *RoleMapper) checkRoleForNamespace(roleArn string, namespace string) boo
 
 	ns, err := r.store.NamespaceByName(namespace)
 	if err != nil {
-		log.Debug("Unable to find an indexed namespace of %s", namespace)
+		log.Debugf("Unable to find an indexed namespace of %s", namespace)
 		return false
 	}
 
@@ -163,13 +163,13 @@ func (r *RoleMapper) DumpDebugInfo() map[string]interface{} {
 // NewRoleMapper returns a new RoleMapper for use.
 func NewRoleMapper(roleKey string, externalIDKey string, defaultRole string, namespaceRestriction bool, namespaceKey string, iamInstance *iam.Client, kubeStore store, namespaceRestrictionFormat string) *RoleMapper {
 	return &RoleMapper{
-		defaultRoleARN:       iamInstance.RoleARN(defaultRole),
-		iamRoleKey:           roleKey,
-		iamExternalIDKey:     externalIDKey,
-		namespaceKey:         namespaceKey,
-		namespaceRestriction: namespaceRestriction,
-		iam:                  iamInstance,
-		store:                kubeStore,
+		defaultRoleARN:             iamInstance.RoleARN(defaultRole),
+		iamRoleKey:                 roleKey,
+		iamExternalIDKey:           externalIDKey,
+		namespaceKey:               namespaceKey,
+		namespaceRestriction:       namespaceRestriction,
+		iam:                        iamInstance,
+		store:                      kubeStore,
 		namespaceRestrictionFormat: namespaceRestrictionFormat,
 	}
 }

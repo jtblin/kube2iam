@@ -36,6 +36,7 @@ const (
 	defaultMaxInterval                = 1 * time.Second
 	defaultMetadataAddress            = "169.254.169.254"
 	defaultNamespaceKey               = "iam.amazonaws.com/allowed-roles"
+	defaultCacheResyncPeriod          = 30 * time.Minute
 	defaultNamespaceRestrictionFormat = "glob"
 	healthcheckInterval               = 30 * time.Second
 )
@@ -60,6 +61,7 @@ type Server struct {
 	HostIP                     string
 	NodeName                   string
 	NamespaceKey               string
+	CacheResyncPeriod          time.Duration
 	LogLevel                   string
 	LogFormat                  string
 	NamespaceRestrictionFormat string
@@ -375,8 +377,8 @@ func (s *Server) Run(host, token, nodeName string, insecure bool) error {
 	s.iam = iam.NewClient(s.BaseRoleARN, s.UseRegionalStsEndpoint)
 	log.Debugln("Caches have been synced.  Proceeding with server.")
 	s.roleMapper = mappings.NewRoleMapper(s.IAMRoleKey, s.IAMExternalID, s.DefaultIAMRole, s.NamespaceRestriction, s.NamespaceKey, s.iam, s.k8s, s.NamespaceRestrictionFormat)
-	podSynched := s.k8s.WatchForPods(kube2iam.NewPodHandler(s.IAMRoleKey))
-	namespaceSynched := s.k8s.WatchForNamespaces(kube2iam.NewNamespaceHandler(s.NamespaceKey))
+	podSynched := s.k8s.WatchForPods(kube2iam.NewPodHandler(s.IAMRoleKey), s.CacheResyncPeriod)
+	namespaceSynched := s.k8s.WatchForNamespaces(kube2iam.NewNamespaceHandler(s.NamespaceKey), s.CacheResyncPeriod)
 
 	synced := false
 	for i := 0; i < defaultCacheSyncAttempts && !synced; i++ {
@@ -435,6 +437,7 @@ func NewServer() *Server {
 		LogFormat:                  defaultLogFormat,
 		MetadataAddress:            defaultMetadataAddress,
 		NamespaceKey:               defaultNamespaceKey,
+		CacheResyncPeriod:          defaultCacheResyncPeriod,
 		NamespaceRestrictionFormat: defaultNamespaceRestrictionFormat,
 		HealthcheckFailReason:      "Healthcheck not yet performed",
 		IAMRoleSessionTTL:          defaultIAMRoleSessionTTL,

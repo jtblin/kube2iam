@@ -571,6 +571,7 @@ Usage of kube2iam:
       --metadata-addr string                  Address for the ec2 metadata (default "169.254.169.254")
       --metrics-port string                   Metrics server http port (default: same as kube2iam server port) (default "8181")
       --namespace-key string                  Namespace annotation key used to retrieve the IAM roles allowed (value in annotation should be json array) (default "iam.amazonaws.com/allowed-roles")
+      --cache-resync-period                   Refresh interval for pod and namespace caches
       --namespace-restriction-format string   Namespace Restriction Format (glob/regexp) (default "glob")
       --namespace-restrictions                Enable namespace restrictions
       --node string                           Name of the node where kube2iam is running

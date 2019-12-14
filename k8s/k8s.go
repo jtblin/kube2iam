@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"math/rand"
+
 	"github.com/jtblin/kube2iam"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
@@ -39,6 +41,8 @@ func (k8s *Client) createPodLW() *cache.ListWatch {
 
 // WatchForPods watches for pod changes.
 func (k8s *Client) WatchForPods(podEventLogger cache.ResourceEventHandler, resyncPeriod time.Duration) cache.InformerSynced {
+	randomDelay := time.Duration(rand.Intn(60)) * time.Second
+	resyncPeriod = resyncPeriod + randomDelay
 	k8s.podIndexer, k8s.podController = cache.NewIndexerInformer(
 		k8s.createPodLW(),
 		&v1.Pod{},
@@ -57,6 +61,8 @@ func (k8s *Client) createNamespaceLW() *cache.ListWatch {
 
 // WatchForNamespaces watches for namespaces changes.
 func (k8s *Client) WatchForNamespaces(nsEventLogger cache.ResourceEventHandler, resyncPeriod time.Duration) cache.InformerSynced {
+	randomDelay := time.Duration(rand.Intn(60)) * time.Second
+	resyncPeriod = resyncPeriod + randomDelay
 	k8s.namespaceIndexer, k8s.namespaceController = cache.NewIndexerInformer(
 		k8s.createNamespaceLW(),
 		&v1.Namespace{},

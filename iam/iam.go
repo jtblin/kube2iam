@@ -155,7 +155,7 @@ func (iam *Client) AssumeRole(roleARN, externalID string, remoteIP string, sessi
 			RoleSessionName: aws.String(sessionName(roleARN, remoteIP)),
 		}
 		// Only inject the externalID if one was provided with the request
-		if (externalID != "") {
+		if externalID != "" {
 			assumeRoleInput.SetExternalId(externalID)
 		}
 		resp, err := svc.AssumeRole(&assumeRoleInput)

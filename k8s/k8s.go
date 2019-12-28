@@ -84,7 +84,7 @@ func (k8s *Client) ListNamespaces() []string {
 // PodByIP provides the representation of the pod itself being cached keyed off of it's IP
 // Returns an error if there are multiple pods attempting to be keyed off of the same IP
 // (Which happens when they of type `hostNetwork: true`)
-func (k8s *Client) PodByIP(IP string) (*v1.Pod, error) {
+func (k8s *Client) PodByIP(IP string, dealWithDupIP bool) (*v1.Pod, error) {
 	pods, err := k8s.podIndexer.ByIndex(podIPIndexName, IP)
 	if err != nil {
 		return nil, err
@@ -98,12 +98,58 @@ func (k8s *Client) PodByIP(IP string) (*v1.Pod, error) {
 		return pods[0].(*v1.Pod), nil
 	}
 
-	//This happens with `hostNetwork: true` pods
-	podNames := make([]string, len(pods))
-	for i, pod := range pods {
-		podNames[i] = pod.(*v1.Pod).ObjectMeta.Name
+	if !dealWithDupIP {
+		podNames := make([]string, len(pods))
+		for i, pod := range pods {
+			podNames[i] = pod.(*v1.Pod).ObjectMeta.Name
+		}
+		return nil, fmt.Errorf("%d pods (%v) with the ip %s indexed", len(pods), podNames, IP)
 	}
-	return nil, fmt.Errorf("%d pods (%v) with the ip %s indexed", len(pods), podNames, IP)
+	pod, err := DealWithDuplicatedIP(pods, k8s)
+	if err != nil {
+		return nil, err
+	}
+	return pod, nil
+}
+
+// DealWithDuplicatedIP queries the k8s api server trying to make a decision based on NON cached data
+// If the indexed pods all have HostNetwork = true the function return nil and the error message.
+// If there are pods in the cache that do not have HostNetwork = true will query the k8s api server
+// searching for the ONLY pod in Running state among all the cached ones, if it doesn't find it returns error.
+func DealWithDuplicatedIP(pods []interface{}, k8s *Client) (*v1.Pod, error) {
+	podNames := make([]string, len(pods))
+	podNamespaces := make([]string, len(pods))
+	error := fmt.Errorf("more than a pod with the same IP has been indexed, this can happen when pods have hostNetwork: true")
+	for i, pod := range pods {
+		if pod.(*v1.Pod).Spec.HostNetwork {
+			continue
+		}
+		podNames[i] = pod.(*v1.Pod).ObjectMeta.Name
+		podNamespaces[i] = pod.(*v1.Pod).ObjectMeta.Namespace
+	}
+	// if len(podNames) > 0 it means that I have more than a pod with the same IP in the cache with HostNetwork = false
+	// in this case we will investigate querying the k8s API server
+	// note: we could check also here if len(podNames) is 1 and just return but I can't find the case for that condition to happen here.
+	if len(podNames) > 0 {
+		livePods := make([]*v1.Pod, len(podNames))
+		for i := 0; i < len(podNames); i++ {
+			livePod, err := k8s.CoreV1().Pods(podNamespaces[i]).Get(podNames[i])
+			if err != nil {
+				//pod could not exist, error is expected here
+				continue
+			}
+			if "Running" == string(livePod.Status.Phase) {
+				livePods[i] = livePod
+			}
+		}
+		//At this point len(livePods) has to be exaclty 1, we can't have multiple running pods with the same IP that are running
+		//with hostNetwork: false
+		if len(livePods) == 1 {
+			return livePods[0], nil
+		}
+		return nil, error
+	}
+	return nil, error
 }
 
 // NamespaceByName retrieves a namespace by it's given name.

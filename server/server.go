@@ -37,6 +37,7 @@ const (
 	defaultMetadataAddress            = "169.254.169.254"
 	defaultNamespaceKey               = "iam.amazonaws.com/allowed-roles"
 	defaultCacheResyncPeriod          = 30 * time.Minute
+	defaultDealWithDupIP              = false
 	defaultNamespaceRestrictionFormat = "glob"
 	healthcheckInterval               = 30 * time.Second
 )
@@ -62,6 +63,7 @@ type Server struct {
 	NodeName                   string
 	NamespaceKey               string
 	CacheResyncPeriod          time.Duration
+	DealWithDupIP              bool
 	LogLevel                   string
 	LogFormat                  string
 	NamespaceRestrictionFormat string
@@ -170,7 +172,7 @@ func (s *Server) getRoleMapping(IP string) (*mappings.RoleMappingResult, error) 
 	var roleMapping *mappings.RoleMappingResult
 	var err error
 	operation := func() error {
-		roleMapping, err = s.roleMapper.GetRoleMapping(IP)
+		roleMapping, err = s.roleMapper.GetRoleMapping(IP, s.DealWithDupIP)
 		return err
 	}
 
@@ -190,7 +192,7 @@ func (s *Server) getExternalIDMapping(IP string) (string, error) {
 	var externalID string
 	var err error
 	operation := func() error {
-		externalID, err = s.roleMapper.GetExternalIDMapping(IP)
+		externalID, err = s.roleMapper.GetExternalIDMapping(IP, s.DealWithDupIP)
 		return err
 	}
 
@@ -439,6 +441,7 @@ func NewServer() *Server {
 		MetadataAddress:            defaultMetadataAddress,
 		NamespaceKey:               defaultNamespaceKey,
 		CacheResyncPeriod:          defaultCacheResyncPeriod,
+		DealWithDupIP:              defaultDealWithDupIP,
 		NamespaceRestrictionFormat: defaultNamespaceRestrictionFormat,
 		HealthcheckFailReason:      "Healthcheck not yet performed",
 		IAMRoleSessionTTL:          defaultIAMRoleSessionTTL,

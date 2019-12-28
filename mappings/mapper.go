@@ -7,7 +7,7 @@ import (
 
 	glob "github.com/ryanuber/go-glob"
 	log "github.com/sirupsen/logrus"
-	"k8s.io/client-go/pkg/api/v1"
+	v1 "k8s.io/client-go/pkg/api/v1"
 
 	"github.com/jtblin/kube2iam"
 	"github.com/jtblin/kube2iam/iam"
@@ -27,7 +27,7 @@ type RoleMapper struct {
 
 type store interface {
 	ListPodIPs() []string
-	PodByIP(string) (*v1.Pod, error)
+	PodByIP(string, bool) (*v1.Pod, error)
 	ListNamespaces() []string
 	NamespaceByName(string) (*v1.Namespace, error)
 }
@@ -40,8 +40,8 @@ type RoleMappingResult struct {
 }
 
 // GetRoleMapping returns the normalized iam RoleMappingResult based on IP address
-func (r *RoleMapper) GetRoleMapping(IP string) (*RoleMappingResult, error) {
-	pod, err := r.store.PodByIP(IP)
+func (r *RoleMapper) GetRoleMapping(IP string, dealWithDupIP bool) (*RoleMappingResult, error) {
+	pod, err := r.store.PodByIP(IP, dealWithDupIP)
 	// If attempting to get a Pod that maps to multiple IPs
 	if err != nil {
 		return nil, err
@@ -61,8 +61,8 @@ func (r *RoleMapper) GetRoleMapping(IP string) (*RoleMappingResult, error) {
 }
 
 // GetExternalIDMapping returns the externalID based on IP address
-func (r *RoleMapper) GetExternalIDMapping(IP string) (string, error) {
-	pod, err := r.store.PodByIP(IP)
+func (r *RoleMapper) GetExternalIDMapping(IP string, dealWithDupIP bool) (string, error) {
+	pod, err := r.store.PodByIP(IP, dealWithDupIP)
 	// If attempting to get a Pod that maps to multiple IPs
 	if err != nil {
 		return "", err
@@ -100,7 +100,7 @@ func (r *RoleMapper) checkRoleForNamespace(roleArn string, namespace string) boo
 
 	ns, err := r.store.NamespaceByName(namespace)
 	if err != nil {
-		log.Debug("Unable to find an indexed namespace of %s", namespace)
+		log.Debugf("Unable to find an indexed namespace of %s", namespace)
 		return false
 	}
 
@@ -138,7 +138,8 @@ func (r *RoleMapper) DumpDebugInfo() map[string]interface{} {
 
 	for _, ip := range r.store.ListPodIPs() {
 		// When pods have `hostNetwork: true` they share an IP and we receive an error
-		if pod, err := r.store.PodByIP(ip); err == nil {
+		// passing false to PodByIP in this case we don't want to query the k8s api server
+		if pod, err := r.store.PodByIP(ip, false); err == nil {
 			namespacesByIP[ip] = pod.Namespace
 			if role, ok := pod.GetAnnotations()[r.iamRoleKey]; ok {
 				rolesByIP[ip] = role

@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"k8s.io/client-go/pkg/api/v1"
-
 	"github.com/jtblin/kube2iam/iam"
+	v1 "k8s.io/client-go/pkg/api/v1"
 )
 
 const (
@@ -389,7 +388,7 @@ type storeMock struct {
 func (k *storeMock) ListPodIPs() []string {
 	return nil
 }
-func (k *storeMock) PodByIP(string) (*v1.Pod, error) {
+func (k *storeMock) PodByIP(string, bool) (*v1.Pod, error) {
 	return nil, nil
 }
 func (k *storeMock) ListNamespaces() []string {

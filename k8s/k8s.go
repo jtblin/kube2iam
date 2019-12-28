@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/jtblin/kube2iam"
+	"github.com/jtblin/kube2iam/metrics"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	v1 "k8s.io/client-go/pkg/api/v1"
@@ -134,6 +135,7 @@ func DealWithDuplicatedIP(pods []interface{}, k8s *Client) (*v1.Pod, error) {
 		livePods := make([]*v1.Pod, len(podNames))
 		for i := 0; i < len(podNames); i++ {
 			livePod, err := k8s.CoreV1().Pods(podNamespaces[i]).Get(podNames[i])
+			metrics.K8sAPIDupReqCount.Inc()
 			if err != nil {
 				//pod could not exist, error is expected here
 				continue

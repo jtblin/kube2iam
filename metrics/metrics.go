@@ -54,6 +54,16 @@ var (
 		},
 	)
 
+	// K8sAPIDupReqCount tracks total number of K8s Api requests performed when duplicated pods are identified in the cache.
+	K8sAPIDupReqCount = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: namespace,
+			Subsystem: "iam",
+			Name:      "k8s_api_dup_req_count",
+			Help:      "Total number of K8s Api requests performed when duplicated pods are identified in the cache.",
+		},
+	)
+
 	// HTTPRequestSec tracks timing of served HTTP requests.
 	HTTPRequestSec = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
@@ -105,6 +115,7 @@ var (
 func init() {
 	prometheus.MustRegister(IamRequestSec)
 	prometheus.MustRegister(IamCacheHitCount)
+	prometheus.MustRegister(K8sAPIDupReqCount)
 	prometheus.MustRegister(HTTPRequestSec)
 	prometheus.MustRegister(HealthcheckStatus)
 	prometheus.MustRegister(Info)

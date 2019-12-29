@@ -92,6 +92,7 @@ func (k8s *Client) PodByIP(IP string, dealWithDupIP bool) (*v1.Pod, error) {
 	}
 
 	if len(pods) == 0 {
+		metrics.PodNotFoundInCache.Inc()
 		return nil, fmt.Errorf("pod with specificed IP not found")
 	}
 
@@ -106,7 +107,7 @@ func (k8s *Client) PodByIP(IP string, dealWithDupIP bool) (*v1.Pod, error) {
 		}
 		return nil, fmt.Errorf("%d pods (%v) with the ip %s indexed", len(pods), podNames, IP)
 	}
-	pod, err := DealWithDuplicatedIP(pods, k8s)
+	pod, err := DealWithDuplicatedIP(k8s, IP)
 	if err != nil {
 		return nil, err
 	}
@@ -115,41 +116,23 @@ func (k8s *Client) PodByIP(IP string, dealWithDupIP bool) (*v1.Pod, error) {
 
 // DealWithDuplicatedIP queries the k8s api server trying to make a decision based on NON cached data
 // If the indexed pods all have HostNetwork = true the function return nil and the error message.
-// If there are pods in the cache that do not have HostNetwork = true will query the k8s api server
-// searching for the ONLY pod in Running state among all the cached ones, if it doesn't find it returns error.
-func DealWithDuplicatedIP(pods []interface{}, k8s *Client) (*v1.Pod, error) {
-	podNames := make([]string, len(pods))
-	podNamespaces := make([]string, len(pods))
+// If we retrive a running pod that doesn't have HostNetwork = true and it is in Running state will return that.
+func DealWithDuplicatedIP(k8s *Client, IP string) (*v1.Pod, error) {
+	metrics.K8sAPIDupInvokeCount.Inc()
 	error := fmt.Errorf("more than a pod with the same IP has been indexed, this can happen when pods have hostNetwork: true")
-	for i, pod := range pods {
-		if pod.(*v1.Pod).Spec.HostNetwork {
-			continue
-		}
-		podNames[i] = pod.(*v1.Pod).ObjectMeta.Name
-		podNamespaces[i] = pod.(*v1.Pod).ObjectMeta.Namespace
+
+	runningPodList, err := k8s.CoreV1().Pods("").List(v1.ListOptions{
+		FieldSelector: selector.OneTermEqualSelector("status.podIP", IP).String(),
+	})
+	metrics.K8sAPIDupReqCount.Inc()
+	if err != nil {
+		return nil, fmt.Errorf("DealWithDuplicatedIP: Error retriving the pod with IP %s from the k8s api", IP)
 	}
-	// if len(podNames) > 0 it means that I have more than a pod with the same IP in the cache with HostNetwork = false
-	// in this case we will investigate querying the k8s API server
-	// note: we could check also here if len(podNames) is 1 and just return but I can't find the case for that condition to happen here.
-	if len(podNames) > 0 {
-		livePods := make([]*v1.Pod, len(podNames))
-		for i := 0; i < len(podNames); i++ {
-			livePod, err := k8s.CoreV1().Pods(podNamespaces[i]).Get(podNames[i])
-			metrics.K8sAPIDupReqCount.Inc()
-			if err != nil {
-				//pod could not exist, error is expected here
-				continue
-			}
-			if "Running" == string(livePod.Status.Phase) {
-				livePods[i] = livePod
-			}
+	for _, pod := range runningPodList.Items {
+		if !pod.Spec.HostNetwork && "Running" == string(pod.Status.Phase) {
+			metrics.K8sAPIDupReqSuccesCount.Inc()
+			return &pod, nil
 		}
-		//At this point len(livePods) has to be exaclty 1, we can't have multiple running pods with the same IP that are running
-		//with hostNetwork: false
-		if len(livePods) == 1 {
-			return livePods[0], nil
-		}
-		return nil, error
 	}
 	return nil, error
 }

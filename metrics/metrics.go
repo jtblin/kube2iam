@@ -54,13 +54,43 @@ var (
 		},
 	)
 
+	// K8sAPIDupInvokeCount tracks total number of times the dup function is invoked.
+	K8sAPIDupInvokeCount = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: namespace,
+			Subsystem: "iam",
+			Name:      "k8s_dup_invoke_count",
+			Help:      "Total number of times the dup function is invoked.",
+		},
+	)
+
 	// K8sAPIDupReqCount tracks total number of K8s Api requests performed when duplicated pods are identified in the cache.
 	K8sAPIDupReqCount = prometheus.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: namespace,
 			Subsystem: "iam",
-			Name:      "k8s_api_dup_req_count",
+			Name:      "k8s_dup_req_count",
 			Help:      "Total number of K8s Api requests performed when duplicated pods are identified in the cache.",
+		},
+	)
+
+	// K8sAPIDupReqSuccesCount tracks total number of times we successfully retrive the pod from the K8s Api.
+	K8sAPIDupReqSuccesCount = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: namespace,
+			Subsystem: "iam",
+			Name:      "k8s_dup_req_success_count",
+			Help:      "Total number of times we successfully retrive the pod from the K8s Api.",
+		},
+	)
+
+	// PodNotFoundInCache tracks total number of times we don't have the pod info in the cache.
+	PodNotFoundInCache = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: namespace,
+			Subsystem: "iam",
+			Name:      "k8s_pod_not_in_pod_cache",
+			Help:      "Total number of times we don't have the pod info in the cache.",
 		},
 	)
 
@@ -115,7 +145,10 @@ var (
 func init() {
 	prometheus.MustRegister(IamRequestSec)
 	prometheus.MustRegister(IamCacheHitCount)
+	prometheus.MustRegister(K8sAPIDupInvokeCount)
 	prometheus.MustRegister(K8sAPIDupReqCount)
+	prometheus.MustRegister(K8sAPIDupReqSuccesCount)
+	prometheus.MustRegister(PodNotFoundInCache)
 	prometheus.MustRegister(HTTPRequestSec)
 	prometheus.MustRegister(HealthcheckStatus)
 	prometheus.MustRegister(Info)

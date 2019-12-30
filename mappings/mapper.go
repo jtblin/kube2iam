@@ -64,7 +64,7 @@ func (r *RoleMapper) GetRoleMapping(IP string) (*RoleMappingResult, error) {
 	}
 
 	// Determine if normalized role is allowed to be used in pod's namespace
-	if r.checkRoleForNamespace(role, pod.GetNamespace()) {
+	if r.checkRoleForNamespace(role, namespace) {
 		return &RoleMappingResult{Role: role, Namespace: namespace, IP: IP}, nil
 	}
 

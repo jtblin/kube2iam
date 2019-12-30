@@ -93,6 +93,84 @@ func TestExtractRoleARN(t *testing.T) {
 	}
 }
 
+func TestExtractNamespaceRoleARN(t *testing.T) {
+	var roleExtractionTests = []struct {
+		test               string
+		namespace          string
+		requestedNamespace string
+		annotations        map[string]string
+		expectedARN        string
+		expectError        bool
+	}{
+		{
+			test:               "No annotation",
+			namespace:          "default",
+			requestedNamespace: "default",
+			annotations:        map[string]string{},
+			expectError:        false,
+			expectedARN:        "",
+		},
+		{
+			test:               "Namespace is not indexed",
+			namespace:          "default",
+			requestedNamespace: "default-not-indexed",
+			annotations:        map[string]string{},
+			expectError:        true,
+			expectedARN:        "",
+		},
+		{
+			test:               "No annotation at the namespace level",
+			namespace:          "default",
+			requestedNamespace: "default",
+			annotations:        map[string]string{},
+			expectError:        false,
+			expectedARN:        "",
+		},
+		{
+			test:               "Annotation at the namespace level but not the one to request a specific role",
+			namespace:          "default",
+			requestedNamespace: "default",
+			annotations:        map[string]string{"nonMatchingAnnotation": "something"},
+			expectError:        false,
+			expectedARN:        "",
+		},
+		{
+			test:               "Annotation at the namespace level",
+			namespace:          "default",
+			requestedNamespace: "default",
+			annotations:        map[string]string{roleKey: "arn:aws:iam::999999999999:role/explicit-arn"},
+			expectError:        false,
+			expectedARN:        "arn:aws:iam::999999999999:role/explicit-arn",
+		},
+	}
+	for _, tt := range roleExtractionTests {
+		t.Run(tt.test, func(t *testing.T) {
+			rp := RoleMapper{}
+			rp.iamRoleKey = "roleKey"
+			rp.iamExternalIDKey = "externalIDKey"
+			rp.iam = &iam.Client{BaseARN: defaultBaseRole}
+			rp.store = &storeMock{
+				namespace:   tt.namespace,
+				annotations: tt.annotations,
+			}
+
+			resp, err := rp.extractNamespaceRoleARN(tt.requestedNamespace)
+			if tt.expectError && err == nil {
+				t.Error("Expected error however didn't recieve one")
+				return
+			}
+			if !tt.expectError && err != nil {
+				t.Errorf("Didn't expect error but recieved %s", err)
+				return
+			}
+			if resp != tt.expectedARN {
+				t.Errorf("Response [%s] did not equal expected [%s]", resp, tt.expectedARN)
+				return
+			}
+		})
+	}
+}
+
 func TestCheckRoleForNamespace(t *testing.T) {
 	var roleCheckTests = []struct {
 		test                       string
@@ -371,6 +449,7 @@ func TestCheckRoleForNamespace(t *testing.T) {
 					annotations: tt.namespaceAnnotations,
 				},
 				tt.namespaceRestrictionFormat,
+				"iam.amazonaws.com/role",
 			)
 
 			resp := rp.checkRoleForNamespace(tt.roleARN, tt.namespace)

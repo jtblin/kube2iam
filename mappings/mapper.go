@@ -162,7 +162,7 @@ func (r *RoleMapper) DumpDebugInfo() map[string]interface{} {
 	rolesByIP := make(map[string]string)
 	namespacesByIP := make(map[string]string)
 	rolesRestrictionsByNamespace := make(map[string][]string)
-	rolesByNamespace := make(map[string][]string)
+	rolesByNamespace := make(map[string]string)
 
 	for _, ip := range r.store.ListPodIPs() {
 		// When pods have `hostNetwork: true` they share an IP and we receive an error
@@ -179,7 +179,12 @@ func (r *RoleMapper) DumpDebugInfo() map[string]interface{} {
 	for _, namespaceName := range r.store.ListNamespaces() {
 		if namespace, err := r.store.NamespaceByName(namespaceName); err == nil {
 			rolesRestrictionsByNamespace[namespace.GetName()] = kube2iam.GetNamespaceRoleAnnotation(namespace, r.namespaceKey)
-			rolesByNamespace[namespace.GetName()] = kube2iam.GetNamespaceRoleAnnotation(namespace, r.namespaceIamRoleKey)
+
+			rawRoleName, annotationPresent := namespace.GetAnnotations()[r.namespaceIamRoleKey]
+			rolesByNamespace[namespace.GetName()] = ""
+			if annotationPresent {
+				rolesByNamespace[namespace.GetName()] = rawRoleName
+			}
 		}
 	}
 

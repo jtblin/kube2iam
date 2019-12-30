@@ -161,6 +161,7 @@ func (r *RoleMapper) DumpDebugInfo() map[string]interface{} {
 	output := make(map[string]interface{})
 	rolesByIP := make(map[string]string)
 	namespacesByIP := make(map[string]string)
+	rolesRestrictionsByNamespace := make(map[string][]string)
 	rolesByNamespace := make(map[string][]string)
 
 	for _, ip := range r.store.ListPodIPs() {
@@ -177,13 +178,15 @@ func (r *RoleMapper) DumpDebugInfo() map[string]interface{} {
 
 	for _, namespaceName := range r.store.ListNamespaces() {
 		if namespace, err := r.store.NamespaceByName(namespaceName); err == nil {
-			rolesByNamespace[namespace.GetName()] = kube2iam.GetNamespaceRoleAnnotation(namespace, r.namespaceKey)
+			rolesRestrictionsByNamespace[namespace.GetName()] = kube2iam.GetNamespaceRoleAnnotation(namespace, r.namespaceKey)
+			rolesByNamespace[namespace.GetName()] = kube2iam.GetNamespaceRoleAnnotation(namespace, r.namespaceIamRoleKey)
 		}
 	}
 
 	output["rolesByIP"] = rolesByIP
 	output["namespaceByIP"] = namespacesByIP
 	output["rolesByNamespace"] = rolesByNamespace
+	output["rolesRestrictionsByNamespace"] = rolesRestrictionsByNamespace
 	return output
 }
 

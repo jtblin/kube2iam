@@ -172,7 +172,7 @@ func (s *Server) getRoleMapping(IP string) (*mappings.RoleMappingResult, error) 
 	var roleMapping *mappings.RoleMappingResult
 	var err error
 	operation := func() error {
-		roleMapping, err = s.roleMapper.GetRoleMapping(IP, s.DealWithDupIP)
+		roleMapping, err = s.roleMapper.GetRoleMapping(IP)
 		return err
 	}
 
@@ -192,7 +192,7 @@ func (s *Server) getExternalIDMapping(IP string) (string, error) {
 	var externalID string
 	var err error
 	operation := func() error {
-		externalID, err = s.roleMapper.GetExternalIDMapping(IP, s.DealWithDupIP)
+		externalID, err = s.roleMapper.GetExternalIDMapping(IP)
 		return err
 	}
 
@@ -371,7 +371,7 @@ func write(logger *log.Entry, w http.ResponseWriter, s string) {
 
 // Run runs the specified Server.
 func (s *Server) Run(host, token, nodeName string, insecure bool) error {
-	k, err := k8s.NewClient(host, token, nodeName, insecure)
+	k, err := k8s.NewClient(host, token, nodeName, insecure, s.DealWithDupIP)
 	if err != nil {
 		return err
 	}

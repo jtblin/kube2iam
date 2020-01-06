@@ -27,7 +27,7 @@ type RoleMapper struct {
 
 type store interface {
 	ListPodIPs() []string
-	PodByIP(string, bool) (*v1.Pod, error)
+	PodByIP(string) (*v1.Pod, error)
 	ListNamespaces() []string
 	NamespaceByName(string) (*v1.Namespace, error)
 }
@@ -40,8 +40,8 @@ type RoleMappingResult struct {
 }
 
 // GetRoleMapping returns the normalized iam RoleMappingResult based on IP address
-func (r *RoleMapper) GetRoleMapping(IP string, dealWithDupIP bool) (*RoleMappingResult, error) {
-	pod, err := r.store.PodByIP(IP, dealWithDupIP)
+func (r *RoleMapper) GetRoleMapping(IP string) (*RoleMappingResult, error) {
+	pod, err := r.store.PodByIP(IP)
 	// If attempting to get a Pod that maps to multiple IPs
 	if err != nil {
 		return nil, err
@@ -61,8 +61,8 @@ func (r *RoleMapper) GetRoleMapping(IP string, dealWithDupIP bool) (*RoleMapping
 }
 
 // GetExternalIDMapping returns the externalID based on IP address
-func (r *RoleMapper) GetExternalIDMapping(IP string, dealWithDupIP bool) (string, error) {
-	pod, err := r.store.PodByIP(IP, dealWithDupIP)
+func (r *RoleMapper) GetExternalIDMapping(IP string) (string, error) {
+	pod, err := r.store.PodByIP(IP)
 	// If attempting to get a Pod that maps to multiple IPs
 	if err != nil {
 		return "", err
@@ -138,8 +138,7 @@ func (r *RoleMapper) DumpDebugInfo() map[string]interface{} {
 
 	for _, ip := range r.store.ListPodIPs() {
 		// When pods have `hostNetwork: true` they share an IP and we receive an error
-		// passing false to PodByIP in this case we don't want to query the k8s api server
-		if pod, err := r.store.PodByIP(ip, false); err == nil {
+		if pod, err := r.store.PodByIP(ip); err == nil {
 			namespacesByIP[ip] = pod.Namespace
 			if role, ok := pod.GetAnnotations()[r.iamRoleKey]; ok {
 				rolesByIP[ip] = role

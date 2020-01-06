@@ -388,7 +388,7 @@ type storeMock struct {
 func (k *storeMock) ListPodIPs() []string {
 	return nil
 }
-func (k *storeMock) PodByIP(string, bool) (*v1.Pod, error) {
+func (k *storeMock) PodByIP(string) (*v1.Pod, error) {
 	return nil, nil
 }
 func (k *storeMock) ListNamespaces() []string {

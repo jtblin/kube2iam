@@ -27,6 +27,7 @@ type Client struct {
 	podController       *cache.Controller
 	podIndexer          cache.Indexer
 	nodeName            string
+	dealWithDupIP       bool
 }
 
 // Returns a cache.ListWatch that gets all changes to pods.
@@ -85,7 +86,7 @@ func (k8s *Client) ListNamespaces() []string {
 // PodByIP provides the representation of the pod itself being cached keyed off of it's IP
 // Returns an error if there are multiple pods attempting to be keyed off of the same IP
 // (Which happens when they of type `hostNetwork: true`)
-func (k8s *Client) PodByIP(IP string, dealWithDupIP bool) (*v1.Pod, error) {
+func (k8s *Client) PodByIP(IP string) (*v1.Pod, error) {
 	pods, err := k8s.podIndexer.ByIndex(podIPIndexName, IP)
 	if err != nil {
 		return nil, err
@@ -100,7 +101,7 @@ func (k8s *Client) PodByIP(IP string, dealWithDupIP bool) (*v1.Pod, error) {
 		return pods[0].(*v1.Pod), nil
 	}
 
-	if !dealWithDupIP {
+	if !k8s.dealWithDupIP {
 		podNames := make([]string, len(pods))
 		for i, pod := range pods {
 			podNames[i] = pod.(*v1.Pod).ObjectMeta.Name
@@ -152,7 +153,7 @@ func (k8s *Client) NamespaceByName(namespaceName string) (*v1.Namespace, error) 
 }
 
 // NewClient returns a new kubernetes client.
-func NewClient(host, token, nodeName string, insecure bool) (*Client, error) {
+func NewClient(host, token, nodeName string, insecure bool, dealWithDupIP bool) (*Client, error) {
 	var config *rest.Config
 	var err error
 	if host != "" && token != "" {
@@ -171,5 +172,5 @@ func NewClient(host, token, nodeName string, insecure bool) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Client{Clientset: client, nodeName: nodeName}, nil
+	return &Client{Clientset: client, nodeName: nodeName, dealWithDupIP: dealWithDupIP}, nil
 }

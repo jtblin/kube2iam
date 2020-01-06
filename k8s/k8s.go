@@ -153,7 +153,7 @@ func (k8s *Client) NamespaceByName(namespaceName string) (*v1.Namespace, error) 
 }
 
 // NewClient returns a new kubernetes client.
-func NewClient(host, token, nodeName string, insecure bool, dealWithDupIP bool) (*Client, error) {
+func NewClient(host, token, nodeName string, insecure, dealWithDupIP bool) (*Client, error) {
 	var config *rest.Config
 	var err error
 	if host != "" && token != "" {

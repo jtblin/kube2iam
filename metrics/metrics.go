@@ -64,13 +64,13 @@ var (
 		},
 	)
 
-	// K8sAPIDupReqSuccesCount tracks total number of times we successfully retrive the pod from the K8s Api.
+	// K8sAPIDupReqSuccesCount tracks total number of times we successfully retrieve the pod from the K8s Api.
 	K8sAPIDupReqSuccesCount = prometheus.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: namespace,
 			Subsystem: "iam",
 			Name:      "k8s_dup_req_success_count",
-			Help:      "Total number of times we successfully retrive the pod from the K8s Api.",
+			Help:      "Total number of times we successfully retrieve the pod from the K8s Api.",
 		},
 	)
 

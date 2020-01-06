@@ -108,17 +108,17 @@ func (k8s *Client) PodByIP(IP string) (*v1.Pod, error) {
 		}
 		return nil, fmt.Errorf("%d pods (%v) with the ip %s indexed", len(pods), podNames, IP)
 	}
-	pod, err := DealWithDuplicatedIP(k8s, IP)
+	pod, err := dealWithDuplicatedIP(k8s, IP)
 	if err != nil {
 		return nil, err
 	}
 	return pod, nil
 }
 
-// DealWithDuplicatedIP queries the k8s api server trying to make a decision based on NON cached data
+// dealWithDuplicatedIP queries the k8s api server trying to make a decision based on NON cached data
 // If the indexed pods all have HostNetwork = true the function return nil and the error message.
 // If we retrive a running pod that doesn't have HostNetwork = true and it is in Running state will return that.
-func DealWithDuplicatedIP(k8s *Client, IP string) (*v1.Pod, error) {
+func dealWithDuplicatedIP(k8s *Client, IP string) (*v1.Pod, error) {
 	error := fmt.Errorf("more than a pod with the same IP has been indexed, this can happen when pods have hostNetwork: true")
 
 	runningPodList, err := k8s.CoreV1().Pods("").List(v1.ListOptions{
@@ -126,7 +126,7 @@ func DealWithDuplicatedIP(k8s *Client, IP string) (*v1.Pod, error) {
 	})
 	metrics.K8sAPIDupReqCount.Inc()
 	if err != nil {
-		return nil, fmt.Errorf("DealWithDuplicatedIP: Error retriving the pod with IP %s from the k8s api", IP)
+		return nil, fmt.Errorf("dealWithDuplicatedIP: Error retriving the pod with IP %s from the k8s api", IP)
 	}
 	for _, pod := range runningPodList.Items {
 		if !pod.Spec.HostNetwork && "Running" == string(pod.Status.Phase) {

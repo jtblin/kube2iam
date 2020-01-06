@@ -63,10 +63,10 @@ type Server struct {
 	NodeName                   string
 	NamespaceKey               string
 	CacheResyncPeriod          time.Duration
-	DealWithDupIP              bool
 	LogLevel                   string
 	LogFormat                  string
 	NamespaceRestrictionFormat string
+	DealWithDupIP              bool
 	UseRegionalStsEndpoint     bool
 	AddIPTablesRule            bool
 	AutoDiscoverBaseArn        bool

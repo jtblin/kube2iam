@@ -129,7 +129,7 @@ func dealWithDuplicatedIP(k8s *Client, IP string) (*v1.Pod, error) {
 		return nil, fmt.Errorf("dealWithDuplicatedIP: Error retriving the pod with IP %s from the k8s api", IP)
 	}
 	for _, pod := range runningPodList.Items {
-		if !pod.Spec.HostNetwork && "Running" == string(pod.Status.Phase) {
+		if !pod.Spec.HostNetwork && string(pod.Status.Phase) == "Running" {
 			metrics.K8sAPIDupReqSuccesCount.Inc()
 			return &pod, nil
 		}

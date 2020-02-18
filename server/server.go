@@ -44,6 +44,9 @@ const (
 // Keeps track of the names of registered handlers for metric value/label initialization
 var registeredHandlerNames []string
 
+// Allowed user-agent prefixes when --metadata-protection is enabled
+var userAgentPrefixAllowlist []string
+
 // Server encapsulates all of the parameters necessary for starting up
 // the server. These can either be set via command line or directly.
 type Server struct {
@@ -67,6 +70,7 @@ type Server struct {
 	NamespaceRestrictionFormat string
 	UseRegionalStsEndpoint     bool
 	AddIPTablesRule            bool
+	MetadataProtection         bool
 	AutoDiscoverBaseArn        bool
 	AutoDiscoverDefaultRole    bool
 	Debug                      bool
@@ -82,6 +86,7 @@ type Server struct {
 	InstanceID                 string
 	HealthcheckFailReason      string
 	healthcheckTicker          *time.Ticker
+	server                     *http.Server
 }
 
 type appHandlerFunc func(*log.Entry, http.ResponseWriter, *http.Request)
@@ -94,6 +99,10 @@ type appHandler struct {
 type responseWriter struct {
 	http.ResponseWriter
 	statusCode int
+}
+
+func init() {
+	userAgentPrefixAllowlist = []string{"aws-sdk-", "Botocore/", "Boto3/", "aws-cli/", "aws-chalice/"}
 }
 
 func (rw *responseWriter) WriteHeader(code int) {
@@ -367,8 +376,20 @@ func write(logger *log.Entry, w http.ResponseWriter, s string) {
 	}
 }
 
-// Run runs the specified Server.
-func (s *Server) Run(host, token, nodeName string, insecure bool) error {
+func (s *Server) checkUserAgent(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		userAgent := r.UserAgent()
+		for _, prefix := range userAgentPrefixAllowlist {
+			if strings.HasPrefix(userAgent, prefix) {
+				next.ServeHTTP(w, r)
+				return
+			}
+		}
+		http.Error(w, fmt.Sprintf("User-agent '%s' is not allowed", userAgent), http.StatusForbidden)
+	})
+}
+
+func (s *Server) setup(host, token, nodeName string, insecure bool) error {
 	k, err := k8s.NewClient(host, token, nodeName, insecure)
 	if err != nil {
 		return err
@@ -396,17 +417,7 @@ func (s *Server) Run(host, token, nodeName string, insecure bool) error {
 	s.beginPollHealthcheck(healthcheckInterval)
 
 	r := mux.NewRouter()
-	securityHandler := newAppHandler("securityCredentialsHandler", s.securityCredentialsHandler)
 
-	if s.Debug {
-		// This is a potential security risk if enabled in some clusters, hence the flag
-		r.Handle("/debug/store", newAppHandler("debugStoreHandler", s.debugStoreHandler))
-	}
-	r.Handle("/{version}/meta-data/iam/security-credentials", securityHandler)
-	r.Handle("/{version}/meta-data/iam/security-credentials/", securityHandler)
-	r.Handle(
-		"/{version}/meta-data/iam/security-credentials/{role:.*}",
-		newAppHandler("roleHandler", s.roleHandler))
 	r.Handle("/healthz", newAppHandler("healthHandler", s.healthHandler))
 
 	if s.MetricsPort == s.AppPort {
@@ -415,13 +426,48 @@ func (s *Server) Run(host, token, nodeName string, insecure bool) error {
 		metrics.StartMetricsServer(s.MetricsPort)
 	}
 
-	// This has to be registered last so that it catches fall-throughs
-	r.Handle("/{path:.*}", newAppHandler("reverseProxyHandler", s.reverseProxyHandler))
+	if s.Debug {
+		// This is a potential security risk if enabled in some clusters, hence the flag
+		r.Handle("/debug/store", newAppHandler("debugStoreHandler", s.debugStoreHandler))
+	}
 
-	log.Infof("Listening on port %s", s.AppPort)
-	if err := http.ListenAndServe(":"+s.AppPort, r); err != nil {
+	sr := r.NewRoute().Subrouter()
+	if s.MetadataProtection {
+		// All routes added to this subrouter will have user-agent validation
+		sr.Use(s.checkUserAgent)
+	}
+
+	securityHandler := newAppHandler("securityCredentialsHandler", s.securityCredentialsHandler)
+
+	sr.Handle("/{version}/meta-data/iam/security-credentials", securityHandler)
+	sr.Handle("/{version}/meta-data/iam/security-credentials/", securityHandler)
+	sr.Handle(
+		"/{version}/meta-data/iam/security-credentials/{role:.*}",
+		newAppHandler("roleHandler", s.roleHandler))
+
+	// This has to be registered last so that it catches fall-throughs
+	sr.Handle("/{path:.*}", newAppHandler("reverseProxyHandler", s.reverseProxyHandler))
+
+	srv := http.Server{
+		Addr:    ":" + s.AppPort,
+		Handler: r,
+	}
+	s.server = &srv
+
+	return nil
+}
+
+// Run runs the specified Server.
+func (s *Server) Run(host, token, nodeName string, insecure bool) error {
+	err := s.setup(host, token, nodeName, insecure)
+	if err != nil {
 		log.Fatalf("Error creating kube2iam http server: %+v", err)
 	}
+	log.Infof("Listening on port %s", s.AppPort)
+	if err = s.server.ListenAndServe(); err != nil {
+		log.Fatalf("Error starting http server: %+v", err)
+	}
+
 	return nil
 }
 

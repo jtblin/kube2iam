@@ -19,6 +19,7 @@ func addFlags(s *server.Server, fs *pflag.FlagSet) {
 	fs.StringVar(&s.AppPort, "app-port", s.AppPort, "Kube2iam server http port")
 	fs.StringVar(&s.MetricsPort, "metrics-port", s.MetricsPort, "Metrics server http port (default: same as kube2iam server port)")
 	fs.StringVar(&s.BaseRoleARN, "base-role-arn", s.BaseRoleARN, "Base role ARN")
+	fs.StringVar(&s.BaseRoleARNVerbatim, "base-role-arn-verbatim", s.BaseRoleARNVerbatim, "Base role ARN Verbatim (uses as is, doesn't add /)")
 	fs.BoolVar(&s.Debug, "debug", s.Debug, "Enable debug features")
 	fs.StringVar(&s.DefaultIAMRole, "default-role", s.DefaultIAMRole, "Fallback role to use when annotation is not set")
 	fs.StringVar(&s.IAMRoleKey, "iam-role-key", s.IAMRoleKey, "Pod annotation key used to retrieve the IAM role")
@@ -69,6 +70,20 @@ func main() {
 		version.PrintVersionAndExit()
 	}
 
+	configureRoleARN(s)
+
+	if s.AddIPTablesRule {
+		if err := iptables.AddRule(s.AppPort, s.MetadataAddress, s.HostInterface, s.HostIP); err != nil {
+			log.Fatalf("%s", err)
+		}
+	}
+
+	if err := s.Run(s.APIServer, s.APIToken, s.NodeName, s.Insecure); err != nil {
+		log.Fatalf("%s", err)
+	}
+}
+
+func configureRoleARN(s *server.Server) {
 	if s.BaseRoleARN != "" {
 		if !iam.IsValidBaseARN(s.BaseRoleARN) {
 			log.Fatalf("Invalid --base-role-arn specified, expected: %s", iam.ARNRegexp.String())
@@ -78,8 +93,15 @@ func main() {
 		}
 	}
 
+	if s.BaseRoleARNVerbatim != "" {
+		if !iam.IsValidBaseARN(s.BaseRoleARNVerbatim) {
+			log.Fatalf("Invalid --base-role-arn-verbatim specified, expected: %s", iam.ARNRegexp.String())
+		}
+		s.BaseRoleARN = s.BaseRoleARNVerbatim
+	}
+
 	if s.AutoDiscoverBaseArn {
-		if s.BaseRoleARN != "" {
+		if s.BaseRoleARN != "" || s.BaseRoleARNVerbatim != "" {
 			log.Fatal("--auto-discover-base-arn cannot be used if --base-role-arn is specified")
 		}
 		arn, err := iam.GetBaseArn()
@@ -105,15 +127,5 @@ func main() {
 		}
 		s.DefaultIAMRole = instanceIAMRole
 		log.Infof("Using instance IAMRole %s%s as default", s.BaseRoleARN, s.DefaultIAMRole)
-	}
-
-	if s.AddIPTablesRule {
-		if err := iptables.AddRule(s.AppPort, s.MetadataAddress, s.HostInterface, s.HostIP); err != nil {
-			log.Fatalf("%s", err)
-		}
-	}
-
-	if err := s.Run(s.APIServer, s.APIToken, s.NodeName, s.Insecure); err != nil {
-		log.Fatalf("%s", err)
 	}
 }

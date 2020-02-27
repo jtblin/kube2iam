@@ -11,6 +11,7 @@ func TestIsValidBaseARN(t *testing.T) {
 		"arn:aws:iam::123456789012:role/path/sub-path",
 		"arn:aws:iam::123456789012:role/path/sub_path",
 		"arn:aws:iam::123456789012:role/subdomain.domain",
+		"arn:aws:iam::123456789012:role/cluster1-",
 		"arn:aws:iam::123456789012:role",
 		"arn:aws:iam::123456789012:role/",
 		"arn:aws:iam::123456789012:role-part",

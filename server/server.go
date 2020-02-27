@@ -52,6 +52,7 @@ type Server struct {
 	AppPort                    string
 	MetricsPort                string
 	BaseRoleARN                string
+	BaseRoleARNVerbatim        string
 	DefaultIAMRole             string
 	IAMRoleKey                 string
 	IAMExternalID              string

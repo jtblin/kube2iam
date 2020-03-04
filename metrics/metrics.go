@@ -60,7 +60,7 @@ var (
 			Namespace: namespace,
 			Subsystem: "iam",
 			Name:      "k8s_dup_req_count",
-			Help:      "Total number of K8s Api requests performed when duplicated pods are identified in the cache.",
+			Help:      "Total number of K8s API requests performed when duplicated pods are identified in the cache.",
 		},
 	)
 
@@ -70,7 +70,7 @@ var (
 			Namespace: namespace,
 			Subsystem: "iam",
 			Name:      "k8s_dup_req_success_count",
-			Help:      "Total number of times we successfully retrieve the pod from the K8s Api.",
+			Help:      "Total number of times we successfully retrieve the pod from the K8s API.",
 		},
 	)
 

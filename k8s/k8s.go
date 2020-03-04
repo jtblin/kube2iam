@@ -27,7 +27,7 @@ type Client struct {
 	podController       *cache.Controller
 	podIndexer          cache.Indexer
 	nodeName            string
-	dealWithDupIP       bool
+	resolveDupIPs       bool
 }
 
 // Returns a cache.ListWatch that gets all changes to pods.
@@ -101,30 +101,30 @@ func (k8s *Client) PodByIP(IP string) (*v1.Pod, error) {
 		return pods[0].(*v1.Pod), nil
 	}
 
-	if !k8s.dealWithDupIP {
+	if !k8s.resolveDupIPs {
 		podNames := make([]string, len(pods))
 		for i, pod := range pods {
 			podNames[i] = pod.(*v1.Pod).ObjectMeta.Name
 		}
 		return nil, fmt.Errorf("%d pods (%v) with the ip %s indexed", len(pods), podNames, IP)
 	}
-	pod, err := dealWithDuplicatedIP(k8s, IP)
+	pod, err := resolveDuplicatedIP(k8s, IP)
 	if err != nil {
 		return nil, err
 	}
 	return pod, nil
 }
 
-// dealWithDuplicatedIP queries the k8s api server trying to make a decision based on NON cached data
+// resolveDuplicatedIP queries the k8s api server trying to make a decision based on NON cached data
 // If the indexed pods all have HostNetwork = true the function return nil and the error message.
 // If we retrive a running pod that doesn't have HostNetwork = true and it is in Running state will return that.
-func dealWithDuplicatedIP(k8s *Client, IP string) (*v1.Pod, error) {
+func resolveDuplicatedIP(k8s *Client, IP string) (*v1.Pod, error) {
 	runningPodList, err := k8s.CoreV1().Pods("").List(v1.ListOptions{
 		FieldSelector: selector.OneTermEqualSelector("status.podIP", IP).String(),
 	})
 	metrics.K8sAPIDupReqCount.Inc()
 	if err != nil {
-		return nil, fmt.Errorf("dealWithDuplicatedIP: Error retriving the pod with IP %s from the k8s api", IP)
+		return nil, fmt.Errorf("resolveDuplicatedIP: Error retriving the pod with IP %s from the k8s api", IP)
 	}
 	for _, pod := range runningPodList.Items {
 		if !pod.Spec.HostNetwork && string(pod.Status.Phase) == "Running" {
@@ -152,7 +152,7 @@ func (k8s *Client) NamespaceByName(namespaceName string) (*v1.Namespace, error) 
 }
 
 // NewClient returns a new kubernetes client.
-func NewClient(host, token, nodeName string, insecure, dealWithDupIP bool) (*Client, error) {
+func NewClient(host, token, nodeName string, insecure, resolveDupIPs bool) (*Client, error) {
 	var config *rest.Config
 	var err error
 	if host != "" && token != "" {
@@ -171,5 +171,5 @@ func NewClient(host, token, nodeName string, insecure, dealWithDupIP bool) (*Cli
 	if err != nil {
 		return nil, err
 	}
-	return &Client{Clientset: client, nodeName: nodeName, dealWithDupIP: dealWithDupIP}, nil
+	return &Client{Clientset: client, nodeName: nodeName, resolveDupIPs: resolveDupIPs}, nil
 }

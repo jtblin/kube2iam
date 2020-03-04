@@ -12,21 +12,20 @@ import:
 - package: github.com/spf13/pflag
 - package: k8s.io/apimachinery
 - package: k8s.io/client-go
-  version: v2.0.0
+  version: v0.17.3
+- package: k8s.io/api
   subpackages:
-  - pkg/api/v1
-  - kubernetes
-  - pkg/fields
-  - rest
+  - core/v1
+- package: golang.org/x/net
 - package: github.com/cenk/backoff
 - package: github.com/coreos/go-iptables
-  version: v0.1.0
+  version: v0.4.5
   subpackages:
   - iptables
 - package: github.com/sirupsen/logrus
   version: ^1.0.2
 - package: github.com/ryanuber/go-glob
 - package: github.com/prometheus/client_golang
-  version: v0.9.0-pre1
-  subpackages:
-  - prometheus/promhttp
+  version: v1.1.0
+- package: github.com/prometheus/procfs
+  version: 0c11a8e341bf3fd04ed39c1c30f86eb30f24034d

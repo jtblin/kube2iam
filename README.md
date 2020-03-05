@@ -730,15 +730,6 @@ Usage of kube2iam:
 * Retrieve the services url: `minikube service kube2iam --url`
 * Test your changes e.g. `curl -is $(minikube service kube2iam --url)/healthz`
 
-### Building
-* If using newer version of go:
-
-  * Disable Go Modules:
-    ```
-    export GO111MODULE=off
-    ```
-  * Code should be under `$GOPATH`
-
 # Author
 
 Jerome Touffe-Blin, [@jtblin](https://twitter.com/jtblin), [About me](http://about.me/jtblin)

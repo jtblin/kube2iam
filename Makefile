@@ -12,19 +12,17 @@ GOBUILD_VERSION_ARGS := -ldflags "-s -X $(VERSION_VAR)=$(REPO_VERSION) -X $(GIT_
 DOCKER_REPO ?= jtblin
 IMAGE_NAME := $(DOCKER_REPO)/$(BINARY_NAME)
 ARCH ?= darwin
-METALINTER_CONCURRENCY ?= 4
-METALINTER_DEADLINE ?= 180
+GOLANGCI_LINT_VERSION ?= v1.23.8
+GOLANGCI_LINT_CONCURRENCY ?= 4
+GOLANGCI_LINT_DEADLINE ?= 180
 # useful for passing --build-arg http_proxy :)
 DOCKER_BUILD_FLAGS :=
 
 setup:
-	go get -v -u github.com/Masterminds/glide
-	go get -v -u github.com/githubnemo/CompileDaemon
-	go get -v -u github.com/alecthomas/gometalinter
+	go get -v -u golang.org/x/tools/cmd/goimports
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $$(go env GOPATH)/bin v1.23.8
 	go get -v -u github.com/jstemmer/go-junit-report
 	go get -v github.com/mattn/goveralls
-	gometalinter --install --update
-	glide install --strip-vendor
 
 build: *.go fmt
 	go build -o build/bin/$(ARCH)/$(BINARY_NAME) $(GOBUILD_VERSION_ARGS) github.com/jtblin/$(BINARY_NAME)/cmd
@@ -33,23 +31,23 @@ build-race: *.go fmt
 	go build -race -o build/bin/$(ARCH)/$(BINARY_NAME) $(GOBUILD_VERSION_ARGS) github.com/jtblin/$(BINARY_NAME)/cmd
 
 build-all:
-	go build $$(glide nv)
+	go build ./...
 
 fmt:
-	gofmt -w=true -s $$(find . -type f -name '*.go' -not -path "./vendor/*")
-	goimports -w=true -d $$(find . -type f -name '*.go' -not -path "./vendor/*")
+	gofmt -w=true -s $$(find . -type f -name '*.go')
+	goimports -w=true -d $$(find . -type f -name '*.go')
 
 test:
-	go test $$(glide nv)
+	go test ./...
 
 test-race:
-	go test -race $$(glide nv)
+	go test -race ./...
 
 bench:
-	go test -bench=. $$(glide nv)
+	go test -bench=. ./...
 
 bench-race:
-	go test -race -bench=. $$(glide nv)
+	go test -race -bench=. ./...
 
 cover:
 	./cover.sh
@@ -61,29 +59,19 @@ coveralls:
 	goveralls -coverprofile=coverage.out -service=travis-ci
 
 junit-test: build
-	go test -v $$(glide nv) | go-junit-report > test-report.xml
+	go test -v ./... | go-junit-report > test-report.xml
 
 check:
 	go install ./cmd
-
-	gometalinter --concurrency=$(METALINTER_CONCURRENCY) --deadline=$(METALINTER_DEADLINE)s ./... --vendor --linter='errcheck:errcheck:-ignore=net:Close' --cyclo-over=20 \
-		--linter='vet:go vet --no-recurse -composites=false:PATH:LINE:MESSAGE' --disable=interfacer --dupl-threshold=50
+	golangci-lint run --enable=gocyclo --concurrency=$(GOLANGCI_LINT_CONCURRENCY) --deadline=$(GOLANGCI_LINT_DEADLINE)s
 
 check-all:
 	go install ./cmd
-	gometalinter --concurrency=$(METALINTER_CONCURRENCY) --deadline=600s ./... --vendor --cyclo-over=20 \
-		--linter='vet:govet --no-recurse:PATH:LINE:MESSAGE' --dupl-threshold=50
-		--dupl-threshold=50
+	golangci-lint run --enable=gocyclo --concurrency=$(GOLANGCI_LINT_CONCURRENCY) --deadline=600s
 
 travis-checks: build test-race check bench-race
 
-watch:
-	CompileDaemon -color=true -build "make test"
-
-cross:
-	CGO_ENABLED=0 GOOS=linux go build -o build/bin/linux/$(BINARY_NAME) $(GOBUILD_VERSION_ARGS) -a -installsuffix cgo  github.com/jtblin/$(BINARY_NAME)/cmd
-
-docker: cross
+docker:
 	docker build -t $(IMAGE_NAME):$(GIT_HASH) . $(DOCKER_BUILD_FLAGS)
 
 docker-dev: docker
@@ -104,7 +92,5 @@ version:
 
 clean:
 	rm -rf build/bin/*
-	-docker rm $(docker ps -a -f 'status=exited' -q)
-	-docker rmi $(docker images -f 'dangling=true' -q)
 
 .PHONY: build version

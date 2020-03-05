@@ -1,6 +1,3 @@
 .idea/
-build/bin/darwin/
-cmd/
-iptables/
-version/
+build/bin/darwin
 vendor/

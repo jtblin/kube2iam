@@ -34,8 +34,8 @@ build-all:
 	go build ./...
 
 fmt:
-	gofmt -w=true -s $$(find . -type f -name '*.go')
-	goimports -w=true -d $$(find . -type f -name '*.go')
+	gofmt -w=true -s $$(find . -type f -name '*.go' -not -path "./vendor/*")
+	goimports -w=true -d $$(find . -type f -name '*.go' -not -path "./vendor/*")
 
 test:
 	go test ./...

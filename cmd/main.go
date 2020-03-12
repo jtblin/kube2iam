@@ -34,7 +34,7 @@ func addFlags(s *server.Server, fs *pflag.FlagSet) {
 	fs.StringVar(&s.NamespaceRestrictionFormat, "namespace-restriction-format", s.NamespaceRestrictionFormat, "Namespace Restriction Format (glob/regexp)")
 	fs.StringVar(&s.NamespaceKey, "namespace-key", s.NamespaceKey, "Namespace annotation key used to retrieve the IAM roles allowed (value in annotation should be json array)")
 	fs.DurationVar(&s.CacheResyncPeriod, "cache-resync-period", s.CacheResyncPeriod, "Kubernetes caches resync period")
-	fs.BoolVar(&s.ResolveDupIPs, "resolve-duplicate-cache-ips", false, "Queries the k8s api server to find the source of truth when the pod cache contains multiple pods with the same IP")
+	fs.BoolVar(&s.UseAPIOnCacheIssues, "use-api-on-cache-issues", false, "Queries the k8s api server to find the source of truth when the pod cache doesn't contain a match or contains multiple pods with the same IP")
 	fs.StringVar(&s.HostIP, "host-ip", s.HostIP, "IP address of host")
 	fs.StringVar(&s.NodeName, "node", s.NodeName, "Name of the node where kube2iam is running")
 	fs.DurationVar(&s.BackoffMaxInterval, "backoff-max-interval", s.BackoffMaxInterval, "Max interval for backoff when querying for role.")

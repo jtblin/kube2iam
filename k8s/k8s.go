@@ -28,7 +28,7 @@ type Client struct {
 	podController       cache.Controller
 	podIndexer          cache.Indexer
 	nodeName            string
-	resolveDupIPs       bool
+	useAPIOnCacheIssues bool
 }
 
 // Returns a cache.ListWatch that gets all changes to pods.
@@ -93,43 +93,56 @@ func (k8s *Client) PodByIP(IP string) (*v1.Pod, error) {
 		return nil, err
 	}
 
-	if len(pods) == 0 {
-		metrics.PodNotFoundInCache.Inc()
-		return nil, fmt.Errorf("pod with specificed IP not found")
-	}
-
 	if len(pods) == 1 {
 		return pods[0].(*v1.Pod), nil
 	}
 
-	if !k8s.resolveDupIPs {
-		podNames := make([]string, len(pods))
-		for i, pod := range pods {
-			podNames[i] = pod.(*v1.Pod).ObjectMeta.Name
+	if len(pods) == 0 {
+		metrics.PodNotFoundInCache.Inc()
+		if k8s.useAPIOnCacheIssues {
+			pod, err := getPodFromAPIByIP(k8s, IP)
+			if err != nil {
+				return nil, err
+			}
+			return pod, nil
 		}
-		return nil, fmt.Errorf("%d pods (%v) with the ip %s indexed", len(pods), podNames, IP)
+		return nil, fmt.Errorf("pod with specificed IP not found")
 	}
-	pod, err := resolveDuplicatedIP(k8s, IP)
-	if err != nil {
-		return nil, err
+
+	// more than one pod in the cache
+	if k8s.useAPIOnCacheIssues {
+		pod, err := getPodFromAPIByIP(k8s, IP)
+		if err != nil {
+			return nil, err
+		}
+		return pod, nil
 	}
-	return pod, nil
+	podNames := make([]string, len(pods))
+	for i, pod := range pods {
+		podNames[i] = pod.(*v1.Pod).ObjectMeta.Name
+	}
+	return nil, fmt.Errorf("%d pods (%v) with the ip %s indexed", len(pods), podNames, IP)
+
 }
 
-// resolveDuplicatedIP queries the k8s api server trying to make a decision based on NON cached data
+// getPodFromAPIByIP queries the k8s api server trying to make a decision based on NON cached data
 // If the indexed pods all have HostNetwork = true the function return nil and the error message.
 // If we retrive a running pod that doesn't have HostNetwork = true and it is in Running state will return that.
-func resolveDuplicatedIP(k8s *Client, IP string) (*v1.Pod, error) {
-	runningPodList, err := k8s.CoreV1().Pods("").List(metav1.ListOptions{
-		FieldSelector: selector.OneTermEqualSelector("status.podIP", IP).String(),
-	})
-	metrics.K8sAPIDupReqCount.Inc()
+func getPodFromAPIByIP(k8s *Client, IP string) (*v1.Pod, error) {
+	sel, err := selector.ParseSelector(fmt.Sprintf("status.podIP=%s,status.phase=Running,spec.nodeName=%s", IP, k8s.nodeName))
 	if err != nil {
-		return nil, fmt.Errorf("resolveDuplicatedIP: Error retriving the pod with IP %s from the k8s api", IP)
+		return nil, fmt.Errorf("Error Parsing pod discovery selectors")
+	}
+	runningPodList, err := k8s.CoreV1().Pods("").List(metav1.ListOptions{
+		FieldSelector: sel.String(),
+	})
+	metrics.K8sAPIReqCount.Inc()
+	if err != nil {
+		return nil, fmt.Errorf("getPodFromAPIByIP: Error retriving the pod with IP %s from the k8s api", IP)
 	}
 	for _, pod := range runningPodList.Items {
-		if !pod.Spec.HostNetwork && string(pod.Status.Phase) == "Running" {
-			metrics.K8sAPIDupReqSuccesCount.Inc()
+		if !pod.Spec.HostNetwork {
+			metrics.K8sAPIReqSuccesCount.Inc()
 			return &pod, nil
 		}
 	}
@@ -153,7 +166,7 @@ func (k8s *Client) NamespaceByName(namespaceName string) (*v1.Namespace, error) 
 }
 
 // NewClient returns a new kubernetes client.
-func NewClient(host, token, nodeName string, insecure, resolveDupIPs bool) (*Client, error) {
+func NewClient(host, token, nodeName string, insecure, UseAPIOnCacheIssues bool) (*Client, error) {
 	var config *rest.Config
 	var err error
 	if host != "" && token != "" {
@@ -174,5 +187,5 @@ func NewClient(host, token, nodeName string, insecure, resolveDupIPs bool) (*Cli
 	if err != nil {
 		return nil, err
 	}
-	return &Client{Clientset: client, nodeName: nodeName, resolveDupIPs: resolveDupIPs}, nil
+	return &Client{Clientset: client, nodeName: nodeName, useAPIOnCacheIssues: UseAPIOnCacheIssues}, nil
 }

@@ -37,7 +37,7 @@ const (
 	defaultMetadataAddress            = "169.254.169.254"
 	defaultNamespaceKey               = "iam.amazonaws.com/allowed-roles"
 	defaultCacheResyncPeriod          = 30 * time.Minute
-	defaultResolveDupIPs              = false
+	defaultUseAPIOnCacheIssues        = false
 	defaultNamespaceRestrictionFormat = "glob"
 	healthcheckInterval               = 30 * time.Second
 )
@@ -66,7 +66,7 @@ type Server struct {
 	LogLevel                   string
 	LogFormat                  string
 	NamespaceRestrictionFormat string
-	ResolveDupIPs              bool
+	UseAPIOnCacheIssues        bool
 	UseRegionalStsEndpoint     bool
 	AddIPTablesRule            bool
 	AutoDiscoverBaseArn        bool
@@ -371,7 +371,7 @@ func write(logger *log.Entry, w http.ResponseWriter, s string) {
 
 // Run runs the specified Server.
 func (s *Server) Run(host, token, nodeName string, insecure bool) error {
-	k, err := k8s.NewClient(host, token, nodeName, insecure, s.ResolveDupIPs)
+	k, err := k8s.NewClient(host, token, nodeName, insecure, s.UseAPIOnCacheIssues)
 	if err != nil {
 		return err
 	}
@@ -441,7 +441,7 @@ func NewServer() *Server {
 		MetadataAddress:            defaultMetadataAddress,
 		NamespaceKey:               defaultNamespaceKey,
 		CacheResyncPeriod:          defaultCacheResyncPeriod,
-		ResolveDupIPs:              defaultResolveDupIPs,
+		UseAPIOnCacheIssues:        defaultUseAPIOnCacheIssues,
 		NamespaceRestrictionFormat: defaultNamespaceRestrictionFormat,
 		HealthcheckFailReason:      "Healthcheck not yet performed",
 		IAMRoleSessionTTL:          defaultIAMRoleSessionTTL,

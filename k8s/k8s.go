@@ -6,6 +6,7 @@ import (
 
 	"github.com/jtblin/kube2iam"
 	"github.com/jtblin/kube2iam/metrics"
+	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	selector "k8s.io/apimachinery/pkg/fields"
@@ -106,7 +107,9 @@ func (k8s *Client) PodByIP(IP string) (*v1.Pod, error) {
 			}
 			return pod, nil
 		}
-		return nil, fmt.Errorf("pod with specificed IP not found")
+		errMsg := fmt.Errorf("pod with specificed IP not found")
+		log.Error(errMsg)
+		return nil, errMsg
 	}
 
 	// more than one pod in the cache
@@ -121,7 +124,9 @@ func (k8s *Client) PodByIP(IP string) (*v1.Pod, error) {
 	for i, pod := range pods {
 		podNames[i] = pod.(*v1.Pod).ObjectMeta.Name
 	}
-	return nil, fmt.Errorf("%d pods (%v) with the ip %s indexed", len(pods), podNames, IP)
+	errMsg := fmt.Errorf("%d pods (%v) with the ip %s indexed", len(pods), podNames, IP)
+	log.Error(errMsg)
+	return nil, errMsg
 
 }
 
@@ -131,14 +136,18 @@ func (k8s *Client) PodByIP(IP string) (*v1.Pod, error) {
 func getPodFromAPIByIP(k8s *Client, IP string) (*v1.Pod, error) {
 	sel, err := selector.ParseSelector(fmt.Sprintf("status.podIP=%s,status.phase=Running,spec.nodeName=%s", IP, k8s.nodeName))
 	if err != nil {
-		return nil, fmt.Errorf("Error Parsing pod discovery selectors")
+		errMsg := fmt.Errorf("Error Parsing pod discovery selectors")
+		log.Error(errMsg)
+		return nil, errMsg
 	}
 	runningPodList, err := k8s.CoreV1().Pods("").List(metav1.ListOptions{
 		FieldSelector: sel.String(),
 	})
 	metrics.K8sAPIReqCount.Inc()
 	if err != nil {
-		return nil, fmt.Errorf("getPodFromAPIByIP: Error retriving the pod with IP %s from the k8s api", IP)
+		errMsg := fmt.Errorf("getPodFromAPIByIP: Error retriving the pod with IP %s from the k8s api", IP)
+		log.Error(errMsg)
+		return nil, errMsg
 	}
 	for _, pod := range runningPodList.Items {
 		if !pod.Spec.HostNetwork {
@@ -146,8 +155,10 @@ func getPodFromAPIByIP(k8s *Client, IP string) (*v1.Pod, error) {
 			return &pod, nil
 		}
 	}
-	error := fmt.Errorf("more than a pod with the same IP has been indexed, this can happen when pods have hostNetwork: true")
-	return nil, error
+
+	errMsg := fmt.Errorf("more than a pod with the same IP has been indexed, this can happen when pods have hostNetwork: true")
+	log.Error(errMsg)
+	return nil, errMsg
 }
 
 // NamespaceByName retrieves a namespace by it's given name.
@@ -159,7 +170,9 @@ func (k8s *Client) NamespaceByName(namespaceName string) (*v1.Namespace, error) 
 	}
 
 	if len(namespace) == 0 {
-		return nil, fmt.Errorf("namespace was not found")
+		errMsg := fmt.Errorf("namespace was not found")
+		log.Error(errMsg)
+		return nil, errMsg
 	}
 
 	return namespace[0].(*v1.Namespace), nil

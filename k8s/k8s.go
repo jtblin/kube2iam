@@ -134,7 +134,9 @@ func (k8s *Client) PodByIP(IP string) (*v1.Pod, error) {
 // If the indexed pods all have HostNetwork = true the function return nil and the error message.
 // If we retrive a running pod that doesn't have HostNetwork = true and it is in Running state will return that.
 func getPodFromAPIByIP(k8s *Client, IP string) (*v1.Pod, error) {
-	sel, err := selector.ParseSelector(fmt.Sprintf("status.podIP=%s,status.phase=Running,spec.nodeName=%s", IP, k8s.nodeName))
+	searchSelector := fmt.Sprintf("status.podIP=%s,status.phase=Running,spec.nodeName=%s", IP, k8s.nodeName)
+	log.Infof("getPodFromAPIByIP: Searching for: %s", searchSelector)
+	sel, err := selector.ParseSelector(searchSelector)
 	if err != nil {
 		errMsg := fmt.Errorf("Error Parsing pod discovery selectors")
 		log.Error(errMsg)

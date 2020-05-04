@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -41,6 +42,8 @@ const (
 	defaultNamespaceRestrictionFormat = "glob"
 	healthcheckInterval               = 30 * time.Second
 )
+
+var tokenRouteRegexp = regexp.MustCompile("^/?[^/]+/api/token$")
 
 // Keeps track of the names of registered handlers for metric value/label initialization
 var registeredHandlerNames []string
@@ -358,6 +361,12 @@ func (s *Server) roleHandler(logger *log.Entry, w http.ResponseWriter, r *http.R
 }
 
 func (s *Server) reverseProxyHandler(logger *log.Entry, w http.ResponseWriter, r *http.Request) {
+	// Remove remoteaddr to prevent issues with new IMDSv2 to fail when x-forwarded-for header is present
+	// for more details please see: https://github.com/aws/aws-sdk-ruby/issues/2177 https://github.com/uswitch/kiam/issues/359
+	if r.Method == http.MethodPut && tokenRouteRegexp.MatchString(r.URL.Path) {
+		r.RemoteAddr = ""
+	}
+
 	proxy := httputil.NewSingleHostReverseProxy(&url.URL{Scheme: "http", Host: s.MetadataAddress})
 	proxy.ServeHTTP(w, r)
 	logger.WithField("metadata.url", s.MetadataAddress).Debug("Proxy ec2 metadata request")

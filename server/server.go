@@ -428,7 +428,7 @@ func (s *Server) Run(host, token, nodeName string, insecure bool) error {
 	}
 
 	// This has to be registered last so that it catches fall-throughs
-	r.Handle("/{path:.*}", newAppHandler("reverseProxyHandler", s.reverseProxyHandler))
+	r.Handle("/{path:.*}", newAppHandler("reverseProxyHandler", s.reverseProxyHandler)).Methods("GET")
 
 	log.Infof("Listening on port %s", s.AppPort)
 	if err := http.ListenAndServe(":"+s.AppPort, r); err != nil {

@@ -9,5 +9,8 @@ FROM alpine:3.11.3
 RUN apk --no-cache add \
     ca-certificates \
     iptables
+RUN apk upgrade --update-cache --available && \
+    apk add openssl && \
+    rm -rf /var/cache/apk/*
 COPY --from=BUILDER /go/src/github.com/jtblin/kube2iam/build/bin/linux/kube2iam /bin/kube2iam
 ENTRYPOINT ["kube2iam"]

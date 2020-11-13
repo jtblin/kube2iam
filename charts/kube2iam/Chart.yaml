@@ -12,10 +12,6 @@ home: https://github.com/jtblin/kube2iam
 sources:
 - https://github.com/jtblin/kube2iam
 maintainers:
-- name: jmcarp
-  email: jm.carp@gmail.com
-- name: icereval
-  email: michael.haselton@gmail.com
-- name: mgoodness
-  email: mgoodness@gmail.com
+- name: mariusv
+  email: myself@mariusv.com
 engine: gotpl

@@ -1,7 +1,3 @@
-# ⚠️ Repo Archive Notice
-
-As of Nov 13, 2020, charts in this repo will no longer be updated.
-For more information, see the Helm Charts [Deprecation and Archive Notice](https://github.com/helm/charts#%EF%B8%8F-deprecation-and-archive-notice), and [Update](https://helm.sh/blog/charts-repo-deprecation/).
 
 # kube2iam
 
@@ -10,7 +6,7 @@ Installs [kube2iam](https://github.com/jtblin/kube2iam) to provide IAM credentia
 ## TL;DR;
 
 ```console
-$ helm install stable/kube2iam
+$ helm install kube2iam/kube2iam
 ```
 
 ## Introduction
@@ -20,12 +16,13 @@ This chart bootstraps a [kube2iam](https://github.com/jtblin/kube2iam) deploymen
 ## Prerequisites
   - Kubernetes 1.4+ with Beta APIs enabled
 
-## Installing the Chart
+## Add repos & install the Chart
 
 To install the chart with the release name `my-release`:
 
 ```console
-$ helm install stable/kube2iam --name my-release
+$ helm repo add kube2iam https://kube2iam.github.io/charts/
+$ helm install kube2iam/kube2iam --name my-release
 ```
 
 The command deploys kube2iam on the Kubernetes cluster in the default configuration. The [configuration](#configuration) section lists the parameters that can be configured during installation.

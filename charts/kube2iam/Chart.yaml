@@ -1,0 +1,18 @@
+apiVersion: v1
+name: kube2iam
+version: 2.5.2
+appVersion: 0.10.9
+description: Provide IAM credentials to pods based on annotations.
+keywords:
+- kube2iam
+- aws
+- iam
+- security
+home: https://github.com/jtblin/kube2iam
+sources:
+- https://github.com/jtblin/kube2iam
+maintainers:
+- name: mariusv
+  email: myself@mariusv.com
+
+engine: gotpl

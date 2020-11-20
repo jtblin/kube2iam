@@ -127,6 +127,14 @@ resources: {}
   #   cpu: 50m
   #   memory: 64Mi
 
+# -- Pod lifecycle hooks
+lifecycle:
+  preStop:
+    exec:
+      command: [
+        "/bin/sh", "-c", "eval `iptables-save | grep 169.254.169.254 | sed s/-A/'iptables -t nat -D'/g`"
+      ]
+
 # -- Strategy for DaemonSet updates (ref: https://kubernetes.io/docs/tasks/manage-daemon/update-daemon-set/)
 updateStrategy: OnDelete
 

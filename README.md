@@ -736,5 +736,5 @@ Jerome Touffe-Blin, [@jtblin](https://twitter.com/jtblin), [About me](http://abo
 
 # License
 
-kube2iam is copyright 2017 Jerome Touffe-Blin and contributors.
+kube2iam is copyright 2020 Jerome Touffe-Blin and contributors.
 It is licensed under the BSD license. See the included LICENSE file for details.

@@ -84,14 +84,14 @@ Parameter | Description | Default
 `podSecurityPolicy.enabled` | If true, create a podSecurityPolicy object. For the pods to use the psp, rbac.create should also be set to true | `false`
 `podSecurityPolicy.annotations` | The annotations to add to the podSecurityPolicy object | `{}`
 
-Specify each parameter using the `--set key=value[,key=value]` argument to `helm install`. For example,
+Specify each parameter using the `--set key=value[,key=value]` argument to `helm install`. For example:
 
 ```console
 $ helm install stable/kube2iam --name my-release \
   --set=extraArgs.base-role-arn=arn:aws:iam::0123456789:role/,extraArgs.default-role=kube2iam-default,host.iptables=true,host.interface=cbr0
 ```
 
-Alternatively, a YAML file that specifies the values for the above parameters can be provided while installing the chart. For example,
+Alternatively, a YAML file that specifies the values for the above parameters can be provided while installing the chart. For example:
 
 ```console
 $ helm install stable/kube2iam --name my-release -f values.yaml

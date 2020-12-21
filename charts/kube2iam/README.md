@@ -21,7 +21,7 @@ This chart bootstraps a [kube2iam](https://github.com/jtblin/kube2iam) deploymen
 To install the chart with the release name `my-release`:
 
 ```console
-$ helm repo add kube2iam https://kube2iam.github.io/charts/
+$ helm repo add kube2iam https://jtblin.github.io/kube2iam/
 $ helm install kube2iam/kube2iam --name my-release
 ```
 

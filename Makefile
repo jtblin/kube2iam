@@ -10,7 +10,9 @@ GIT_HASH := $$(git rev-parse --short HEAD)
 GOBUILD_VERSION_ARGS := -ldflags "-s -X $(VERSION_VAR)=$(REPO_VERSION) -X $(GIT_VAR)=$(GIT_HASH) -X $(BUILD_DATE_VAR)=$(BUILD_DATE)"
 # useful for other docker repos
 DOCKER_REPO ?= jtblin
-IMAGE_NAME := $(DOCKER_REPO)/$(BINARY_NAME)
+CPU_ARCH ?= amd64
+IMAGE_NAME := $(DOCKER_REPO)/$(BINARY_NAME)-$(CPU_ARCH)
+MANIFEST_NAME := $(DOCKER_REPO)/$(BINARY_NAME)
 ARCH ?= darwin
 GOLANGCI_LINT_VERSION ?= v1.23.8
 GOLANGCI_LINT_CONCURRENCY ?= 4
@@ -86,6 +88,17 @@ ifeq (, $(findstring -rc, $(REPO_VERSION)))
 	docker tag $(IMAGE_NAME):$(GIT_HASH) $(IMAGE_NAME):latest
 	docker push $(IMAGE_NAME):latest
 endif
+
+release-manifest:
+	for tag in latest $(REPO_VERSION); do \
+	  for arch in amd64 arm64; do \
+		  docker pull $(MANIFEST_NAME)-$$arch:$$tag; \
+		done; \
+	  docker manifest create $(MANIFEST_NAME):$$tag --amend \
+		  $(MANIFEST_NAME)-amd64:$$tag \
+		  $(MANIFEST_NAME)-arm64:$$tag; \
+	  docker manifest push $(MANIFEST_NAME):$$tag; \
+	done
 
 version:
 	@echo $(REPO_VERSION)

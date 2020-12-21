@@ -14,5 +14,4 @@ sources:
 maintainers:
 - name: mariusv
   email: myself@mariusv.com
-
 engine: gotpl

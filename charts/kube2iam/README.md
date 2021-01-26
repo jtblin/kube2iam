@@ -74,6 +74,7 @@ Parameter | Description | Default
 `rbac.serviceAccountName` | existing ServiceAccount to use (ignored if rbac.create=true) | `default`
 `resources` | pod resource requests & limits | `{}`
 `updateStrategy` | Strategy for DaemonSet updates (requires Kubernetes 1.6+) | `OnDelete`
+`maxUnavailable` | Maximum number of pods to be unavailable during an update. It can be an absolute number or a percentage. | `1`
 `verbose` | Enable verbose output | `false`
 `tolerations` | List of node taints to tolerate (requires Kubernetes 1.6+) | `[]`
 `aws.secret_key` | The value to use for AWS_SECRET_ACCESS_KEY | `""`

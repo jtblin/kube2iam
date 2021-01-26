@@ -102,6 +102,11 @@ resources: {}
 ##
 updateStrategy: OnDelete
 
+## Maximum number of Pods that can be unavailable during the update process
+## when using updateStrategy: RollingUpdate
+## Ref: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#max-unavailable
+maxUnavailable: 1
+
 verbose: false
 
 tolerations: []

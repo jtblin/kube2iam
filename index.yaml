@@ -3,6 +3,26 @@ entries:
   kube2iam:
   - apiVersion: v1
     appVersion: 0.10.9
+    created: "2021-01-26T17:47:21.588539539Z"
+    description: Provide IAM credentials to pods based on annotations.
+    digest: c4c49611dd80040d30a7c4434c5d054bbb8917db895d844a951aed26976792b4
+    home: https://github.com/jtblin/kube2iam
+    keywords:
+    - kube2iam
+    - aws
+    - iam
+    - security
+    maintainers:
+    - email: myself@mariusv.com
+      name: mariusv
+    name: kube2iam
+    sources:
+    - https://github.com/jtblin/kube2iam
+    urls:
+    - https://github.com/jtblin/kube2iam/releases/download/kube2iam-2.6.0/kube2iam-2.6.0.tgz
+    version: 2.6.0
+  - apiVersion: v1
+    appVersion: 0.10.9
     created: "2020-12-21T03:21:41.695334065Z"
     description: Provide IAM credentials to pods based on annotations.
     digest: 6f9e9b6ffe52778b14e7895199918ac6f52ce09b33d7675858aaaf7a508379bb

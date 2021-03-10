@@ -21,10 +21,10 @@ GOLANGCI_LINT_DEADLINE ?= 180
 DOCKER_BUILD_FLAGS :=
 
 setup:
-	go get -v -u golang.org/x/tools/cmd/goimports
+	go install golang.org/x/tools/cmd/goimports
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $$(go env GOPATH)/bin v1.23.8
-	go get -v -u github.com/jstemmer/go-junit-report
-	go get -v github.com/mattn/goveralls
+	go install github.com/jstemmer/go-junit-report
+	go install github.com/mattn/goveralls
 
 build: *.go fmt
 	go build -o build/bin/$(ARCH)/$(BINARY_NAME) $(GOBUILD_VERSION_ARGS) github.com/jtblin/$(BINARY_NAME)/cmd

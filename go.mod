@@ -10,7 +10,6 @@ require (
 	github.com/go-ini/ini v0.0.0-20151119163333-2e44421e256d // indirect
 	github.com/gorilla/context v1.1.1 // indirect
 	github.com/gorilla/mux v0.0.0-20160920230813-757bef944d0f
-	github.com/jmespath/go-jmespath v0.0.0-20151117175822-3433f3ea46d9 // indirect
 	github.com/jstemmer/go-junit-report v0.9.1 // indirect
 	github.com/karlseguin/ccache v2.0.1-0.20160708030345-2f6b517f7bea+incompatible
 	github.com/karlseguin/expect v1.0.1 // indirect
@@ -25,7 +24,6 @@ require (
 	github.com/smartystreets/goconvey v1.6.4 // indirect
 	github.com/spf13/pflag v1.0.5
 	github.com/wsxiaoys/terminal v0.0.0-20160513160801-0940f3fc43a0 // indirect
-	golang.org/x/sys v0.0.0-20200302150141-5c8b2ff67527 // indirect
 	golang.org/x/tools v0.0.0-20200304193943-95d2e580d8eb // indirect
 	gopkg.in/airbrake/gobrake.v2 v2.0.9 // indirect
 	gopkg.in/gemnasium/logrus-airbrake-hook.v2 v2.1.2 // indirect

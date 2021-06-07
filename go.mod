@@ -3,7 +3,7 @@ module github.com/jtblin/kube2iam
 go 1.14
 
 require (
-	github.com/aws/aws-sdk-go v1.8.7
+	github.com/aws/aws-sdk-go v1.38.55
 	github.com/beorn7/perks v0.0.0-20160804104726-4c0e84591b9a // indirect
 	github.com/cenk/backoff v1.0.1-0.20160904140958-8edc80b07f38
 	github.com/coreos/go-iptables v0.1.0

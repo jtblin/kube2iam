@@ -364,7 +364,7 @@ func (s *Server) reverseProxyHandler(logger *log.Entry, w http.ResponseWriter, r
 	// Remove remoteaddr to prevent issues with new IMDSv2 to fail when x-forwarded-for header is present
 	// for more details please see: https://github.com/aws/aws-sdk-ruby/issues/2177 https://github.com/uswitch/kiam/issues/359
 	token := r.Header.Get("X-aws-ec2-metadata-token")
-	if (r.Method == http.MethodPut && tokenRouteRegexp.MatchString(r.URL.Path)) || (r.Method == http.MethodGet && token != "") {
+	if (r.Method == http.MethodPut && tokenRouteRegexp.MatchString(r.URL.Path)) || (r.Method == http.MethodGet) {
 		r.RemoteAddr = ""
 	}
 

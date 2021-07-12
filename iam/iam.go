@@ -128,7 +128,8 @@ func (iam *Client) EndpointFor(service, region string, optFns ...func(*endpoints
 // AssumeRole returns an IAM role Credentials using AWS STS.
 func (iam *Client) AssumeRole(roleARN, externalID string, remoteIP string, sessionTTL time.Duration) (*Credentials, error) {
 	hitCache := true
-	item, err := cache.Fetch(roleARN, sessionTTL, func() (interface{}, error) {
+	cacheKey := fmt.Sprintf("externalID/%s/roleARN/%s", externalID, roleARN)
+	item, err := cache.Fetch(cacheKey, sessionTTL, func() (interface{}, error) {
 		hitCache = false
 
 		// Set up a prometheus timer to track the AWS request duration. It stores the timer value when

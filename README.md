@@ -146,6 +146,7 @@ different than `docker0` depending on which virtual network you use e.g.
 * for kops (on kubenet), use `cbr0`
 * for CNI, use `cni0`
 * for [EKS](https://docs.aws.amazon.com/eks/latest/userguide/what-is-eks.html)/[amazon-vpc-cni-k8s](https://github.com/aws/amazon-vpc-cni-k8s), even with calico installed uses `eni+`. (Each pod gets an interface like `eni4c0e15dfb05`)
+  * If using security groups per pod however, you will need to instead use `!eth0` as pods making use of security groups per pod [will use](https://aws.amazon.com/blogs/containers/introducing-security-groups-for-pods/) `vlan` interfaces as well as the `eni+` interfaces used for other pods.
 * for weave use `weave`
 * for flannel use `cni0`
 * for [kube-router](https://github.com/cloudnativelabs/kube-router) use `kube-bridge`

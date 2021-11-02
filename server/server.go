@@ -41,6 +41,7 @@ const (
 	defaultResolveDupIPs              = false
 	defaultNamespaceRestrictionFormat = "glob"
 	healthcheckInterval               = 30 * time.Second
+	defaultStsVpcEndpoint             = ""
 )
 
 var tokenRouteRegexp = regexp.MustCompile("^/?[^/]+/api/token$")
@@ -87,6 +88,7 @@ type Server struct {
 	InstanceID                 string
 	HealthcheckFailReason      string
 	healthcheckTicker          *time.Ticker
+	StsVpcEndPoint             string
 }
 
 type appHandlerFunc func(*log.Entry, http.ResponseWriter, *http.Request)
@@ -302,7 +304,7 @@ func (s *Server) securityCredentialsHandler(logger *log.Entry, w http.ResponseWr
 	remoteIP := parseRemoteAddr(r.RemoteAddr)
 	roleMapping, err := s.getRoleMapping(remoteIP)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -321,7 +323,7 @@ func (s *Server) roleHandler(logger *log.Entry, w http.ResponseWriter, r *http.R
 
 	roleMapping, err := s.getRoleMapping(remoteIP)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -386,7 +388,7 @@ func (s *Server) Run(host, token, nodeName string, insecure bool) error {
 		return err
 	}
 	s.k8s = k
-	s.iam = iam.NewClient(s.BaseRoleARN, s.UseRegionalStsEndpoint)
+	s.iam = iam.NewClient(s.BaseRoleARN, s.UseRegionalStsEndpoint, s.StsVpcEndPoint)
 	log.Debugln("Caches have been synced.  Proceeding with server.")
 	s.roleMapper = mappings.NewRoleMapper(s.IAMRoleKey, s.IAMExternalID, s.DefaultIAMRole, s.NamespaceRestriction, s.NamespaceKey, s.iam, s.k8s, s.NamespaceRestrictionFormat)
 	log.Debugf("Starting pod and namespace sync jobs with %s resync period", s.CacheResyncPeriod.String())
@@ -455,5 +457,6 @@ func NewServer() *Server {
 		NamespaceRestrictionFormat: defaultNamespaceRestrictionFormat,
 		HealthcheckFailReason:      "Healthcheck not yet performed",
 		IAMRoleSessionTTL:          defaultIAMRoleSessionTTL,
+		StsVpcEndPoint:             defaultStsVpcEndpoint,
 	}
 }

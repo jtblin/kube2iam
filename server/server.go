@@ -32,9 +32,9 @@ const (
 	defaultIAMExternalID              = "iam.amazonaws.com/external-id"
 	defaultLogLevel                   = "info"
 	defaultLogFormat                  = "text"
-	defaultMaxElapsedTime             = 2 * time.Second
+	defaultMaxElapsedTime             = 500 * time.Millisecond
 	defaultIAMRoleSessionTTL          = 15 * time.Minute
-	defaultMaxInterval                = 1 * time.Second
+	defaultMaxInterval                = 100 * time.Millisecond
 	defaultMetadataAddress            = "169.254.169.254"
 	defaultNamespaceKey               = "iam.amazonaws.com/allowed-roles"
 	defaultCacheResyncPeriod          = 30 * time.Minute
@@ -88,7 +88,6 @@ type Server struct {
 	InstanceID                 string
 	HealthcheckFailReason      string
 	healthcheckTicker          *time.Ticker
-	StsVpcEndPoint             string
 }
 
 type appHandlerFunc func(*log.Entry, http.ResponseWriter, *http.Request)
@@ -388,7 +387,7 @@ func (s *Server) Run(host, token, nodeName string, insecure bool) error {
 		return err
 	}
 	s.k8s = k
-	s.iam = iam.NewClient(s.BaseRoleARN, s.UseRegionalStsEndpoint, s.StsVpcEndPoint)
+	s.iam = iam.NewClient(s.BaseRoleARN, s.UseRegionalStsEndpoint)
 	log.Debugln("Caches have been synced.  Proceeding with server.")
 	s.roleMapper = mappings.NewRoleMapper(s.IAMRoleKey, s.IAMExternalID, s.DefaultIAMRole, s.NamespaceRestriction, s.NamespaceKey, s.iam, s.k8s, s.NamespaceRestrictionFormat)
 	log.Debugf("Starting pod and namespace sync jobs with %s resync period", s.CacheResyncPeriod.String())
@@ -457,6 +456,5 @@ func NewServer() *Server {
 		NamespaceRestrictionFormat: defaultNamespaceRestrictionFormat,
 		HealthcheckFailReason:      "Healthcheck not yet performed",
 		IAMRoleSessionTTL:          defaultIAMRoleSessionTTL,
-		StsVpcEndPoint:             defaultStsVpcEndpoint,
 	}
 }

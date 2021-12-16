@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"hash/fnv"
+	"net/http"
 	"strings"
 	"time"
 
@@ -28,7 +29,6 @@ type Client struct {
 	BaseARN             string
 	Endpoint            string
 	UseRegionalEndpoint bool
-	StsVpcEndPoint      string
 }
 
 // Credentials represent the security Credentials response.
@@ -116,11 +116,7 @@ func (iam *Client) EndpointFor(service, region string, optFns ...func(*endpoints
 	if service == "sts" {
 		// only if a valid region is explicitly set
 		if IsValidRegion(region) {
-			if len(iam.StsVpcEndPoint) > 0 {
-				iam.Endpoint = iam.StsVpcEndPoint
-			} else {
-				iam.Endpoint = GetEndpointFromRegion(region)
-			}
+			iam.Endpoint = GetEndpointFromRegion(region)
 			return endpoints.ResolvedEndpoint{
 				URL:           iam.Endpoint,
 				SigningRegion: region,
@@ -150,6 +146,10 @@ func (iam *Client) AssumeRole(roleARN, externalID string, remoteIP string, sessi
 			return nil, err
 		}
 		config := aws.NewConfig().WithLogLevel(2)
+		config.HTTPClient = &http.Client{
+			Timeout: 100 * time.Millisecond,
+		}
+
 		if iam.UseRegionalEndpoint {
 			config = config.WithEndpointResolver(iam)
 		}
@@ -188,11 +188,10 @@ func (iam *Client) AssumeRole(roleARN, externalID string, remoteIP string, sessi
 }
 
 // NewClient returns a new IAM client.
-func NewClient(baseARN string, regional bool, stsVpcEndPoint string) *Client {
+func NewClient(baseARN string, regional bool) *Client {
 	return &Client{
 		BaseARN:             baseARN,
 		Endpoint:            "sts.amazonaws.com",
 		UseRegionalEndpoint: regional,
-		StsVpcEndPoint:      stsVpcEndPoint,
 	}
 }

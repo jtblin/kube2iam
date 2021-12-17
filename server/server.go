@@ -26,15 +26,26 @@ import (
 )
 
 const (
-	defaultAppPort                    = "8181"
-	defaultCacheSyncAttempts          = 10
-	defaultIAMRoleKey                 = "iam.amazonaws.com/role"
-	defaultIAMExternalID              = "iam.amazonaws.com/external-id"
-	defaultLogLevel                   = "info"
-	defaultLogFormat                  = "text"
-	defaultMaxElapsedTime             = 500 * time.Millisecond
-	defaultIAMRoleSessionTTL          = 15 * time.Minute
-	defaultMaxInterval                = 100 * time.Millisecond
+	defaultAppPort           = "8181"
+	defaultCacheSyncAttempts = 10
+	defaultIAMRoleKey        = "iam.amazonaws.com/role"
+	defaultIAMExternalID     = "iam.amazonaws.com/external-id"
+	defaultLogLevel          = "info"
+	defaultLogFormat         = "text"
+
+	// Choosing the larger value for max elasped time will have the impact on downstream API latency
+	// The default EC2 metadata timeout is 1 second, hence choosing the value less than 1 second
+	// The downstream API will by default retries 3 times
+	defaultMaxElapsedTime = 500 * time.Millisecond
+
+	defaultIAMRoleSessionTTL = 15 * time.Minute
+
+	// The max interval specifies the operation to be completed with in this time period
+	// The shared informer has to populate the cache with in this interval based on the Pod events
+	// If the Pod event is not received, the operation will error out and
+	// the exponential backoff will retry untill the max elasped time
+	defaultMaxInterval = 100 * time.Millisecond
+
 	defaultMetadataAddress            = "169.254.169.254"
 	defaultNamespaceKey               = "iam.amazonaws.com/allowed-roles"
 	defaultCacheResyncPeriod          = 30 * time.Minute

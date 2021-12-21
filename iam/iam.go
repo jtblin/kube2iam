@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"hash/fnv"
+	"net/http"
 	"strings"
 	"time"
 
@@ -145,6 +146,14 @@ func (iam *Client) AssumeRole(roleARN, externalID string, remoteIP string, sessi
 			return nil, err
 		}
 		config := aws.NewConfig().WithLogLevel(2)
+		config.HTTPClient = &http.Client{
+			// The AWS default http time out is zero, which means the request will never time out
+			// This behaviour will cause the latency issues at downstream
+			// Based on the behaviour of downstream we can decide to choose the minimal time out something less than one second
+			// By default the AWS standard retryer will tries 3 times, every time the timeout exceeds
+			Timeout: 100 * time.Millisecond,
+		}
+
 		if iam.UseRegionalEndpoint {
 			config = config.WithEndpointResolver(iam)
 		}

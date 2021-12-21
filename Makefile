@@ -26,7 +26,7 @@ setup:
 	go install github.com/jstemmer/go-junit-report
 	go install github.com/mattn/goveralls
 
-build: *.go fmt
+build:
 	go build -o build/bin/$(ARCH)/$(BINARY_NAME) $(GOBUILD_VERSION_ARGS) github.com/jtblin/$(BINARY_NAME)/cmd
 
 build-race: *.go fmt

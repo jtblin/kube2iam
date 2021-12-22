@@ -72,9 +72,16 @@ priorityClassName: ""
 
 podLabels: {}
 
-probe:
+livenessProbe:
   enabled: true
   initialDelaySeconds: 30
+  periodSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+  timeoutSeconds: 1
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 0
   periodSeconds: 5
   successThreshold: 1
   failureThreshold: 3

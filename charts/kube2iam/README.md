@@ -54,6 +54,12 @@ Parameter | Description | Default
 `image.tag` | Image tag | `0.10.7`
 `image.pullPolicy` | Image pull policy | `IfNotPresent`
 `image.pullSecrets` | Image pull secrets | `[]`
+`livenessProbe.enabled`|Enable/disable pod liveness probe|`true`
+`livenessProbe.initialDelaySeconds`|Liveness probe initial delay|`30`
+`livenessProbe.periodSeconds`|Liveness probe check inteval|`5`
+`livenessProbe.successThreshold`|Liveness probe success threshold|`1`
+`livenessProbe.failureThreshold`|Liveness probe fail threshold|`3`
+`livenessProbe.timeoutSeconds`|Livenees probe timeout|`1`
 `nodeSelector` | node labels for pod assignment | `{}`
 `podAnnotations` | annotations to be added to pods | `{}`
 `priorityClassName` | priorityClassName to be added to pods | `{}`
@@ -64,14 +70,14 @@ Parameter | Description | Default
 `prometheus.serviceMonitor.interval` | Interval at which the metrics endpoint is scraped | `10s`
 `prometheus.serviceMonitor.namespace` | An alternative namespace in which to install the ServiceMonitor | `""`
 `prometheus.serviceMonitor.labels` | Labels to add to the ServiceMonitor | `{}`
-`probe.enabled`|Enable/disable pod liveness probe|`true`
-`probe.initialDelaySeconds`|Liveness probe initial delay|`30`
-`probe.periodSeconds`|Liveness probe check inteval|`5`
-`probe.successThreshold`|Liveness probe success threshold|`1`
-`probe.failureThreshold`|Liveness probe fail threshold|`3`
-`probe.timeoutSeconds`|Livenees probe timeout|`1`
 `rbac.create` | If true, create & use RBAC resources | `false`
 `rbac.serviceAccountName` | existing ServiceAccount to use (ignored if rbac.create=true) | `default`
+`readinessProbe.enabled`|Enable/disable pod readiness probe|`true`
+`readinessProbe.initialDelaySeconds`|Readiness probe initial delay|`0
+`readinessProbe.periodSeconds`|Readiness probe check inteval|`5`
+`readinessProbe.successThreshold`|Readiness probe success threshold|`1`
+`readinessProbe.failureThreshold`|Readiness probe fail threshold|`3`
+`readinessProbe.timeoutSeconds`|Livenees probe timeout|`1`
 `resources` | pod resource requests & limits | `{}`
 `updateStrategy` | Strategy for DaemonSet updates (requires Kubernetes 1.6+) | `OnDelete`
 `maxUnavailable` | Maximum number of pods to be unavailable during an update. It can be an absolute number or a percentage. | `1`

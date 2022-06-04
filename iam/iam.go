@@ -87,44 +87,6 @@ func getIAMCode(err error) string {
 	return metrics.IamSuccessCode
 }
 
-// GetEndpointFromRegion formas a standard sts endpoint url given a region
-func GetEndpointFromRegion(region string) string {
-	endpoint := fmt.Sprintf("https://sts.%s.amazonaws.com", region)
-	if strings.HasPrefix(region, "cn-") {
-		endpoint = fmt.Sprintf("https://sts.%s.amazonaws.com.cn", region)
-	}
-	return endpoint
-}
-
-// IsValidRegion tests for a vaild region name
-func IsValidRegion(promisedLand string) bool {
-	partitions := endpoints.DefaultResolver().(endpoints.EnumPartitions).Partitions()
-	for _, p := range partitions {
-		for region := range p.Regions() {
-			if promisedLand == region {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-// EndpointFor implements the endpoints.Resolver interface for use with sts
-func (iam *Client) EndpointFor(service, region string, optFns ...func(*endpoints.Options)) (endpoints.ResolvedEndpoint, error) {
-	// only for sts service
-	if service == "sts" {
-		// only if a valid region is explicitly set
-		if IsValidRegion(region) {
-			iam.Endpoint = GetEndpointFromRegion(region)
-			return endpoints.ResolvedEndpoint{
-				URL:           iam.Endpoint,
-				SigningRegion: region,
-			}, nil
-		}
-	}
-	return endpoints.DefaultResolver().EndpointFor(service, region, optFns...)
-}
-
 // AssumeRole returns an IAM role Credentials using AWS STS.
 func (iam *Client) AssumeRole(roleARN, externalID string, remoteIP string, sessionTTL time.Duration) (*Credentials, error) {
 	hitCache := true
@@ -144,9 +106,9 @@ func (iam *Client) AssumeRole(roleARN, externalID string, remoteIP string, sessi
 		if err != nil {
 			return nil, err
 		}
-		config := aws.NewConfig().WithLogLevel(2)
+		config := aws.NewConfig().WithLogLevel(8)
 		if iam.UseRegionalEndpoint {
-			config = config.WithEndpointResolver(iam)
+			config = config.WithSTSRegionalEndpoint(endpoints.RegionalSTSEndpoint)
 		}
 		svc := sts.New(sess, config)
 		assumeRoleInput := sts.AssumeRoleInput{
@@ -186,7 +148,6 @@ func (iam *Client) AssumeRole(roleARN, externalID string, remoteIP string, sessi
 func NewClient(baseARN string, regional bool) *Client {
 	return &Client{
 		BaseARN:             baseARN,
-		Endpoint:            "sts.amazonaws.com",
 		UseRegionalEndpoint: regional,
 	}
 }

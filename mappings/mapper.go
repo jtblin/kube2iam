@@ -44,7 +44,7 @@ func (r *RoleMapper) GetRoleMapping(IP string) (*RoleMappingResult, error) {
 	pod, err := r.store.PodByIP(IP)
 	// If attempting to get a Pod that maps to multiple IPs
 	if err != nil {
-		return nil, err
+		return &RoleMappingResult{Role: r.defaultRoleARN, Namespace: "", IP: IP}, nil
 	}
 
 	role, err := r.extractRoleARN(pod)

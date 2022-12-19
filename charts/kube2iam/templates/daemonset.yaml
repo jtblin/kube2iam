@@ -91,17 +91,29 @@ spec:
               containerPort: {{ .Values.prometheus.metricsPort }}
             {{- end}}
             {{- end}}
-        {{- if .Values.probe.enabled }}
+        {{- if .Values.livenessProbe.enabled }}
           livenessProbe:
             httpGet:
               path: /healthz
               port: {{ .Values.host.port }}
               scheme: HTTP
-            initialDelaySeconds: {{ .Values.probe.initialDelaySeconds }}
-            periodSeconds: {{ .Values.probe.periodSeconds }}
-            successThreshold: {{ .Values.probe.successThreshold }}
-            failureThreshold: {{ .Values.probe.failureThreshold }}
-            timeoutSeconds: {{ .Values.probe.timeoutSeconds }}
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+            successThreshold: {{ .Values.livenessProbe.successThreshold }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+        {{- end }}
+        {{- if .Values.readinessProbe.enabled }}
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.host.port }}
+              scheme: HTTP
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            successThreshold: {{ .Values.readinessProbe.successThreshold }}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
         {{- end }}
           resources:
 {{ toYaml .Values.resources | indent 12 }}

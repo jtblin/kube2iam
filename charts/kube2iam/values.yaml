@@ -37,7 +37,7 @@ prometheus:
 
 image:
   repository: jtblin/kube2iam
-  tag: 0.10.9
+  tag: 0.10.11
   pullPolicy: IfNotPresent
   ## Optionally specify an array of imagePullSecrets.
   ## Secrets must be manually created in the namespace.
@@ -72,9 +72,16 @@ priorityClassName: ""
 
 podLabels: {}
 
-probe:
+livenessProbe:
   enabled: true
   initialDelaySeconds: 30
+  periodSeconds: 5
+  successThreshold: 1
+  failureThreshold: 3
+  timeoutSeconds: 1
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 0
   periodSeconds: 5
   successThreshold: 1
   failureThreshold: 3

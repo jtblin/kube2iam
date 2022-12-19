@@ -19,5 +19,5 @@ require (
 
 require (
 	github.com/karlseguin/expect v1.0.8 // indirect
-	github.com/mattn/goveralls v0.0.10 // indirect
+	golang.org/x/sys v0.0.0-20220928140112-f11e5e49a4ec // indirect
 )

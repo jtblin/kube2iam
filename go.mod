@@ -3,7 +3,7 @@ module github.com/jtblin/kube2iam
 go 1.16
 
 require (
-	github.com/aws/aws-sdk-go v1.40.45
+	github.com/aws/aws-sdk-go v1.44.162
 	github.com/cenk/backoff v2.2.1+incompatible
 	github.com/coreos/go-iptables v0.6.0
 	github.com/gorilla/mux v1.8.0
@@ -17,7 +17,4 @@ require (
 	k8s.io/client-go v0.22.2
 )
 
-require (
-	github.com/karlseguin/expect v1.0.8 // indirect
-	golang.org/x/sys v0.0.0-20220928140112-f11e5e49a4ec // indirect
-)
+require github.com/karlseguin/expect v1.0.8 // indirect

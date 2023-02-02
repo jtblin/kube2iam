@@ -11,10 +11,8 @@ require (
 	github.com/gorilla/context v1.1.1 // indirect
 	github.com/gorilla/mux v0.0.0-20160920230813-757bef944d0f
 	github.com/jmespath/go-jmespath v0.0.0-20151117175822-3433f3ea46d9 // indirect
-	github.com/jstemmer/go-junit-report v0.9.1 // indirect
 	github.com/karlseguin/ccache v2.0.1-0.20160708030345-2f6b517f7bea+incompatible
 	github.com/karlseguin/expect v1.0.1 // indirect
-	github.com/mattn/goveralls v0.0.5 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/prometheus/client_golang v0.9.0-pre1
 	github.com/prometheus/client_model v0.0.0-20171117100541-99fa1f4be8e5 // indirect
@@ -25,8 +23,9 @@ require (
 	github.com/smartystreets/goconvey v1.6.4 // indirect
 	github.com/spf13/pflag v1.0.5
 	github.com/wsxiaoys/terminal v0.0.0-20160513160801-0940f3fc43a0 // indirect
-	golang.org/x/sys v0.0.0-20200302150141-5c8b2ff67527 // indirect
-	golang.org/x/tools v0.0.0-20200304193943-95d2e580d8eb // indirect
+	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550 // indirect
+	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b // indirect
+	golang.org/x/sys v0.0.0-20220928140112-f11e5e49a4ec // indirect
 	gopkg.in/airbrake/gobrake.v2 v2.0.9 // indirect
 	gopkg.in/gemnasium/logrus-airbrake-hook.v2 v2.1.2 // indirect
 	gopkg.in/karlseguin/expect.v1 v1.0.1 // indirect

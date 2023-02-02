@@ -6,7 +6,7 @@ services:
   - docker
 
 go:
-  - 1.14.x
+  - 1.19.x
 
 arch:
   - amd64

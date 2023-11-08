@@ -1,16 +1,21 @@
 module github.com/jtblin/kube2iam
 
-go 1.14
+go 1.15
 
 require (
-	github.com/aws/aws-sdk-go v1.8.7
+	github.com/aws/aws-sdk-go-v2 v1.16.8
+	github.com/aws/aws-sdk-go-v2/config v1.15.15
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.12.9
+	github.com/aws/aws-sdk-go-v2/service/ec2 v1.51.1
+	github.com/aws/aws-sdk-go-v2/service/sts v1.16.10
+	github.com/aws/smithy-go v1.12.0
 	github.com/beorn7/perks v0.0.0-20160804104726-4c0e84591b9a // indirect
 	github.com/cenk/backoff v1.0.1-0.20160904140958-8edc80b07f38
 	github.com/coreos/go-iptables v0.1.0
 	github.com/go-ini/ini v0.0.0-20151119163333-2e44421e256d // indirect
 	github.com/gorilla/context v1.1.1 // indirect
 	github.com/gorilla/mux v0.0.0-20160920230813-757bef944d0f
-	github.com/jmespath/go-jmespath v0.0.0-20151117175822-3433f3ea46d9 // indirect
+	github.com/jstemmer/go-junit-report v0.9.1 // indirect
 	github.com/karlseguin/ccache v2.0.1-0.20160708030345-2f6b517f7bea+incompatible
 	github.com/karlseguin/expect v1.0.1 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect

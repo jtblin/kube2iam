@@ -83,7 +83,7 @@ func getInstanceMetadata(path string) (string, error) {
 func GetInstanceIAMRole() (string, error) {
 	iamRole, err := getInstanceMetadata("iam/security-credentials/")
 
-	if err == nil {
+	if err != nil {
 		return "", err
 	}
 	return string(iamRole), nil

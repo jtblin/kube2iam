@@ -93,7 +93,7 @@ func GetInstanceIAMRole() (string, error) {
 func (iam *Client) GetInstanceId() (string, error) {
 	instanceId, err := getInstanceMetadata("instance-id")
 
-	if err == nil {
+	if err != nil {
 		return "", err
 	}
 	return string(instanceId), nil

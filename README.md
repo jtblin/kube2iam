@@ -33,7 +33,8 @@ so that it can call the EC2 metadata API itself.
 
 ### IAM roles
 
-It is necessary to create an IAM role which can assume other roles and assign it to each kubernetes worker.
+It is necessary to create an IAM role which can assume other roles and assign it to each kubernetes worker and list regions.  
+List regions required permissions because aws-go-sdk-v2 doesn't include regions list.  
 
 ```
 {
@@ -45,7 +46,14 @@ It is necessary to create an IAM role which can assume other roles and assign it
       ],
       "Effect": "Allow",
       "Resource": "*"
-    }
+    },
+    {
+      "Action": [
+        "ec2:DescribeRegions"
+      ],
+      "Effect": "Allow",
+      "Resource": "*"
+    },
   ]
 }
 ```

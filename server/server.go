@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -241,25 +240,14 @@ func (s *Server) doHealthcheck() {
 		metrics.HealthcheckStatus.Set(healthcheckResult)
 	}()
 
-	resp, err := http.Get(fmt.Sprintf("http://%s/latest/meta-data/instance-id", s.MetadataAddress))
+	instanceId, err := s.iam.GetInstanceId()
 	if err != nil {
 		errMsg = fmt.Sprintf("Error getting instance id %+v", err)
 		log.Errorf(errMsg)
 		return
 	}
-	if resp.StatusCode != 200 {
-		errMsg = fmt.Sprintf("Error getting instance id, got status: %+s", resp.Status)
-		log.Error(errMsg)
-		return
-	}
-	defer resp.Body.Close()
-	instanceID, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		errMsg = fmt.Sprintf("Error reading response body %+v", err)
-		log.Errorf(errMsg)
-		return
-	}
-	s.InstanceID = string(instanceID)
+
+	s.InstanceID = string(instanceId)
 }
 
 // HealthResponse represents a response for the health check.

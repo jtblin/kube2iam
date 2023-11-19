@@ -19,7 +19,7 @@ func TestGetNamespaceRoleAnnotation(t *testing.T) {
 		},
 		{
 			test:       "Malformed string",
-			annotation: "something maleformed here",
+			annotation: "something malformed here",
 			expected:   []string{},
 		},
 		{

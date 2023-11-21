@@ -10,8 +10,8 @@ GIT_HASH := $$(git rev-parse --short HEAD)
 GOBUILD_VERSION_ARGS := -ldflags "-s -X $(VERSION_VAR)=$(REPO_VERSION) -X $(GIT_VAR)=$(GIT_HASH) -X $(BUILD_DATE_VAR)=$(BUILD_DATE)"
 # useful for other docker repos
 DOCKER_REPO ?= jtblin
-CPU_ARCH ?= amd64
-IMAGE_NAME := $(DOCKER_REPO)/$(BINARY_NAME)-$(CPU_ARCH)
+CPU_ARCH ?= linux/arm64/v8,linux/amd64
+IMAGE_NAME := $(DOCKER_REPO)/$(BINARY_NAME)
 MANIFEST_NAME := $(DOCKER_REPO)/$(BINARY_NAME)
 ARCH ?= darwin
 GOLANGCI_LINT_VERSION ?= v1.23.8
@@ -74,16 +74,14 @@ check-all:
 travis-checks: build test-race check bench-race
 
 docker:
-	docker build -t $(IMAGE_NAME):$(GIT_HASH) . $(DOCKER_BUILD_FLAGS)
+	docker buildx build --progress=plain --platform $(CPU_ARCH) -t $(IMAGE_NAME):$(GIT_HASH) . $(DOCKER_BUILD_FLAGS)
 
 docker-dev: docker
 	docker tag $(IMAGE_NAME):$(GIT_HASH) $(IMAGE_NAME):dev
 	docker push $(IMAGE_NAME):dev
 
 release: check test docker
-	docker push $(IMAGE_NAME):$(GIT_HASH)
-	docker tag $(IMAGE_NAME):$(GIT_HASH) $(IMAGE_NAME):$(REPO_VERSION)
-	docker push $(IMAGE_NAME):$(REPO_VERSION)
+	docker buildx build --push --progress=plain --platform $(CPU_ARCH) -t $(IMAGE_NAME):$(GIT_HASH) . $(DOCKER_BUILD_FLAGS)
 ifeq (, $(findstring -rc, $(REPO_VERSION)))
 	docker tag $(IMAGE_NAME):$(GIT_HASH) $(IMAGE_NAME):latest
 	docker push $(IMAGE_NAME):latest

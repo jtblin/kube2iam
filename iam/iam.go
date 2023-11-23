@@ -63,18 +63,18 @@ func getInstanceMetadata(path string) (string, error) {
 		Path: path,
 	})
 	if err != nil {
-		return "", errors.New(fmt.Sprintf("EC2 Metadata [%s] response error, got %v", err, path))
+		return "", fmt.Errorf("EC2 Metadata [%s] response error, got %v", err, path)
 	}
 	// https://aws.github.io/aws-sdk-go-v2/docs/making-requests/#responses-with-ioreadcloser
 	defer metadataResult.Content.Close()
 	instanceId, err := ioutil.ReadAll(metadataResult.Content)
 
 	if err != nil {
-		return "", errors.New(fmt.Sprintf("Expect to read content [%s] from bytes, got %v", err, path))
+		return "", fmt.Errorf("Expect to read content [%s] from bytes, got %v", err, path)
 	}
 
 	if string(instanceId) == "" {
-		return "", errors.New(fmt.Sprintf("EC2 Metadata didn't returned [%s], got empty string", path))
+		return "", fmt.Errorf("EC2 Metadata didn't returned [%s], got empty string", path)
 	}
 	return string(instanceId), nil
 }

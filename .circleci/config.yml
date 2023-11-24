@@ -20,8 +20,11 @@ jobs:
       - go/mod-download # Run 'go mod download'.
       - go/save-cache # Save Go modules to cache.
       - run:
-          name: "before install"
+          name: "install goveralls"
           command: go get -v github.com/mattn/goveralls
+      - run:
+          name: "install terminal"
+          command: go get -v golang.org/x/crypto/ssh/terminal
       - run:
           name: "setup"
           command: make setup

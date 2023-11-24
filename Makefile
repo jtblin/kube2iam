@@ -58,7 +58,7 @@ cover:
 
 coveralls:
 	./cover.sh
-	goveralls -coverprofile=coverage.out -service=travis-ci
+	goveralls -coverprofile=coverage.out -service=circle-ci -repotoken=$(COVERALLS_TOKEN)
 
 junit-test: build
 	go test -v ./... | go-junit-report > test-report.xml
@@ -70,8 +70,6 @@ check:
 check-all:
 	go install ./cmd
 	golangci-lint run --enable=gocyclo --concurrency=$(GOLANGCI_LINT_CONCURRENCY) --deadline=600s
-
-travis-checks: build test-race check bench-race
 
 docker:
 	docker build -t $(IMAGE_NAME):$(GIT_HASH) . $(DOCKER_BUILD_FLAGS)

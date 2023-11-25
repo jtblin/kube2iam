@@ -30,7 +30,42 @@ jobs:
           command: make setup
       - run:
           name: "build and test"
-          command: make build test-race check bench-race coveralls
+          command: make build junit-test test-race check bench-race coveralls
+      - store_test_results:
+          path: test-report.xml
+  docker-buildx:
+    docker: # executor type
+      - image: cimg/base:stable # primary container will run the latest, production-ready base image
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          name: Docker build
+          command: |
+            docker login -u="$DOCKERHUB_USERNAME" -p="$DOCKERHUB_PASSWORD"
+            make dockerx
+  release:
+    docker: # executor type
+      - image: cimg/base:stable # primary container will run the latest, production-ready base image
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          name: Docker push
+          command: |
+            if [ ! -z "$CIRCLE_TAG" ]; then
+              docker login -u="$DOCKERHUB_USERNAME" -p="$DOCKERHUB_PASSWORD"
+              echo "Executing release on tag build $CIRCLE_TAG"
+              if [ "$CIRCLE_TAG" = "dev" ]; then
+                make release-dev
+              else
+                make release-ci
+              fi
+            else
+              echo "Not executing release on non-tag build"
+            fi
 
 # Orchestrate jobs using workflows
 # See: https://circleci.com/docs/configuration-reference/#workflows
@@ -38,3 +73,14 @@ workflows:
   kube2iam-workflow:
     jobs:
       - build-and-test
+      - docker-buildx
+      - release:
+          requires:
+            - build-and-test
+            - docker-buildx
+          filters:
+            branches:
+              only: 
+                - main
+                - /release-[\w\.]+/
+

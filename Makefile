@@ -10,21 +10,22 @@ GIT_HASH := $$(git rev-parse --short HEAD)
 GOBUILD_VERSION_ARGS := -ldflags "-s -X $(VERSION_VAR)=$(REPO_VERSION) -X $(GIT_VAR)=$(GIT_HASH) -X $(BUILD_DATE_VAR)=$(BUILD_DATE)"
 # useful for other docker repos
 DOCKER_REPO ?= jtblin
-CPU_ARCH ?= amd64
+CPU_ARCH ?= arm64
 IMAGE_NAME := $(DOCKER_REPO)/$(BINARY_NAME)-$(CPU_ARCH)
 MANIFEST_NAME := $(DOCKER_REPO)/$(BINARY_NAME)
 ARCH ?= darwin
 GOLANGCI_LINT_VERSION ?= v1.23.8
 GOLANGCI_LINT_CONCURRENCY ?= 4
 GOLANGCI_LINT_DEADLINE ?= 180
+PLATFORMS ?= linux/arm/v7,linux/arm64/v8,linux/amd64
 # useful for passing --build-arg http_proxy :)
 DOCKER_BUILD_FLAGS :=
 
 setup:
-	go get -v -u golang.org/x/tools/cmd/goimports
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $$(go env GOPATH)/bin v1.23.8
-	go get -v -u github.com/jstemmer/go-junit-report
-	go get -v github.com/mattn/goveralls
+	go install golang.org/x/tools/cmd/goimports@latest
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $$(go env GOPATH)/bin v1.55.2
+	go install github.com/jstemmer/go-junit-report/v2@latest
+	go install github.com/mattn/goveralls@latest
 
 build: *.go fmt
 	go build -o build/bin/$(ARCH)/$(BINARY_NAME) $(GOBUILD_VERSION_ARGS) github.com/jtblin/$(BINARY_NAME)/cmd
@@ -58,9 +59,9 @@ cover:
 
 coveralls:
 	./cover.sh
-	goveralls -coverprofile=coverage.out -service=travis-ci
+	goveralls -coverprofile=coverage.out -service=circle-ci -repotoken=$(COVERALLS_TOKEN)
 
-junit-test: build
+junit-test:
 	go test -v ./... | go-junit-report > test-report.xml
 
 check:
@@ -71,14 +72,16 @@ check-all:
 	go install ./cmd
 	golangci-lint run --enable=gocyclo --concurrency=$(GOLANGCI_LINT_CONCURRENCY) --deadline=600s
 
-travis-checks: build test-race check bench-race
-
 docker:
 	docker build -t $(IMAGE_NAME):$(GIT_HASH) . $(DOCKER_BUILD_FLAGS)
 
-docker-dev: docker
-	docker tag $(IMAGE_NAME):$(GIT_HASH) $(IMAGE_NAME):dev
-	docker push $(IMAGE_NAME):dev
+dockerx:
+	docker buildx create --name multiarch --use
+	docker buildx build --push --platform $(PLATFORMS) -t $(MANIFEST_NAME):$(GIT_HASH) . $(DOCKER_BUILD_FLAGS)
+
+release-dev:
+	docker tag $(MANIFEST_NAME):$(GIT_HASH) $(MANIFEST_NAME):dev
+	docker push $(MANIFEST_NAME):dev
 
 release: check test docker
 	docker push $(IMAGE_NAME):$(GIT_HASH)
@@ -89,19 +92,23 @@ ifeq (, $(findstring -rc, $(REPO_VERSION)))
 	docker push $(IMAGE_NAME):latest
 endif
 
-release-manifest:
-	for tag in latest $(REPO_VERSION); do \
-	  for arch in amd64 arm64; do \
-		  docker pull $(MANIFEST_NAME)-$$arch:$$tag; \
-		done; \
-	  docker manifest create $(MANIFEST_NAME):$$tag --amend \
-		  $(MANIFEST_NAME)-amd64:$$tag \
-		  $(MANIFEST_NAME)-arm64:$$tag; \
-	  docker manifest push $(MANIFEST_NAME):$$tag; \
-	done
+release-ci:
+	docker tag $(MANIFEST_NAME):$(GIT_HASH) $(MANIFEST_NAME):$(REPO_VERSION)
+	docker push $(MANIFEST_NAME):$(REPO_VERSION)
+ifeq (, $(findstring -rc, $(REPO_VERSION)))
+	docker tag $(MANIFEST_NAME):$(GIT_HASH) $(MANIFEST_NAME):latest
+	docker push $(MANIFEST_NAME):latest
+endif
 
 version:
 	@echo $(REPO_VERSION)
+
+info-release:
+	@echo IMAGE_NAME=$(IMAGE_NAME)
+	@echo GIT_HASH=$(GIT_HASH)
+	@echo REPO_VERSION=$(REPO_VERSION)
+	@echo MANIFEST_NAME=$(MANIFEST_NAME)
+	@echo PLATFORMS=$(PLATFORMS)
 
 clean:
 	rm -rf build/bin/*

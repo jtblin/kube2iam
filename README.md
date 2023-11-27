@@ -1,4 +1,4 @@
-[![CircleCI](https://dl.circleci.com/status-badge/img/circleci/Tv5Xa331HXLx98iuW72Ug4/Po3PqWxjiikmpntHfiZoXW/tree/master.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/circleci/Tv5Xa331HXLx98iuW72Ug4/Po3PqWxjiikmpntHfiZoXW/tree/master)
+[![CircleCI](https://dl.circleci.com/status-badge/img/circleci/Tv5Xa331HXLx98iuW72Ug4/Po3PqWxjiikmpntHfiZoXW/tree/master.svg?style=shield&circle-token=status-badge)](https://app.circleci.com/pipelines/circleci/Tv5Xa331HXLx98iuW72Ug4/Po3PqWxjiikmpntHfiZoXW)
 [![GitHub tag](https://img.shields.io/github/tag/jtblin/kube2iam.svg?maxAge=86400)](https://github.com/jtblin/kube2iam)
 [![Docker Pulls](https://img.shields.io/docker/pulls/jtblin/kube2iam.svg)](https://hub.docker.com/r/jtblin/kube2iam/)
 [![Go Report Card](https://goreportcard.com/badge/github.com/jtblin/kube2iam)](https://goreportcard.com/report/github.com/jtblin/kube2iam)

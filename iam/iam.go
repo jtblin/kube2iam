@@ -121,7 +121,7 @@ func getIAMCode(err error) string {
 	return metrics.IamSuccessCode
 }
 
-// GetEndpointFromRegion formas a standard sts endpoint url given a region
+// GetEndpointFromRegion forms a standard sts endpoint url given a region
 func GetEndpointFromRegion(region string) string {
 	endpoint := fmt.Sprintf("https://sts.%s.amazonaws.com", region)
 	if strings.HasPrefix(region, "cn-") {

@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	log "github.com/sirupsen/logrus"
-	"k8s.io/client-go/pkg/api/v1"
+	v1 "k8s.io/api/core/v1"
 )
 
 // NamespaceHandler outputs change events from K8.
@@ -63,7 +63,7 @@ func (h *NamespaceHandler) OnDelete(obj interface{}) {
 	log.WithFields(h.namespaceFields(ns)).Info("Deleting namespace (OnDelete)")
 }
 
-// GetNamespaceRoleAnnotation reads the "iam.amazonaws.com/allowed-roles" annotation off a namespace
+// GetNamespaceRoleAnnotation reads the "iam.amazonaws.com/allowed-roles" annotation of a namespace
 // and splits them as a JSON list (["role1", "role2", "role3"])
 func GetNamespaceRoleAnnotation(ns *v1.Namespace, namespaceKey string) []string {
 	rolesString := ns.GetAnnotations()[namespaceKey]

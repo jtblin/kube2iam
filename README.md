@@ -1,5 +1,4 @@
-[![Build Status](https://travis-ci.org/jtblin/kube2iam.svg?branch=master)](https://travis-ci.org/jtblin/kube2iam)
-[![GitHub tag](https://img.shields.io/github/tag/jtblin/kube2iam.svg?maxAge=86400)](https://github.com/atlassian/gostatsd)
+[![CircleCI](https://dl.circleci.com/status-badge/img/circleci/Tv5Xa331HXLx98iuW72Ug4/Po3PqWxjiikmpntHfiZoXW/tree/master.svg?style=shield&circle-token=d0a793bd02cdcccff259a236dde26e6cc749d35d)](https://app.circleci.com/pipelines/circleci/Tv5Xa331HXLx98iuW72Ug4/Po3PqWxjiikmpntHfiZoXW)
 [![Docker Pulls](https://img.shields.io/docker/pulls/jtblin/kube2iam.svg)](https://hub.docker.com/r/jtblin/kube2iam/)
 [![Go Report Card](https://goreportcard.com/badge/github.com/jtblin/kube2iam)](https://goreportcard.com/report/github.com/jtblin/kube2iam)
 [![license](https://img.shields.io/github/license/jtblin/kube2iam.svg)](https://github.com/jtblin/kube2iam/blob/master/LICENSE)
@@ -33,7 +32,8 @@ so that it can call the EC2 metadata API itself.
 
 ### IAM roles
 
-It is necessary to create an IAM role which can assume other roles and assign it to each kubernetes worker.
+It is necessary to create an IAM role which can assume other roles and assign it to each kubernetes worker and list regions.  
+List regions required permissions because aws-go-sdk-v2 doesn't include regions list.  
 
 ```
 {
@@ -45,7 +45,14 @@ It is necessary to create an IAM role which can assume other roles and assign it
       ],
       "Effect": "Allow",
       "Resource": "*"
-    }
+    },
+    {
+      "Action": [
+        "ec2:DescribeRegions"
+      ],
+      "Effect": "Allow",
+      "Resource": "*"
+    },
   ]
 }
 ```
@@ -197,6 +204,7 @@ spec:
 ### kubernetes annotation
 
 Add an `iam.amazonaws.com/role` annotation to your pods with the role that you want to assume for this pod.
+The optional `iam.amazonaws.com/external-id` will allow the use of an ExternalId as part of the assume role
 
 ```yaml
 apiVersion: v1
@@ -207,6 +215,7 @@ metadata:
     name: aws-cli
   annotations:
     iam.amazonaws.com/role: role-arn
+    iam.amazonaws.com/external-id: external-id
 spec:
   containers:
   - image: fstab/aws-cli
@@ -251,7 +260,7 @@ spec:
 Example for a `CronJob`:
 
 ```yaml
-apiVersion: batch/v1
+apiVersion: batch/v1beta1
 kind: CronJob
 metadata:
   name: my-cronjob
@@ -412,7 +421,11 @@ spec:
 
 ### Using on OpenShift
 
-To use `kube2iam` on OpenShift one needs to configure additional resources. A complete example looks like this:
+#### OpenShift 3
+
+To use `kube2iam` on OpenShift one needs to configure additional resources.
+
+A complete example for OpenShift 3 looks like this. For OpenShift 4, see the next section.
 ```yaml
 ---
 apiVersion: v1
@@ -505,6 +518,140 @@ spec:
 
 **Note**: In (OpenShift) multi-tenancy setups it is recommended to restrict the assumable roles on the namespace level to prevent cross-namespace trust stealing.
 
+#### OpenShift 4
+
+To use `kube2iam` on OpenShift 4, the additional resources are slightly different from those for OpenShift 3 shown above. OpenShift 4 has [hard-coded iptables rules](https://github.com/openshift/origin/blob/release-4.1/cmd/sdn-cni-plugin/openshift-sdn_linux.go#L129) that block connections from containers to the EC2 metadata service 169.254.169.254. The `kube2iam` pods already run with host networking enabled, they are not affected by these OpenShift iptables rules.
+
+The OpenShift iptables rules have implications for pods authenticating through `kube2iam` though. But let's look at an example for deploying `kube2iam` on OpenShift 4 first:
+
+```yaml
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kube2iam
+  namespace: kube-system
+---
+apiVersion: v1
+items:
+  - apiVersion: rbac.authorization.k8s.io/v1beta1
+    kind: ClusterRole
+    metadata:
+      name: kube2iam
+    rules:
+      - apiGroups: [""]
+        resources: ["namespaces","pods"]
+        verbs: ["get","watch","list"]
+  - apiVersion: rbac.authorization.k8s.io/v1beta1
+    kind: ClusterRoleBinding
+    metadata:
+      name: kube2iam
+    subjects:
+    - kind: ServiceAccount
+      name: kube2iam
+      namespace: kube-system
+    roleRef:
+      kind: ClusterRole
+      name: kube2iam
+      apiGroup: rbac.authorization.k8s.io
+kind: List
+---
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: kube2iam
+  namespace: kube-system
+  labels:
+    app: kube2iam
+spec:
+  selector:
+    matchLabels:
+      name: kube2iam
+  template:
+    metadata:
+      labels:
+        name: kube2iam
+    spec:
+      serviceAccountName: kube2iam
+      hostNetwork: true
+      nodeSelector:
+        node-role.kubernetes.io/worker: ''
+      containers:
+        - image: docker.io/jtblin/kube2iam:latest
+          imagePullPolicy: Always
+          name: kube2iam
+          args:
+            - "--app-port=8181"
+            - "--auto-discover-base-arn"
+            - "--host-ip=$(HOST_IP)"
+            - "--host-interface=tun0"
+            - "--verbose"
+          env:
+            - name: HOST_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          ports:
+            - containerPort: 8181
+              hostPort: 8181
+              name: http
+```
+
+Compared to the OpenShift 3 example in the previous section, we removed the `kube2iam` SecurityContextConstraint. In the `kube2iam` DaemonSet, we changed the nodeSelector to the match OpenShift 4 worker nodes, removed the iptables argument, and removed the `privileged` securityContext.
+
+We use the OpenShift `hostnetwork` SecurityContextConstraint for `kube2iam`:
+
+```
+oc adm policy add-scc-to-user hostnetwork -n kube-system -z kube2iam
+```
+
+For applications, the iptables rule that `kube2iam` would create to redirect 169.254.169.254 connections to the `kube2iam` pods has no effect because the [hard-coded iptables rules](https://github.com/openshift/origin/blob/release-4.1/cmd/sdn-cni-plugin/openshift-sdn_linux.go#L129) block those connections on OpenShift 4.
+
+As a workaround, the environment variables http_proxy and no_proxy can be set to use `kube2iam` as a HTTP proxy when accessing the metadata service. Below is an example for the aws-service-operator:
+
+```
+- kind: Deployment
+  apiVersion: apps/v1beta1
+  metadata:
+    name: aws-service-operator
+    namespace: aws-service-operator
+  spec:
+    replicas: 1
+    template:
+      metadata:
+        annotations:
+          iam.amazonaws.com/role: aws-service-operator
+        labels:
+          app: aws-service-operator
+      spec:
+        serviceAccountName: aws-service-operator
+        containers:
+        - name: aws-service-operator
+          image: awsserviceoperator/aws-service-operator:v0.0.1-alpha4
+          imagePullPolicy: Always
+          command:
+            - /bin/sh
+          args:
+          - "-c"
+          - export http_proxy=${HOST_IP}:8181; /usr/local/bin/aws-service-operator server --cluster-name=<CLUSTER_NAME> --region=<REGION> --account-id=<ACCOUNT_ID> --k8s-namespace=<K8S_NAMESPACE>
+        env:
+          - name: HOST_IP
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: status.hostIP
+          - name: no_proxy
+            value: "*.amazonaws.com,<KUBE_API_IP>:443"
+```
+
+Compared to the Deployment definition from [aws-service-operator/configs/aws-service-operator.yaml](https://github.com/awslabs/aws-service-operator/blob/master/configs/aws-service-operator.yaml), this adds the http_proxy and no_proxy environment variables.
+
+Because we use the IP address of the OpenShift node to access the `kube2iam` pod, we cannot set http_proxy in the `env` list, but use a shell command instead.
+
+The value for the no_proxy environment variable is specific to the application. `kube2iam` only allows proxy connections to 169.254.169.254. All other hostnames or IP addresses that the application connects to through HTTP or HTTPS need to be listed in the no_proxy variable.
+
+For example, the aws-service-operator needs access to various AWS APIs and the Kubernetes API. The Kubernetes API listens on the first IP address in the OpenShift service network. If `172.31.0.0/16` is the OpenShift cluster service network, KUBE_API_IP is `172.31.0.1`.
+
 ### Debug
 
 By using the --debug flag you can enable some extra features making debugging easier:
@@ -561,6 +708,7 @@ Usage of kube2iam:
       --host-interface string                 Host interface for proxying AWS metadata (default "docker0")
       --host-ip string                        IP address of host
       --iam-role-key string                   Pod annotation key used to retrieve the IAM role (default "iam.amazonaws.com/role")
+      --iam-external-id string                Pod annotation key used to retrieve the IAM ExternalId (default "iam.amazonaws.com/external-id")
       --insecure                              Kubernetes server should be accessed without verifying the TLS. Testing only
       --iptables                              Add iptables rule (also requires --host-ip)
       --log-format string                     Log format (text/json) (default "text")
@@ -568,6 +716,8 @@ Usage of kube2iam:
       --metadata-addr string                  Address for the ec2 metadata (default "169.254.169.254")
       --metrics-port string                   Metrics server http port (default: same as kube2iam server port) (default "8181")
       --namespace-key string                  Namespace annotation key used to retrieve the IAM roles allowed (value in annotation should be json array) (default "iam.amazonaws.com/allowed-roles")
+      --cache-resync-period                   Refresh interval for pod and namespace caches
+      --resolve-duplicate-cache-ips           Queries the k8s api server to find the source of truth when the pod cache contains multiple pods with the same IP
       --namespace-restriction-format string   Namespace Restriction Format (glob/regexp) (default "glob")
       --namespace-restrictions                Enable namespace restrictions
       --node string                           Name of the node where kube2iam is running
@@ -593,5 +743,5 @@ Jerome Touffe-Blin, [@jtblin](https://twitter.com/jtblin), [About me](http://abo
 
 # License
 
-kube2iam is copyright 2017 Jerome Touffe-Blin and contributors.
+kube2iam is copyright 2020 Jerome Touffe-Blin and contributors.
 It is licensed under the BSD license. See the included LICENSE file for details.

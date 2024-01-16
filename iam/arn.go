@@ -1,12 +1,13 @@
 package iam
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws/ec2metadata"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/feature/ec2/imds"
 )
 
 const fullArnPrefix = "arn:"
@@ -30,19 +31,17 @@ func (iam *Client) RoleARN(role string) string {
 
 // GetBaseArn get the base ARN from metadata service.
 func GetBaseArn() (string, error) {
-	sess, err := session.NewSession()
+	cfg, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {
 		return "", err
 	}
-	metadata := ec2metadata.New(sess)
-	if !metadata.Available() {
-		return "", fmt.Errorf("EC2 Metadata is not available, are you running on EC2?")
-	}
-	iamInfo, err := metadata.IAMInfo()
+
+	client := imds.NewFromConfig(cfg)
+	iamInfo, err := client.GetIAMInfo(context.TODO(), &imds.GetIAMInfoInput{})
 	if err != nil {
 		return "", err
 	}
-	arn := strings.Replace(iamInfo.InstanceProfileArn, "instance-profile", "role", 1)
+	arn := strings.Replace(iamInfo.IAMInfo.InstanceProfileArn, "instance-profile", "role", 1)
 	baseArn := strings.Split(arn, "/")
 	if len(baseArn) < 2 {
 		return "", fmt.Errorf("can't determine BaseARN")

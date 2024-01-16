@@ -2,29 +2,36 @@ package iam
 
 import (
 	"testing"
+
+	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 )
+
+func stringPointer(str string) *string {
+	return &str
+}
+
+var validEc2Regions = ec2.DescribeRegionsOutput{
+	Regions: []types.Region{
+		{
+			Endpoint:   stringPointer("ec2.us-east-1.amazonaws.com"),
+			RegionName: stringPointer("us-east-1"),
+		},
+		{
+			Endpoint:   stringPointer("ec2.eu-west-1.amazonaws.com"),
+			RegionName: stringPointer("eu-west-1"),
+		},
+	},
+}
 
 func TestIsValidRegion(t *testing.T) {
 	regions := []string{
-		"eu-central-1",
 		"eu-west-1",
-		"eu-west-2",
-		"ap-southeast-2",
-		"ap-south-1",
-		"sa-east-1",
-		"ca-central-1",
-		"ap-northeast-1",
 		"us-east-1",
-		"us-west-2",
-		"us-east-2",
-		"ap-northeast-2",
-		"ap-southeast-1",
-		"us-west-1",
-		"cn-north-1",
-		"us-gov-west-1",
 	}
+
 	for _, region := range regions {
-		if !IsValidRegion(region) {
+		if !IsValidRegion(region, &validEc2Regions) {
 			t.Errorf("%s is not a valid region", region)
 		}
 	}
@@ -37,7 +44,7 @@ func TestIsValidRegionWithInvalid(t *testing.T) {
 		"xx-xxxx-x",
 	}
 	for _, region := range regions {
-		if IsValidRegion(region) {
+		if IsValidRegion(region, &validEc2Regions) {
 			t.Errorf("%s is a valid region", region)
 		}
 	}

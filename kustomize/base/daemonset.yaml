@@ -36,5 +36,14 @@ spec:
           protocol: TCP
         securityContext:
           privileged: true
+        volumeMounts:
+          - mountPath: /run/xtables.lock
+            name: xtables-lock
+            readOnly: false
       hostNetwork: true
       serviceAccountName: kube2iam
+      volumes:
+        - name: xtables-lock
+          hostPath:
+            path: /run/xtables.lock
+            type: FileOrCreate

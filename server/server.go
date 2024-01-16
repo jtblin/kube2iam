@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -28,6 +28,7 @@ const (
 	defaultAppPort                    = "8181"
 	defaultCacheSyncAttempts          = 10
 	defaultIAMRoleKey                 = "iam.amazonaws.com/role"
+	defaultIAMExternalID              = "iam.amazonaws.com/external-id"
 	defaultLogLevel                   = "info"
 	defaultLogFormat                  = "text"
 	defaultMaxElapsedTime             = 2 * time.Second
@@ -35,9 +36,13 @@ const (
 	defaultMaxInterval                = 1 * time.Second
 	defaultMetadataAddress            = "169.254.169.254"
 	defaultNamespaceKey               = "iam.amazonaws.com/allowed-roles"
+	defaultCacheResyncPeriod          = 30 * time.Minute
+	defaultResolveDupIPs              = false
 	defaultNamespaceRestrictionFormat = "glob"
 	healthcheckInterval               = 30 * time.Second
 )
+
+var tokenRouteRegexp = regexp.MustCompile("^/?[^/]+/api/token$")
 
 // Keeps track of the names of registered handlers for metric value/label initialization
 var registeredHandlerNames []string
@@ -52,15 +57,18 @@ type Server struct {
 	BaseRoleARN                string
 	DefaultIAMRole             string
 	IAMRoleKey                 string
+	IAMExternalID              string
 	IAMRoleSessionTTL          time.Duration
 	MetadataAddress            string
 	HostInterface              string
 	HostIP                     string
 	NodeName                   string
 	NamespaceKey               string
+	CacheResyncPeriod          time.Duration
 	LogLevel                   string
 	LogFormat                  string
 	NamespaceRestrictionFormat string
+	ResolveDupIPs              bool
 	UseRegionalStsEndpoint     bool
 	AddIPTablesRule            bool
 	AutoDiscoverBaseArn        bool
@@ -138,10 +146,10 @@ func (h *appHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}()
 	h.fn(logger, rw, r)
 	timer.ObserveDuration()
-	latencyNanoseconds := timeSecs * 1e9
+	latencyMilliseconds := timeSecs * 1e3
 	if r.URL.Path != "/healthz" {
-		logger.WithFields(log.Fields{"res.duration": latencyNanoseconds, "res.status": rw.statusCode}).
-			Infof("%s %s (%d) took %f ns", r.Method, r.URL.Path, rw.statusCode, latencyNanoseconds)
+		logger.WithFields(log.Fields{"res.duration": latencyMilliseconds, "res.status": rw.statusCode}).
+			Infof("%s %s (%d) took %f ms", r.Method, r.URL.Path, rw.statusCode, latencyMilliseconds)
 	}
 }
 
@@ -182,6 +190,26 @@ func (s *Server) getRoleMapping(IP string) (*mappings.RoleMappingResult, error) 
 	return roleMapping, nil
 }
 
+func (s *Server) getExternalIDMapping(IP string) (string, error) {
+	var externalID string
+	var err error
+	operation := func() error {
+		externalID, err = s.roleMapper.GetExternalIDMapping(IP)
+		return err
+	}
+
+	expBackoff := backoff.NewExponentialBackOff()
+	expBackoff.MaxInterval = s.BackoffMaxInterval
+	expBackoff.MaxElapsedTime = s.BackoffMaxElapsedTime
+
+	err = backoff.Retry(operation, expBackoff)
+	if err != nil {
+		return "", err
+	}
+
+	return externalID, nil
+}
+
 func (s *Server) beginPollHealthcheck(interval time.Duration) {
 	if s.healthcheckTicker == nil {
 		s.doHealthcheck()
@@ -212,25 +240,14 @@ func (s *Server) doHealthcheck() {
 		metrics.HealthcheckStatus.Set(healthcheckResult)
 	}()
 
-	resp, err := http.Get(fmt.Sprintf("http://%s/latest/meta-data/instance-id", s.MetadataAddress))
+	instanceId, err := s.iam.GetInstanceId()
 	if err != nil {
 		errMsg = fmt.Sprintf("Error getting instance id %+v", err)
 		log.Errorf(errMsg)
 		return
 	}
-	if resp.StatusCode != 200 {
-		errMsg = fmt.Sprintf("Error getting instance id, got status: %+s", resp.Status)
-		log.Error(errMsg)
-		return
-	}
-	defer resp.Body.Close()
-	instanceID, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		errMsg = fmt.Sprintf("Error reading response body %+v", err)
-		log.Errorf(errMsg)
-		return
-	}
-	s.InstanceID = string(instanceID)
+
+	s.InstanceID = string(instanceId)
 }
 
 // HealthResponse represents a response for the health check.
@@ -296,6 +313,12 @@ func (s *Server) roleHandler(logger *log.Entry, w http.ResponseWriter, r *http.R
 		return
 	}
 
+	externalID, err := s.getExternalIDMapping(remoteIP)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
 	roleLogger := logger.WithFields(log.Fields{
 		"pod.iam.role": roleMapping.Role,
 		"ns.name":      roleMapping.Namespace,
@@ -311,7 +334,7 @@ func (s *Server) roleHandler(logger *log.Entry, w http.ResponseWriter, r *http.R
 		return
 	}
 
-	credentials, err := s.iam.AssumeRole(wantedRoleARN, remoteIP, s.IAMRoleSessionTTL)
+	credentials, err := s.iam.AssumeRole(wantedRoleARN, externalID, remoteIP, s.IAMRoleSessionTTL)
 	if err != nil {
 		roleLogger.Errorf("Error assuming role %+v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -326,6 +349,13 @@ func (s *Server) roleHandler(logger *log.Entry, w http.ResponseWriter, r *http.R
 }
 
 func (s *Server) reverseProxyHandler(logger *log.Entry, w http.ResponseWriter, r *http.Request) {
+	// Remove remoteaddr to prevent issues with new IMDSv2 to fail when x-forwarded-for header is present
+	// for more details please see: https://github.com/aws/aws-sdk-ruby/issues/2177 https://github.com/uswitch/kiam/issues/359
+	token := r.Header.Get("X-aws-ec2-metadata-token")
+	if (r.Method == http.MethodPut && tokenRouteRegexp.MatchString(r.URL.Path)) || (r.Method == http.MethodGet && token != "") {
+		r.RemoteAddr = ""
+	}
+
 	proxy := httputil.NewSingleHostReverseProxy(&url.URL{Scheme: "http", Host: s.MetadataAddress})
 	proxy.ServeHTTP(w, r)
 	logger.WithField("metadata.url", s.MetadataAddress).Debug("Proxy ec2 metadata request")
@@ -339,16 +369,17 @@ func write(logger *log.Entry, w http.ResponseWriter, s string) {
 
 // Run runs the specified Server.
 func (s *Server) Run(host, token, nodeName string, insecure bool) error {
-	k, err := k8s.NewClient(host, token, nodeName, insecure)
+	k, err := k8s.NewClient(host, token, nodeName, insecure, s.ResolveDupIPs)
 	if err != nil {
 		return err
 	}
 	s.k8s = k
 	s.iam = iam.NewClient(s.BaseRoleARN, s.UseRegionalStsEndpoint)
 	log.Debugln("Caches have been synced.  Proceeding with server.")
-	s.roleMapper = mappings.NewRoleMapper(s.IAMRoleKey, s.DefaultIAMRole, s.NamespaceRestriction, s.NamespaceKey, s.iam, s.k8s, s.NamespaceRestrictionFormat)
-	podSynched := s.k8s.WatchForPods(kube2iam.NewPodHandler(s.IAMRoleKey))
-	namespaceSynched := s.k8s.WatchForNamespaces(kube2iam.NewNamespaceHandler(s.NamespaceKey))
+	s.roleMapper = mappings.NewRoleMapper(s.IAMRoleKey, s.IAMExternalID, s.DefaultIAMRole, s.NamespaceRestriction, s.NamespaceKey, s.iam, s.k8s, s.NamespaceRestrictionFormat)
+	log.Debugf("Starting pod and namespace sync jobs with %s resync period", s.CacheResyncPeriod.String())
+	podSynched := s.k8s.WatchForPods(kube2iam.NewPodHandler(s.IAMRoleKey), s.CacheResyncPeriod)
+	namespaceSynched := s.k8s.WatchForNamespaces(kube2iam.NewNamespaceHandler(s.NamespaceKey), s.CacheResyncPeriod)
 
 	synced := false
 	for i := 0; i < defaultCacheSyncAttempts && !synced; i++ {
@@ -401,11 +432,14 @@ func NewServer() *Server {
 		MetricsPort:                defaultAppPort,
 		BackoffMaxElapsedTime:      defaultMaxElapsedTime,
 		IAMRoleKey:                 defaultIAMRoleKey,
+		IAMExternalID:              defaultIAMExternalID,
 		BackoffMaxInterval:         defaultMaxInterval,
 		LogLevel:                   defaultLogLevel,
 		LogFormat:                  defaultLogFormat,
 		MetadataAddress:            defaultMetadataAddress,
 		NamespaceKey:               defaultNamespaceKey,
+		CacheResyncPeriod:          defaultCacheResyncPeriod,
+		ResolveDupIPs:              defaultResolveDupIPs,
 		NamespaceRestrictionFormat: defaultNamespaceRestrictionFormat,
 		HealthcheckFailReason:      "Healthcheck not yet performed",
 		IAMRoleSessionTTL:          defaultIAMRoleSessionTTL,

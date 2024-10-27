@@ -74,9 +74,6 @@ func main() {
 		if !iam.IsValidBaseARN(s.BaseRoleARN) {
 			log.Fatalf("Invalid --base-role-arn specified, expected: %s", iam.ARNRegexp.String())
 		}
-		if !strings.HasSuffix(s.BaseRoleARN, "/") {
-			s.BaseRoleARN += "/"
-		}
 	}
 
 	if s.AutoDiscoverBaseArn {

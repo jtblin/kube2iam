@@ -327,6 +327,9 @@ metadata:
   name: default
 ```
 
+_Note:_ If you use both `--namespace-restrictions` and `--auto-discover-base-arn` flags, it is possible to assume a role in a different account (hence with a different base ARN) but the `iam.amazonaws.com/allowed-roles` annotation must explicitly include the base ARN. 
+
+
 ### RBAC Setup
 
 This is the basic RBAC setup to get kube2iam working correctly when your cluster is using rbac. Below is the bare minimum to get kube2iam working.

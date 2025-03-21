@@ -1,6 +1,7 @@
 package k8s
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -120,7 +121,7 @@ func (k8s *Client) PodByIP(IP string) (*v1.Pod, error) {
 // If the indexed pods all have HostNetwork = true the function return nil and the error message.
 // If we retrive a running pod that doesn't have HostNetwork = true and it is in Running state will return that.
 func resolveDuplicatedIP(k8s *Client, IP string) (*v1.Pod, error) {
-	runningPodList, err := k8s.CoreV1().Pods("").List(metav1.ListOptions{
+	runningPodList, err := k8s.CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{
 		FieldSelector: selector.OneTermEqualSelector("status.podIP", IP).String(),
 	})
 	metrics.K8sAPIDupReqCount.Inc()

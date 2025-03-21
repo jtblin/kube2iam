@@ -24,7 +24,7 @@ func (p *PodHandler) podFields(pod *v1.Pod) log.Fields {
 }
 
 // OnAdd is called when a pod is added.
-func (p *PodHandler) OnAdd(obj interface{}) {
+func (p *PodHandler) OnAdd(obj interface{}, isInInitialList bool) {
 	pod, ok := obj.(*v1.Pod)
 	if !ok {
 		log.Errorf("Expected Pod but OnAdd handler received %+v", obj)

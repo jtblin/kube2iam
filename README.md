@@ -357,16 +357,16 @@ items:
       name: kube2iam
     rules:
       - apiGroups: [""]
-        resources: ["namespaces","pods"]
-        verbs: ["get","watch","list"]
+        resources: ["namespaces", "pods"]
+        verbs: ["get", "watch", "list"]
   - apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
       name: kube2iam
     subjects:
-    - kind: ServiceAccount
-      name: kube2iam
-      namespace: kube-system
+      - kind: ServiceAccount
+        name: kube2iam
+        namespace: kube-system
     roleRef:
       kind: ClusterRole
       name: kube2iam
@@ -536,30 +536,30 @@ metadata:
   namespace: kube-system
 ---
 apiVersion: v1
+kind: List
 items:
-  - apiVersion: rbac.authorization.k8s.io/v1beta1
+  - apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRole
     metadata:
       name: kube2iam
     rules:
       - apiGroups: [""]
-        resources: ["namespaces","pods"]
-        verbs: ["get","watch","list"]
-  - apiVersion: rbac.authorization.k8s.io/v1beta1
+        resources: ["namespaces", "pods"]
+        verbs: ["get", "watch", "list"]
+  - apiVersion: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
     metadata:
       name: kube2iam
     subjects:
-    - kind: ServiceAccount
-      name: kube2iam
-      namespace: kube-system
+      - kind: ServiceAccount
+        name: kube2iam
+        namespace: kube-system
     roleRef:
       kind: ClusterRole
       name: kube2iam
       apiGroup: rbac.authorization.k8s.io
-kind: List
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: kube2iam
@@ -614,7 +614,7 @@ As a workaround, the environment variables http_proxy and no_proxy can be set to
 
 ```
 - kind: Deployment
-  apiVersion: apps/v1beta1
+  apiVersion: apps/v1
   metadata:
     name: aws-service-operator
     namespace: aws-service-operator
@@ -644,7 +644,7 @@ As a workaround, the environment variables http_proxy and no_proxy can be set to
                 apiVersion: v1
                 fieldPath: status.hostIP
           - name: no_proxy
-            value: "*.amazonaws.com,<KUBE_API_IP>:443"
+            value: "*,\!169.254.169.254"
 ```
 
 Compared to the Deployment definition from [aws-service-operator/configs/aws-service-operator.yaml](https://github.com/awslabs/aws-service-operator/blob/master/configs/aws-service-operator.yaml), this adds the http_proxy and no_proxy environment variables.

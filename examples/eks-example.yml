@@ -74,6 +74,12 @@ spec:
               name: http
           securityContext:
             privileged: true
+          lifecycle:
+            preStop:
+              exec:
+                command: [
+                  "/bin/sh", "-c", "eval `iptables-save | grep 169.254.169.254 | sed s/-A/'iptables -t nat -D'/g`"
+                ]              
           volumeMounts:
             - mountPath: /run/xtables.lock
               name: xtables-lock

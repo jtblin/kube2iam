@@ -44,6 +44,8 @@ func addFlags(s *server.Server, fs *pflag.FlagSet) {
 	fs.BoolVar(&s.UseRegionalStsEndpoint, "use-regional-sts-endpoint", false, "use the regional sts endpoint if AWS_REGION is set")
 	fs.BoolVar(&s.Verbose, "verbose", false, "Verbose")
 	fs.BoolVar(&s.Version, "version", false, "Print the version and exits")
+	fs.BoolVar(&s.DisableSensitiveMetadata, "disable-sensitive-metadata", false, "Make some sensitive metadata paths return empty strings")
+	fs.BoolVar(&s.DisableUserData, "disable-user-data", false, "Make the user-data endpoint return an empty string instead of the host's user-data")
 }
 
 func main() {

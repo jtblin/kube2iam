@@ -708,6 +708,8 @@ Usage of kube2iam:
       --iam-role-session-ttl                  Length of session when assuming the roles (default 15m)
       --debug                                 Enable debug features
       --default-role string                   Fallback role to use when annotation is not set
+      --disable-sensitive-metadata            Make some sensitive metadata paths return empty strings
+      --disable-user-data                     Make the user-data endpoint return an empty string instead of the host's user-data
       --host-interface string                 Host interface for proxying AWS metadata (default "docker0")
       --host-ip string                        IP address of host
       --iam-role-key string                   Pod annotation key used to retrieve the IAM role (default "iam.amazonaws.com/role")

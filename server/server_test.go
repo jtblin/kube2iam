@@ -174,10 +174,13 @@ func TestParseRemoteAddr(t *testing.T) {
 	}{
 		{"valid IPv4 with port", "10.0.0.1:8080", "10.0.0.1"},
 		{"localhost with port", "127.0.0.1:12345", "127.0.0.1"},
-		{"no colon", "10.0.0.1", ""},
+		{"no port", "10.0.0.1", "10.0.0.1"},
+		{"IPv6 without port", "fd00:ec2::254", "fd00:ec2::254"},
+		{"IPv6 with port", "[fd00:ec2::254]:8181", "fd00:ec2::254"},
 		{"single char before colon", "a:", ""},
 		{"non-IP hostname", "myhost:1234", ""},
 		{"empty string", "", ""},
+		{"invalid address", "abcd", ""},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

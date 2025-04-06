@@ -159,15 +159,18 @@ func newAppHandler(name string, fn appHandlerFunc) *appHandler {
 }
 
 func parseRemoteAddr(addr string) string {
-	n := strings.IndexByte(addr, ':')
-	if n <= 1 {
+	host, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		// If no port, try parsing as pure IP
+		host = addr
+	}
+
+	ip := net.ParseIP(host)
+	if ip == nil {
 		return ""
 	}
-	hostname := addr[0:n]
-	if net.ParseIP(hostname) == nil {
-		return ""
-	}
-	return hostname
+
+	return ip.String()
 }
 
 func (s *Server) getRoleMapping(IP string) (*mappings.RoleMappingResult, error) {

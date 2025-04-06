@@ -95,7 +95,7 @@ func (k8s *Client) PodByIP(IP string) (*v1.Pod, error) {
 
 	if len(pods) == 0 {
 		metrics.PodNotFoundInCache.Inc()
-		return nil, fmt.Errorf("pod with specificed IP not found")
+		return nil, fmt.Errorf("pod with specificed IP %q not found", IP)
 	}
 
 	if len(pods) == 1 {

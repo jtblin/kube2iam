@@ -36,6 +36,7 @@ const (
 	defaultMaxInterval                = 1 * time.Second
 	defaultMetadataAddress            = "169.254.169.254"
 	defaultNamespaceKey               = "iam.amazonaws.com/allowed-roles"
+	defaultNamespaceIAMRoleKey        = "iam.amazonaws.com/role"
 	defaultCacheResyncPeriod          = 30 * time.Minute
 	defaultResolveDupIPs              = false
 	defaultNamespaceRestrictionFormat = "glob"
@@ -64,6 +65,7 @@ type Server struct {
 	HostIP                     string
 	NodeName                   string
 	NamespaceKey               string
+	NamespaceIAMRoleKey        string
 	CacheResyncPeriod          time.Duration
 	LogLevel                   string
 	LogFormat                  string
@@ -376,7 +378,7 @@ func (s *Server) Run(host, token, nodeName string, insecure bool) error {
 	s.k8s = k
 	s.iam = iam.NewClient(s.BaseRoleARN, s.UseRegionalStsEndpoint)
 	log.Debugln("Caches have been synced.  Proceeding with server.")
-	s.roleMapper = mappings.NewRoleMapper(s.IAMRoleKey, s.IAMExternalID, s.DefaultIAMRole, s.NamespaceRestriction, s.NamespaceKey, s.iam, s.k8s, s.NamespaceRestrictionFormat)
+	s.roleMapper = mappings.NewRoleMapper(s.IAMRoleKey, s.IAMExternalID, s.DefaultIAMRole, s.NamespaceRestriction, s.NamespaceKey, s.iam, s.k8s, s.NamespaceRestrictionFormat, s.NamespaceIAMRoleKey)
 	log.Debugf("Starting pod and namespace sync jobs with %s resync period", s.CacheResyncPeriod.String())
 	podSynched := s.k8s.WatchForPods(kube2iam.NewPodHandler(s.IAMRoleKey), s.CacheResyncPeriod)
 	namespaceSynched := s.k8s.WatchForNamespaces(kube2iam.NewNamespaceHandler(s.NamespaceKey), s.CacheResyncPeriod)
@@ -438,6 +440,7 @@ func NewServer() *Server {
 		LogFormat:                  defaultLogFormat,
 		MetadataAddress:            defaultMetadataAddress,
 		NamespaceKey:               defaultNamespaceKey,
+		NamespaceIAMRoleKey:        defaultNamespaceIAMRoleKey,
 		CacheResyncPeriod:          defaultCacheResyncPeriod,
 		ResolveDupIPs:              defaultResolveDupIPs,
 		NamespaceRestrictionFormat: defaultNamespaceRestrictionFormat,

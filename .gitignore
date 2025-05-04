@@ -29,3 +29,4 @@ _testmain.go
 /build/
 coverage.out
 /vendor/
+.idea

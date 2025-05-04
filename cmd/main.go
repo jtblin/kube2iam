@@ -33,6 +33,7 @@ func addFlags(s *server.Server, fs *pflag.FlagSet) {
 	fs.BoolVar(&s.NamespaceRestriction, "namespace-restrictions", false, "Enable namespace restrictions")
 	fs.StringVar(&s.NamespaceRestrictionFormat, "namespace-restriction-format", s.NamespaceRestrictionFormat, "Namespace Restriction Format (glob/regexp)")
 	fs.StringVar(&s.NamespaceKey, "namespace-key", s.NamespaceKey, "Namespace annotation key used to retrieve the IAM roles allowed (value in annotation should be json array)")
+	fs.StringVar(&s.NamespaceIAMRoleKey, "namespace-iam-role-key", s.NamespaceIAMRoleKey, "")
 	fs.DurationVar(&s.CacheResyncPeriod, "cache-resync-period", s.CacheResyncPeriod, "Kubernetes caches resync period")
 	fs.BoolVar(&s.ResolveDupIPs, "resolve-duplicate-cache-ips", false, "Queries the k8s api server to find the source of truth when the pod cache contains multiple pods with the same IP")
 	fs.StringVar(&s.HostIP, "host-ip", s.HostIP, "IP address of host")

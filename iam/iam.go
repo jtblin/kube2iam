@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"hash/fnv"
-	"io"
+	"io/ioutil"
 	"strings"
 	"time"
 
@@ -53,20 +53,26 @@ func getHash(text string) string {
 	return fmt.Sprintf("%x", h.Sum32())
 }
 
-func getInstanceMetadata(path string) ([]byte, error) {
-	client := imds.New(imds.Options{})
+func getInstanceMetadata(path string) (string, error) {
+	cfg, err := config.LoadDefaultConfig(context.TODO())
+	if err != nil {
+		return "", err
+	}
+
+	client := imds.NewFromConfig(cfg)
 	metadataResult, err := client.GetMetadata(context.TODO(), &imds.GetMetadataInput{
-		Path: aws.String(path),
+		Path: path,
 	})
 	if err != nil {
-		var notFoundError *types.NotFoundError
-		if errors.As(err, &notFoundError) {
-			return nil, fmt.Errorf("metadata not found at path %s: %w", path, err)
-		}
-		return nil, fmt.Errorf("failed to get metadata from path %s: %w", path, err)
+		return "", fmt.Errorf("EC2 Metadata [%s] response error, got %v", err, path)
+	} else if metadataResult.StatusCode == 404 {
+		return "", types.NotFoundError(fmt.Sprintf("EC2 Metadata path %s not found", path))
 	}
 
 	// https://aws.github.io/aws-sdk-go-v2/docs/making-requests/#responses-with-ioreadcloser
+	defer metadataResult.Content.Close()
+	instanceId, err := ioutil.ReadAll(metadataResult.Content)
+
 	if err != nil {
 		return "", fmt.Errorf("expect to read content [%s] from bytes, got %v", err, path)
 	}

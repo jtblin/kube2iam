@@ -70,7 +70,7 @@ func getInstanceMetadata(path string) (string, error) {
 	instanceId, err := ioutil.ReadAll(metadataResult.Content)
 
 	if err != nil {
-		return "", fmt.Errorf("Expect to read content [%s] from bytes, got %v", err, path)
+		return "", fmt.Errorf("expect to read content [%s] from bytes, got %v", err, path)
 	}
 
 	if string(instanceId) == "" {

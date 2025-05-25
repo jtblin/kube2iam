@@ -11,7 +11,7 @@ jobs:
   build-and-test:
     executor:
       name: go/default # Use the default executor from the orb
-      tag: '1.22.7' # Specify a version tag
+      tag: '1.24.3' # Specify a version tag
     # Add steps to the job
     # See: https://circleci.com/docs/configuration-reference/#steps
     steps:

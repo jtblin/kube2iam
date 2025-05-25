@@ -7,6 +7,10 @@
 
 Provide IAM credentials to containers running inside a kubernetes cluster based on annotations.
 
+## IAM roles for service accounts vs kube2iam
+
+If you are using EKS, [IAM roles for service accounts](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html) should be a drop-in-replacement for kube2iam and should be preferred. Please read #368.
+
 ## Context
 
 Traditionally in AWS, service level isolation is done using IAM roles. IAM roles are attributed through instance

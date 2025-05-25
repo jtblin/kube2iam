@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/ec2/imds"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	smithy "github.com/aws/smithy-go"
 	"github.com/jtblin/kube2iam/metrics"
@@ -64,13 +65,16 @@ func getInstanceMetadata(path string) (string, error) {
 	})
 	if err != nil {
 		return "", fmt.Errorf("EC2 Metadata [%s] response error, got %v", err, path)
+	} else if metadataResult.StatusCode == 404 {
+		return "", types.NotFoundError(fmt.Sprintf("EC2 Metadata path %s not found", path))
 	}
+
 	// https://aws.github.io/aws-sdk-go-v2/docs/making-requests/#responses-with-ioreadcloser
 	defer metadataResult.Content.Close()
 	instanceId, err := ioutil.ReadAll(metadataResult.Content)
 
 	if err != nil {
-		return "", fmt.Errorf("Expect to read content [%s] from bytes, got %v", err, path)
+		return "", fmt.Errorf("expect to read content [%s] from bytes, got %v", err, path)
 	}
 
 	if string(instanceId) == "" {

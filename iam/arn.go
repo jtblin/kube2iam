@@ -41,7 +41,7 @@ func GetBaseArn() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	arn := strings.Replace(iamInfo.IAMInfo.InstanceProfileArn, "instance-profile", "role", 1)
+	arn := strings.Replace(iamInfo.InstanceProfileArn, "instance-profile", "role", 1)
 	baseArn := strings.Split(arn, "/")
 	if len(baseArn) < 2 {
 		return "", fmt.Errorf("can't determine BaseARN")

@@ -3,7 +3,7 @@
 version: 2.1
 
 orbs:
-  go: circleci/go@1.9.0
+  go: circleci/go@3.0.2
 
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/configuration-reference/#jobs
@@ -11,7 +11,7 @@ jobs:
   build-and-test:
     executor:
       name: go/default # Use the default executor from the orb
-      tag: '1.21.4' # Specify a version tag
+      tag: '1.22.7' # Specify a version tag
     # Add steps to the job
     # See: https://circleci.com/docs/configuration-reference/#steps
     steps:

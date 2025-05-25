@@ -23,7 +23,7 @@ DOCKER_BUILD_FLAGS :=
 
 setup:
 	go install golang.org/x/tools/cmd/goimports@latest
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $$(go env GOPATH)/bin v1.55.2
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $$(go env GOPATH)/bin v2.1.6
 	go install github.com/jstemmer/go-junit-report/v2@latest
 	go install github.com/mattn/goveralls@latest
 
@@ -66,7 +66,7 @@ junit-test:
 
 check:
 	go install ./cmd
-	golangci-lint run --enable=gocyclo --concurrency=$(GOLANGCI_LINT_CONCURRENCY) --deadline=$(GOLANGCI_LINT_DEADLINE)s
+	golangci-lint run --enable=gocyclo --concurrency=$(GOLANGCI_LINT_CONCURRENCY) --timeout=$(GOLANGCI_LINT_DEADLINE)s
 
 check-all:
 	go install ./cmd

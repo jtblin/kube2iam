@@ -105,7 +105,7 @@ func (k8s *Client) PodByIP(IP string) (*v1.Pod, error) {
 	if !k8s.resolveDupIPs {
 		podNames := make([]string, len(pods))
 		for i, pod := range pods {
-			podNames[i] = pod.(*v1.Pod).ObjectMeta.Name
+			podNames[i] = pod.(*v1.Pod).Name
 		}
 		return nil, fmt.Errorf("%d pods (%v) with the ip %s indexed", len(pods), podNames, IP)
 	}

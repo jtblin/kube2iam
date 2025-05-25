@@ -65,8 +65,13 @@ func getInstanceMetadata(path string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("EC2 Metadata [%s] response error, got %v", err, path)
 	}
-	// https://aws.github.io/aws-sdk-go-v2/docs/making-requests/#responses-with-ioreadcloser
-	defer metadataResult.Content.Close()
+
+	defer func() {
+		if err := metadataResult.Content.Close(); err != nil {
+			fmt.Println("Received error closing metadataResult.Content:", err)
+		}
+	}()
+
 	instanceId, err := io.ReadAll(metadataResult.Content)
 
 	if err != nil {

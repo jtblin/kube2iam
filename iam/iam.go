@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"hash/fnv"
-	"io/ioutil"
+	"io"
 	"strings"
 	"time"
 
@@ -67,7 +67,7 @@ func getInstanceMetadata(path string) (string, error) {
 	}
 	// https://aws.github.io/aws-sdk-go-v2/docs/making-requests/#responses-with-ioreadcloser
 	defer metadataResult.Content.Close()
-	instanceId, err := ioutil.ReadAll(metadataResult.Content)
+	instanceId, err := io.ReadAll(metadataResult.Content)
 
 	if err != nil {
 		return "", fmt.Errorf("expect to read content [%s] from bytes, got %v", err, path)

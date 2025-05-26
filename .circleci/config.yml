@@ -80,7 +80,5 @@ workflows:
             - build-and-test
             - docker-buildx
           filters:
-            branches:
-              only:
-                - master
-                - /release-[\w\.]+/
+            tags:
+              only: /.*/

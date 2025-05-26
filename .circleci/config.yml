@@ -73,14 +73,18 @@ jobs:
 workflows:
   kube2iam-workflow:
     jobs:
-      - build-and-test
-      - docker-buildx
+      - build-and-test:
+          filters:
+            tags:
+              only: /.*/
+      - docker-buildx:
+          filters:
+            tags:
+              only: /.*/
       - release:
           requires:
             - build-and-test
             - docker-buildx
           filters:
-            branches:
-              only:
-                - master
-                - /release-[\w\.]+/
+            tags:
+              only: /.*/

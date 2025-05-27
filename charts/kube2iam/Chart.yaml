@@ -1,7 +1,7 @@
-apiVersion: v1
+apiVersion: v2
 name: kube2iam
 version: 3.2.0
-appVersion: 0.11.0
+appVersion: 0.13.0
 description: Provide IAM credentials to pods based on annotations.
 keywords:
 - kube2iam
@@ -14,4 +14,5 @@ sources:
 maintainers:
 - name: mariusv
   email: myself@mariusv.com
-engine: gotpl
+# The 'engine' field is deprecated in API version v2.
+# engine: gotpl

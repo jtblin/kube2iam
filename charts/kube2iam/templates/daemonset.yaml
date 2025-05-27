@@ -117,6 +117,8 @@ spec:
         {{- end }}
           resources:
 {{ toYaml .Values.resources | indent 12 }}
+          lifecycle:
+{{ toYaml .Values.lifecycle | indent 12 }}
         {{- if .Values.host.iptables }}
           securityContext:
             privileged: true

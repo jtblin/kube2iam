@@ -163,6 +163,12 @@ different than `docker0` depending on which virtual network you use e.g.
 * for [OpenShift](https://www.openshift.org/) use `tun0`
 * for [Cilium](https://www.cilium.io) use `lxc+`
 
+**Warning**: It is important ensure the iptables rule will be deleted when you delete the DaemonSet. Below is the command proposal to deal with it, we recommend to use the comand in the Pod Lifecycle:
+
+```bash
+eval `iptables-save | grep 169.254.169.254 | sed s/-A/'iptables -t nat -D'/g`
+```
+
 ```yaml
 apiVersion: apps/v1
 kind: DaemonSet
@@ -203,6 +209,12 @@ spec:
               name: http
           securityContext:
             privileged: true
+          lifecycle:
+            preStop:
+              exec:
+                command: [
+                  "/bin/sh", "-c", "eval `iptables-save | grep 169.254.169.254 | sed s/-A/'iptables -t nat -D'/g`"
+                ]
 ```
 
 ### kubernetes annotation

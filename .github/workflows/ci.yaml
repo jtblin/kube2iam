@@ -6,3 +6,35 @@ on:
       - 'charts/**'
 
 jobs:
+  lint-chart:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Run chart-testing (lint)
+        uses: helm/chart-testing-action@master
+        with:
+          command: lint
+          config: .github/ct.yaml
+
+  kubeval-chart:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Set up Helm
+        uses: azure/setup-helm@v1
+        with:
+          version: v3.8.1
+      - name: Run kubeval
+        run: |
+          KUBERNETES_VERSION=${{ matrix.k8s }}
+          .github/workflows/kubeval.sh
+    strategy:
+      matrix:
+        k8s:
+          - 1.29
+          - 1.30
+          - 1.31
+          - 1.32
+          - 1.33

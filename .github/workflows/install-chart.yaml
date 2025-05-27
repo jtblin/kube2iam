@@ -7,22 +7,21 @@ install-chart:
     - kubeval-chart
   strategy:
     matrix:
-      k8s:
-        - v1.12.10
-        - v1.13.12
-        - v1.14.10
-        - v1.15.7
-        - v1.16.4
-        - v1.17.2
+      k8s: # Update these to supported Kubernetes versions
+        - v1.29
+        - v1.30
+        - v1.31
+        - v1.32
+        - v1.33
   steps:
     - name: Checkout
-      uses: actions/checkout@v1
+      uses: actions/checkout@v3 # Updated to v3
     - name: Create kind ${{ matrix.k8s }} cluster
-      uses: helm/kind-action@master
+      uses: helm/kind-action@v1.4.0 # Pinned to a specific version (example)
       with:
-        node_image: kindest/node:${{ matrix.k8s }}
+        node_image: kindest/node:v${{ matrix.k8s }}
     - name: Run chart-testing (install)
-      uses: helm/chart-testing-action@master
+      uses: helm/chart-testing-action@v2.3.0 # Pinned to a specific version (example)
       with:
         command: install
         config: .github/ct.yaml

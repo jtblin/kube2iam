@@ -14,6 +14,7 @@ import (
 
 // addFlags adds the command line flags.
 func addFlags(s *server.Server, fs *pflag.FlagSet) {
+	fs.StringVar(&s.KubeconfigPath, "kubeconfig", "", "Path to kubeconfig")
 	fs.StringVar(&s.APIServer, "api-server", s.APIServer, "Endpoint for the api server")
 	fs.StringVar(&s.APIToken, "api-token", s.APIToken, "Token to authenticate with the api server")
 	fs.StringVar(&s.AppPort, "app-port", s.AppPort, "Kube2iam server http port")
@@ -114,7 +115,7 @@ func main() {
 		}
 	}
 
-	if err := s.Run(s.APIServer, s.APIToken, s.NodeName, s.Insecure); err != nil {
+	if err := s.Run(s.KubeconfigPath, s.APIServer, s.APIToken, s.NodeName, s.Insecure); err != nil {
 		log.Fatalf("%s", err)
 	}
 }

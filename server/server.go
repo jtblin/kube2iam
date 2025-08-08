@@ -50,6 +50,7 @@ var registeredHandlerNames []string
 // Server encapsulates all of the parameters necessary for starting up
 // the server. These can either be set via command line or directly.
 type Server struct {
+	KubeconfigPath             string
 	APIServer                  string
 	APIToken                   string
 	AppPort                    string
@@ -368,8 +369,8 @@ func write(logger *log.Entry, w http.ResponseWriter, s string) {
 }
 
 // Run runs the specified Server.
-func (s *Server) Run(host, token, nodeName string, insecure bool) error {
-	k, err := k8s.NewClient(host, token, nodeName, insecure, s.ResolveDupIPs)
+func (s *Server) Run(kubeconfigPath, host, token, nodeName string, insecure bool) error {
+	k, err := k8s.NewClient(kubeconfigPath, host, token, nodeName, insecure, s.ResolveDupIPs)
 	if err != nil {
 		return err
 	}

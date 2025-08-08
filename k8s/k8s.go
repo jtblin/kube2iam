@@ -14,6 +14,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 const (
@@ -158,10 +159,19 @@ func (k8s *Client) NamespaceByName(namespaceName string) (*v1.Namespace, error) 
 }
 
 // NewClient returns a new kubernetes client.
-func NewClient(host, token, nodeName string, insecure, resolveDupIPs bool) (*Client, error) {
+func NewClient(kubeconfigPath, host, token, nodeName string, insecure, resolveDupIPs bool) (*Client, error) {
 	var config *rest.Config
 	var err error
-	if host != "" && token != "" {
+	if kubeconfigPath != "" {
+		config, err = clientcmd.BuildConfigFromFlags("", kubeconfigPath)
+		if err != nil {
+			return nil, err
+		}
+		// Honor the CLI flag as an override
+		if insecure {
+			config.Insecure = true
+		}
+	} else if host != "" && token != "" {
 		config = &rest.Config{
 			Host:        host,
 			BearerToken: token,

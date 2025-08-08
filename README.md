@@ -718,6 +718,7 @@ Usage of kube2iam:
       --iam-external-id string                Pod annotation key used to retrieve the IAM ExternalId (default "iam.amazonaws.com/external-id")
       --insecure                              Kubernetes server should be accessed without verifying the TLS. Testing only
       --iptables                              Add iptables rule (also requires --host-ip)
+      --kubeconfig string                     Path to kubeconfig
       --log-format string                     Log format (text/json) (default "text")
       --log-level string                      Log level (default "info")
       --metadata-addr string                  Address for the ec2 metadata (default "169.254.169.254")

@@ -80,11 +80,7 @@ dockerx:
 	docker buildx build --push --platform $(PLATFORMS) -t $(MANIFEST_NAME):$(GIT_HASH) . $(DOCKER_BUILD_FLAGS)
 
 release-dev:
-	if [ -z "$$(docker images -q $(MANIFEST_NAME):$(GIT_HASH) 2> /dev/null)" ]; then \
-		docker pull $(MANIFEST_NAME):$(GIT_HASH); \
-	fi
-	docker tag $(MANIFEST_NAME):$(GIT_HASH) $(MANIFEST_NAME):dev
-	docker push $(MANIFEST_NAME):dev
+	docker buildx imagetools create -t $(MANIFEST_NAME):dev $(MANIFEST_NAME):$(GIT_HASH)
 
 release: check test docker
 	docker push $(IMAGE_NAME):$(GIT_HASH)
@@ -96,14 +92,9 @@ ifeq (, $(findstring -rc, $(REPO_VERSION)))
 endif
 
 release-ci:
-	if [ -z "$$(docker images -q $(MANIFEST_NAME):$(GIT_HASH) 2> /dev/null)" ]; then \
-		docker pull $(MANIFEST_NAME):$(GIT_HASH); \
-	fi
-	docker tag $(MANIFEST_NAME):$(GIT_HASH) $(MANIFEST_NAME):$(REPO_VERSION)
-	docker push $(MANIFEST_NAME):$(REPO_VERSION)
+	docker buildx imagetools create -t $(MANIFEST_NAME):$(REPO_VERSION) $(MANIFEST_NAME):$(GIT_HASH)
 ifeq (, $(findstring -rc, $(REPO_VERSION)))
-	docker tag $(MANIFEST_NAME):$(GIT_HASH) $(MANIFEST_NAME):latest
-	docker push $(MANIFEST_NAME):latest
+	docker buildx imagetools create -t $(MANIFEST_NAME):latest $(MANIFEST_NAME):$(GIT_HASH)
 endif
 
 version:

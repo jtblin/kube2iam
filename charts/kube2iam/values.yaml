@@ -105,6 +105,14 @@ resources: {} # Recommended to set resource requests and limits
   #   cpu: 50m
   #   memory: 64Mi
 
+lifecycle:
+  preStop:
+    exec:
+      command: [
+        "/bin/sh", "-c", "eval `iptables-save | grep 169.254.169.254 | sed s/-A/'iptables -t nat -D'/g`"
+      ]
+
+
 ## Strategy for DaemonSet updates (requires Kubernetes 1.6+)
 ## Ref: https://kubernetes.io/docs/tasks/manage-daemon/update-daemon-set/
 ##

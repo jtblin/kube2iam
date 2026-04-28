@@ -21,7 +21,7 @@ host:
   port: 8181
 
 prometheus:
-  # -- Port to expose the /metrics endpoint on. If unset, defaults to `host.port`
+  # Port to expose the /metrics endpoint on. If unset, defaults to `host.port`
   # metricsPort: 9543
 
   service:
@@ -49,13 +49,13 @@ image:
   tag: 0.13.0
   # -- Image pull policy
   pullPolicy: IfNotPresent
-  # -- Optionally specify an array of imagePullSecrets.
+  # Optionally specify an array of imagePullSecrets.
   # Secrets must be manually created in the namespace.
   # ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
   # pullSecrets:
   #   - myRegistryKeySecretName
 
-# -- AWS Access keys to inject as environment variables
+# AWS Access keys to inject as environment variables
 aws:
   # -- The value to use for AWS_SECRET_ACCESS_KEY
   secret_key: ""
@@ -67,12 +67,10 @@ aws:
 # -- Set the AWS credentials using an existing secret
 existingSecret: ""
 
-# -- Node labels for pod assignment
-# ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+# -- Node labels for pod assignment (ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/)
 nodeSelector: {}
 
-# -- Affinity configuration for pod assignment
-# ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+# -- Affinity configuration for pod assignment (ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/)
 affinity: {}
 
 # -- Annotations to be added to pods
@@ -107,7 +105,7 @@ readinessProbe:
   periodSeconds: 5
   # -- Readiness probe success threshold
   successThreshold: 1
-  # -- Readiness probe fail threshold
+  # -- Readiness probe failure threshold
   failureThreshold: 3
   # -- Readiness probe timeout
   timeoutSeconds: 1
@@ -129,13 +127,10 @@ resources: {}
   #   cpu: 50m
   #   memory: 64Mi
 
-# -- Strategy for DaemonSet updates. `RollingUpdate` recommended.
-# ref: https://kubernetes.io/docs/tasks/manage-daemon/update-daemon-set/
-# updateStrategy: RollingUpdate
+# -- Strategy for DaemonSet updates (ref: https://kubernetes.io/docs/tasks/manage-daemon/update-daemon-set/)
 updateStrategy: OnDelete
 
-# -- Maximum number of Pods that can be unavailable during the update process
-# ref: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#max-unavailable
+# -- Maximum number of Pods that can be unavailable during update (ref: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#max-unavailable)
 maxUnavailable: 1
 
 # -- Enable verbose output
@@ -145,7 +140,7 @@ verbose: false
 tolerations: []
 
 podSecurityPolicy:
-  # -- If true, create a podSecurityPolicy object. (Deprecated in Kubernetes 1.25+)
+  # -- If true, create a podSecurityPolicy object (Deprecated in K8s 1.25+)
   enabled: false
 
   # -- Annotations to add to the podSecurityPolicy object

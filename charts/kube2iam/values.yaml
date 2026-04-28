@@ -1,24 +1,31 @@
+# -- Additional container arguments
 extraArgs: {}
 #   base-role-arn: arn:aws:iam::0123456789:role/
 #   default-role: kube2iam-default
 #   api-server: ...
 #   api-token: ...
 
+# -- Additional container environment variables
 extraEnv: {}
 #    http_proxy: http://example.com:8080
 #    NO_PROXY: localhost,127.0.0.1
 
 host:
+  # -- IP address of host
   ip: $(HOST_IP)
+  # -- Add iptables rule
   iptables: false
+  # -- Host interface for proxying AWS metadata
   interface: docker0
+  # -- Port to listen on
   port: 8181
 
 prometheus:
-  # Port to expose the /metrics endpoint on. If unset, defaults to `host.port`
+  # -- Port to expose the /metrics endpoint on. If unset, defaults to `host.port`
   # metricsPort: 9543
 
   service:
+    # -- If true, create a Service resource for Prometheus
     enabled: false
 #    annotations:
 #      prometheus.io/scrape: "true"
@@ -26,77 +33,94 @@ prometheus:
 #      prometheus.io/path: "/metrics"
 
   serviceMonitor:
-    # Create prometheus-operator ServiceMonitor
+    # -- Create prometheus-operator ServiceMonitor
     enabled: false
-    # Interval at which the metrics endpoint is scraped
+    # -- Interval at which the metrics endpoint is scraped
     interval: 10s
-    # Alternative namespace to install the ServiceMonitor in
+    # -- Alternative namespace to install the ServiceMonitor in
     namespace: ""
-    # Labels to add to the service monitor
+    # -- Labels to add to the service monitor
     labels: {}
 
 image:
+  # -- Image repository
   repository: jtblin/kube2iam
+  # -- Image tag
   tag: 0.13.0
+  # -- Image pull policy
   pullPolicy: IfNotPresent
-  ## Optionally specify an array of imagePullSecrets.
-  ## Secrets must be manually created in the namespace.
-  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
-  ##
+  # -- Optionally specify an array of imagePullSecrets.
+  # Secrets must be manually created in the namespace.
+  # ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
   # pullSecrets:
   #   - myRegistryKeySecretName
 
-# AWS Access keys to inject as environment variables
+# -- AWS Access keys to inject as environment variables
 aws:
+  # -- The value to use for AWS_SECRET_ACCESS_KEY
   secret_key: ""
+  # -- The value to use for AWS_ACCESS_KEY_ID
   access_key: ""
+  # -- The AWS region to use
   region: ""
 
+# -- Set the AWS credentials using an existing secret
 existingSecret: ""
 
-## Node labels for pod assignment
-## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
-##
+# -- Node labels for pod assignment
+# ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
 nodeSelector: {}
 
-## Affinity configuration for pod assignment
-## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
-##
+# -- Affinity configuration for pod assignment
+# ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
 affinity: {}
 
-## Annotations to be added to pods
-##
+# -- Annotations to be added to pods
 podAnnotations: {}
 
+# -- priorityClassName to be added to pods
 priorityClassName: ""
 
+# -- Labels to be added to pods
 podLabels: {}
 
 livenessProbe:
+  # -- Enable/disable pod liveness probe
   enabled: true
+  # -- Liveness probe initial delay
   initialDelaySeconds: 30
+  # -- Liveness probe check interval
   periodSeconds: 5
+  # -- Liveness probe success threshold
   successThreshold: 1
+  # -- Liveness probe fail threshold
   failureThreshold: 3
+  # -- Liveness probe timeout
   timeoutSeconds: 1
+
 readinessProbe:
+  # -- Enable/disable pod readiness probe
   enabled: true
+  # -- Readiness probe initial delay
   initialDelaySeconds: 0
+  # -- Readiness probe check interval
   periodSeconds: 5
+  # -- Readiness probe success threshold
   successThreshold: 1
+  # -- Readiness probe fail threshold
   failureThreshold: 3
+  # -- Readiness probe timeout
   timeoutSeconds: 1
 
 rbac:
-  ## If true, create & use RBAC resources
-  ##
+  # -- If true, create & use RBAC resources. Recommended for production.
   create: false
 
-  ## Ignored if rbac.create is true
-  ##
+  # -- existing ServiceAccount to use (ignored if rbac.create=true)
   serviceAccountName: default
 
-resources: {} # Recommended to set resource requests and limits
+# -- pod resource requests & limits
+resources: {}
   # For example:
   # limits:
   #   cpu: 100m
@@ -105,26 +129,24 @@ resources: {} # Recommended to set resource requests and limits
   #   cpu: 50m
   #   memory: 64Mi
 
-## Strategy for DaemonSet updates (requires Kubernetes 1.6+)
-## Ref: https://kubernetes.io/docs/tasks/manage-daemon/update-daemon-set/
-##
-# updateStrategy: RollingUpdate # Consider changing from OnDelete to RollingUpdate
+# -- Strategy for DaemonSet updates. `RollingUpdate` recommended.
+# ref: https://kubernetes.io/docs/tasks/manage-daemon/update-daemon-set/
+# updateStrategy: RollingUpdate
 updateStrategy: OnDelete
 
-
-
-## Maximum number of Pods that can be unavailable during the update process
-## when using updateStrategy: RollingUpdate
-## Ref: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#max-unavailable
+# -- Maximum number of Pods that can be unavailable during the update process
+# ref: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#max-unavailable
 maxUnavailable: 1
 
+# -- Enable verbose output
 verbose: false
 
+# -- List of node taints to tolerate
 tolerations: []
 
 podSecurityPolicy:
-  ## if true, a podSecurityPolicy object will be created. rbac.create has to be set to true to also create RBAC roles and bindings for the podSecurityPolicy.
+  # -- If true, create a podSecurityPolicy object. (Deprecated in Kubernetes 1.25+)
   enabled: false
 
-  ## annotations to add to the podSecurityPolicy object
+  # -- Annotations to add to the podSecurityPolicy object
   annotations: {}

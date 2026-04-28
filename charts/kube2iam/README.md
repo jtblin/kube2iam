@@ -1,6 +1,10 @@
 # kube2iam
 
-Installs [kube2iam](https://github.com/jtblin/kube2iam) to provide IAM credentials to pods based on annotations.
+![Version: 3.2.0](https://img.shields.io/badge/Version-3.2.0-informational?style=flat-square) ![AppVersion: 0.13.0](https://img.shields.io/badge/AppVersion-0.13.0-informational?style=flat-square)
+
+Provide IAM credentials to pods based on annotations.
+
+**Homepage:** <https://github.com/jtblin/kube2iam>
 
 ## TL;DR;
 
@@ -53,63 +57,69 @@ $ helm uninstall my-release
 
 The command removes all the Kubernetes components associated with the chart and deletes the release.
 
-## Configuration
+## Maintainers
 
-The following table lists the configurable parameters of the kube2iam chart and their default values.
+| Name | Email | Url |
+| ---- | ------ | --- |
+| mariusv | <myself@mariusv.com> |  |
 
-| Parameter | Description | Default |
-| --- | --- | --- |
-| `affinity` | affinity configuration for pod assignment | `{}` |
-| `extraArgs` | Additional container arguments | `{}` |
-| `extraEnv` | Additional container environment variables | `{}` |
-| `host.ip` | IP address of host | `$(HOST_IP)` |
-| `host.iptables` | Add iptables rule | `false` |
-| `host.interface` | Host interface for proxying AWS metadata | `docker0` |
-| `host.port` | Port to listen on | `8181` |
-| `image.repository` | Image | `jtblin/kube2iam` |
-| `image.tag` | Image tag | `0.13.0` |
-| `image.pullPolicy` | Image pull policy | `IfNotPresent` |
-| `image.pullSecrets` | Image pull secrets | `[]` |
-| `livenessProbe.enabled` | Enable/disable pod liveness probe | `true` |
-| `livenessProbe.initialDelaySeconds` | Liveness probe initial delay | `30` |
-| `livenessProbe.periodSeconds` | Liveness probe check interval | `5` |
-| `livenessProbe.successThreshold` | Liveness probe success threshold | `1` |
-| `livenessProbe.failureThreshold` | Liveness probe fail threshold | `3` |
-| `livenessProbe.timeoutSeconds` | Liveness probe timeout | `1` |
-| `nodeSelector` | node labels for pod assignment | `{}` |
-| `podAnnotations` | annotations to be added to pods | `{}` |
-| `priorityClassName` | priorityClassName to be added to pods | `{}` |
-| `prometheus.metricsPort` | Port to expose prometheus metrics on (if unspecified, `host.port` is used) | `host.port` |
-| `prometheus.service.enabled` | If true, create a Service resource for Prometheus | `false` |
-| `prometheus.service.annotations` | Annotations to be added to the service | `{}` |
-| `prometheus.serviceMonitor.enabled` | If true, create a Prometheus Operator ServiceMonitor resource | `false` |
-| `prometheus.serviceMonitor.interval` | Interval at which the metrics endpoint is scraped | `10s` |
-| `prometheus.serviceMonitor.namespace` | An alternative namespace in which to install the ServiceMonitor | `""` |
-| `prometheus.serviceMonitor.labels` | Labels to add to the ServiceMonitor | `{}` |
-| `rbac.create` | If true, create & use RBAC resources. Recommended for production. | `false` |
-| `rbac.serviceAccountName` | existing ServiceAccount to use (ignored if rbac.create=true) | `default` |
-| `readinessProbe.enabled` | Enable/disable pod readiness probe | `true` |
-| `readinessProbe.initialDelaySeconds` | Readiness probe initial delay | `0` |
-| `readinessProbe.periodSeconds` | Readiness probe check interval | `5` |
-| `readinessProbe.successThreshold` | Readiness probe success threshold | `1` |
-| `readinessProbe.failureThreshold` | Readiness probe fail threshold | `3` |
-| `readinessProbe.timeoutSeconds` | Liveness probe timeout | `1` |
-| `resources` | pod resource requests & limits | `{}` (Recommended to set in production) |
-| `updateStrategy` | Strategy for DaemonSet updates. `RollingUpdate` recommended. | `OnDelete` |
-| `maxUnavailable` | Maximum number of Pods that can be unavailable during the `RollingUpdate`. | `1` |
-| `verbose` | Enable verbose output | `false` |
-| `tolerations` | List of node taints to tolerate | `[]` |
-| `aws.secret_key` | The value to use for AWS\_SECRET\_ACCESS\_KEY | `""` (Use `existingSecret` or other secure methods in production) |
-| `aws.access_key` | The value to use for AWS\_ACCESS\_KEY\_ID | `""` (Use `existingSecret` or other secure methods in production) |
-| `aws.region` | The AWS region to use | `""` |
-| `existingSecret` | Set the AWS credentials using an existing secret | `""` (Recommended for production) |
-| `podSecurityPolicy.enabled` | If true, create a podSecurityPolicy object. RBAC must also be enabled. (Deprecated in Kubernetes 1.25+, removed in 1.29+) | `false` |
-| `podSecurityPolicy.annotations` | The annotations to add to the podSecurityPolicy object | `{}` |
+## Source Code
+
+* <https://github.com/jtblin/kube2iam>
+
+## Values
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| affinity | object | `{}` | Affinity configuration for pod assignment |
+| aws.access_key | string | `""` | The value to use for AWS_ACCESS_KEY_ID |
+| aws.region | string | `""` | The AWS region to use |
+| aws.secret_key | string | `""` | The value to use for AWS_SECRET_ACCESS_KEY |
+| existingSecret | string | `""` | Set the AWS credentials using an existing secret |
+| extraArgs | object | `{}` | Additional container arguments |
+| extraEnv | object | `{}` | Additional container environment variables |
+| host.interface | string | `"docker0"` | Host interface for proxying AWS metadata |
+| host.ip | string | `"$(HOST_IP)"` | IP address of host |
+| host.iptables | bool | `false` | Add iptables rule |
+| host.port | int | `8181` | Port to listen on |
+| image.pullPolicy | string | `"IfNotPresent"` | Image pull policy |
+| image.repository | string | `"jtblin/kube2iam"` | Image repository |
+| image.tag | string | `"0.13.0"` | Image tag |
+| livenessProbe.enabled | bool | `true` | Enable/disable pod liveness probe |
+| livenessProbe.failureThreshold | int | `3` | Liveness probe fail threshold |
+| livenessProbe.initialDelaySeconds | int | `30` | Liveness probe initial delay |
+| livenessProbe.periodSeconds | int | `5` | Liveness probe check interval |
+| livenessProbe.successThreshold | int | `1` | Liveness probe success threshold |
+| livenessProbe.timeoutSeconds | int | `1` | Liveness probe timeout |
+| maxUnavailable | int | `1` | Maximum number of Pods that can be unavailable during the update process |
+| nodeSelector | object | `{}` | Node labels for pod assignment |
+| podAnnotations | object | `{}` | Annotations to be added to pods |
+| podLabels | object | `{}` | Labels to be added to pods |
+| podSecurityPolicy.annotations | object | `{}` | Annotations to add to the podSecurityPolicy object |
+| podSecurityPolicy.enabled | bool | `false` | If true, create a podSecurityPolicy object. (Deprecated in Kubernetes 1.25+) |
+| priorityClassName | string | `""` | priorityClassName to be added to pods |
+| prometheus.service.enabled | bool | `false` | If true, create a Service resource for Prometheus |
+| prometheus.serviceMonitor.enabled | bool | `false` | Create prometheus-operator ServiceMonitor |
+| prometheus.serviceMonitor.interval | string | `"10s"` | Interval at which the metrics endpoint is scraped |
+| prometheus.serviceMonitor.labels | object | `{}` | Labels to add to the service monitor |
+| prometheus.serviceMonitor.namespace | string | `""` | Alternative namespace to install the ServiceMonitor in |
+| rbac.create | bool | `false` | If true, create & use RBAC resources. Recommended for production. |
+| rbac.serviceAccountName | string | `"default"` | existing ServiceAccount to use (ignored if rbac.create=true) |
+| readinessProbe.enabled | bool | `true` | Enable/disable pod readiness probe |
+| readinessProbe.failureThreshold | int | `3` | Readiness probe fail threshold |
+| readinessProbe.initialDelaySeconds | int | `0` | Readiness probe initial delay |
+| readinessProbe.periodSeconds | int | `5` | Readiness probe check interval |
+| readinessProbe.successThreshold | int | `1` | Readiness probe success threshold |
+| readinessProbe.timeoutSeconds | int | `1` | Readiness probe timeout |
+| resources | object | `{}` | pod resource requests & limits |
+| tolerations | list | `[]` | List of node taints to tolerate |
+| updateStrategy | string | `"OnDelete"` | Strategy for DaemonSet updates. `RollingUpdate` recommended. |
+| verbose | bool | `false` | Enable verbose output |
 
 Specify each parameter using the `--set key=value[,key=value]` argument to `helm install`. For example:
 
 ```console
-$ helm install my-release ./kube2iam \\
+$ helm install my-release ./kube2iam \
   --set=extraArgs.base-role-arn=arn:aws:iam::0123456789:role/,extraArgs.default-role=kube2iam-default,host.iptables=true,host.interface=cbr0
 ```
 
@@ -120,3 +130,6 @@ $ helm install my-release ./kube2iam -f values.yaml
 ```
 
 > **Tip**: You can use the default [values.yaml](values.yaml)
+
+----------------------------------------------
+Autogenerated from chart metadata using [helm-docs v1.14.2](https://github.com/norwoodj/helm-docs/releases/v1.14.2)

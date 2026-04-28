@@ -1,0 +1,82 @@
+{{ template "chart.header" . }}
+{{ template "chart.deprecationWarning" . }}
+
+{{ template "chart.badgesSection" . }}
+
+{{ template "chart.description" . }}
+
+{{ template "chart.homepageLine" . }}
+
+## TL;DR;
+
+```console
+$ helm install my-release ./kube2iam
+```
+
+## Introduction
+
+This chart bootstraps a [kube2iam](https://github.com/jtblin/kube2iam) deployment on a [Kubernetes](http://kubernetes.io) cluster using the [Helm](https://helm.sh) package manager.
+
+## Prerequisites
+
+*   Kubernetes 1.29+ (or a version supported by the deployed kube2iam)
+
+## Installing the Chart
+
+To install the chart with the release name `my-release`:
+
+```console
+# Add the chart repository (if you are using a repository)
+$ helm repo add kube2iam https://jtblin.github.io/kube2iam/ # Replace with your actual repository URL if different
+```
+
+# Update your Helm repositories
+`$ helm repo update`
+
+# Install the chart
+`$ helm install my-release kube2iam/kube2iam # If installing from a repository`
+
+Alternatively, if you have the chart files locally:
+
+```console
+# Change to the directory containing the chart
+$ cd charts/kube2iam
+
+# Install the chart
+$ helm install my-release ./
+```
+
+The command deploys kube2iam on the Kubernetes cluster in the default configuration. The [configuration](#configuration) section lists the parameters that can be configured during installation.
+
+## Uninstalling the Chart
+
+To uninstall/delete the `my-release` deployment:
+
+```console
+$ helm uninstall my-release
+```
+
+The command removes all the Kubernetes components associated with the chart and deletes the release.
+
+{{ template "chart.maintainersSection" . }}
+
+{{ template "chart.sourcesSection" . }}
+
+{{ template "chart.requirementsSection" . }}
+
+{{ template "chart.valuesSection" . }}
+
+Specify each parameter using the `--set key=value[,key=value]` argument to `helm install`. For example:
+
+```console
+$ helm install my-release ./kube2iam \
+  --set=extraArgs.base-role-arn=arn:aws:iam::0123456789:role/,extraArgs.default-role=kube2iam-default,host.iptables=true,host.interface=cbr0
+```
+
+Alternatively, a YAML file that specifies the values for the above parameters can be provided while installing the chart. For example:
+
+```console
+$ helm install my-release ./kube2iam -f values.yaml
+```
+
+> **Tip**: You can use the default [values.yaml](values.yaml)

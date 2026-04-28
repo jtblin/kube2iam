@@ -14,6 +14,9 @@ on:
       - '.github/workflows/helm.yaml'
       - '.github/ct.yaml'
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   lint-docs:
     runs-on: ubuntu-latest
@@ -24,9 +27,9 @@ jobs:
           fetch-depth: 0
 
       - name: Run helm-docs
-        uses: norwoodj/helm-docs-action@v1.0.1
+        uses: docker://jnorwood/helm-docs:v1.14.2
         with:
-          chart-search-root: charts
+          args: --chart-search-root=charts
 
       - name: Check for changes
         run: |

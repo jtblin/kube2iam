@@ -243,7 +243,7 @@ func (s *Server) doHealthcheck() {
 	instanceId, err := s.iam.GetInstanceId()
 	if err != nil {
 		errMsg = fmt.Sprintf("Error getting instance id %+v", err)
-		log.Errorf(errMsg)
+		log.Error(errMsg)
 		return
 	}
 

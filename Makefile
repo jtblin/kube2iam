@@ -14,16 +14,24 @@ CPU_ARCH ?= arm64
 IMAGE_NAME := $(DOCKER_REPO)/$(BINARY_NAME)-$(CPU_ARCH)
 MANIFEST_NAME := $(DOCKER_REPO)/$(BINARY_NAME)
 ARCH ?= darwin
-GOLANGCI_LINT_VERSION ?= v1.23.8
+GOLANGCI_LINT_VERSION ?= v1.64.5
 GOLANGCI_LINT_CONCURRENCY ?= 4
 GOLANGCI_LINT_DEADLINE ?= 180
 PLATFORMS ?= linux/arm/v7,linux/arm64/v8,linux/amd64
 # useful for passing --build-arg http_proxy :)
 DOCKER_BUILD_FLAGS :=
 
+# Ensure tools installed via go install are in the PATH
+GOPATH := $(shell go env GOPATH)
+BIN_DIR := $(GOPATH)/bin
+GOLANGCI_LINT := $(BIN_DIR)/golangci-lint
+GOIMPORTS := $(BIN_DIR)/goimports
+GO_JUNIT_REPORT := $(BIN_DIR)/go-junit-report
+GOVERALLS := $(BIN_DIR)/goveralls
+
 setup:
 	go install golang.org/x/tools/cmd/goimports@v0.28.0
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $$(go env GOPATH)/bin v2.1.6
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 	go install github.com/jstemmer/go-junit-report/v2@latest
 	go install github.com/mattn/goveralls@latest
 
@@ -38,7 +46,7 @@ build-all:
 
 fmt:
 	gofmt -w=true -s $$(find . -type f -name '*.go')
-	goimports -w=true -d $$(find . -type f -name '*.go')
+	$(GOIMPORTS) -w=true -d $$(find . -type f -name '*.go')
 
 test:
 	go test ./...
@@ -59,18 +67,18 @@ cover:
 
 coveralls:
 	./cover.sh
-	goveralls -coverprofile=coverage.out -service=circle-ci -repotoken=$(COVERALLS_TOKEN)
+	$(GOVERALLS) -coverprofile=coverage.out -service=circle-ci -repotoken=$(COVERALLS_TOKEN)
 
 junit-test:
-	go test -v ./... | go-junit-report > test-report.xml
+	go test -v ./... | $(GO_JUNIT_REPORT) > test-report.xml
 
 check:
 	go install ./cmd
-	golangci-lint run --enable=gocyclo --concurrency=$(GOLANGCI_LINT_CONCURRENCY) --timeout=$(GOLANGCI_LINT_DEADLINE)s
+	$(GOLANGCI_LINT) run --enable=gocyclo --concurrency=$(GOLANGCI_LINT_CONCURRENCY) --timeout=$(GOLANGCI_LINT_DEADLINE)s
 
 check-all:
 	go install ./cmd
-	golangci-lint run --enable=gocyclo --concurrency=$(GOLANGCI_LINT_CONCURRENCY) --deadline=600s
+	$(GOLANGCI_LINT) run --enable=gocyclo --concurrency=$(GOLANGCI_LINT_CONCURRENCY) --deadline=600s
 
 docker:
 	docker build -t $(IMAGE_NAME):$(GIT_HASH) . $(DOCKER_BUILD_FLAGS)

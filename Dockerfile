@@ -1,4 +1,4 @@
-FROM golang:1.24.3 AS BUILDER
+FROM golang:1.26.2 AS BUILDER
 WORKDIR /go/src/github.com/jtblin/kube2iam
 ENV ARCH=linux
 ENV CGO_ENABLED=0

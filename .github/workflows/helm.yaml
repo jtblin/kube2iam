@@ -3,7 +3,7 @@ name: Helm
 on:
   push:
     branches:
-      - master
+      - main
     paths:
       - 'charts/**'
       - '.github/workflows/helm.yaml'

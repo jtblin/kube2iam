@@ -79,6 +79,8 @@ workflows:
               only: /.*/
       - docker-buildx:
           filters:
+            branches:
+              ignore: /.*/
             tags:
               only: /.*/
       - release:

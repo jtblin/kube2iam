@@ -1,4 +1,11 @@
 version: 2.1
+jobs:
+  noop:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - run: echo 'nothing to do on this branch'
 workflows:
   noop:
-    jobs: []
+    jobs:
+      - noop

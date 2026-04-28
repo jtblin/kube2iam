@@ -14,7 +14,10 @@ CPU_ARCH ?= arm64
 IMAGE_NAME := $(DOCKER_REPO)/$(BINARY_NAME)-$(CPU_ARCH)
 MANIFEST_NAME := $(DOCKER_REPO)/$(BINARY_NAME)
 ARCH ?= darwin
-GOLANGCI_LINT_VERSION ?= v1.64.5
+GOLANGCI_LINT_VERSION ?= v2.11.4
+GOIMPORTS_VERSION ?= v0.44.0
+GO_JUNIT_REPORT_VERSION ?= v2.1.0
+GOVERALLS_VERSION ?= v0.0.12
 GOLANGCI_LINT_CONCURRENCY ?= 4
 GOLANGCI_LINT_DEADLINE ?= 180
 PLATFORMS ?= linux/arm/v7,linux/arm64/v8,linux/amd64
@@ -30,10 +33,10 @@ GO_JUNIT_REPORT := $(BIN_DIR)/go-junit-report
 GOVERALLS := $(BIN_DIR)/goveralls
 
 setup:
-	go install golang.org/x/tools/cmd/goimports@v0.28.0
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
-	go install github.com/jstemmer/go-junit-report/v2@latest
-	go install github.com/mattn/goveralls@latest
+	go install golang.org/x/tools/cmd/goimports@$(GOIMPORTS_VERSION)
+	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
+	go install github.com/jstemmer/go-junit-report/v2@$(GO_JUNIT_REPORT_VERSION)
+	go install github.com/mattn/goveralls@$(GOVERALLS_VERSION)
 
 build: *.go fmt
 	go build -o build/bin/$(ARCH)/$(BINARY_NAME) $(GOBUILD_VERSION_ARGS) github.com/jtblin/$(BINARY_NAME)/cmd
@@ -74,7 +77,7 @@ junit-test:
 
 check:
 	go install ./cmd
-	$(GOLANGCI_LINT) run --enable=gocyclo --concurrency=$(GOLANGCI_LINT_CONCURRENCY) --timeout=$(GOLANGCI_LINT_DEADLINE)s
+	$(GOLANGCI_LINT) run --concurrency=$(GOLANGCI_LINT_CONCURRENCY) --timeout=$(GOLANGCI_LINT_DEADLINE)s
 
 check-all:
 	go install ./cmd

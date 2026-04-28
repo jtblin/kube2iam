@@ -3,7 +3,7 @@
 version: 2.1
 
 orbs:
-  go: circleci/go@3.0.2
+  go: circleci/go@3.0.4
 
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/configuration-reference/#jobs

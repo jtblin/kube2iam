@@ -190,21 +190,21 @@ func (iam *Client) AssumeRole(roleARN, externalID string, remoteIP string, sessi
 			return nil, err
 		}
 
-		var customSTSResolver = aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
+		var customSTSResolver = aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) { //nolint:staticcheck
 			if service == sts.ServiceID && IsValidRegion(region, regions) {
-				return aws.Endpoint{
+				return aws.Endpoint{ //nolint:staticcheck
 					URL:           GetEndpointFromRegion(region),
 					SigningRegion: region,
 				}, nil
 			}
 
 			// returning EndpointNotFoundError will allow the service to fallback to it's default resolution
-			return aws.Endpoint{}, &aws.EndpointNotFoundError{}
+			return aws.Endpoint{}, &aws.EndpointNotFoundError{} //nolint:staticcheck
 		})
 
 		cfg, err := config.LoadDefaultConfig(
 			context.TODO(),
-			config.WithEndpointResolverWithOptions(customSTSResolver),
+			config.WithEndpointResolverWithOptions(customSTSResolver), //nolint:staticcheck
 		)
 		if err != nil {
 			return nil, err

@@ -1,0 +1,16 @@
+version: "2"
+
+linters:
+  enable:
+    - gocyclo
+    - staticcheck
+    - errcheck
+    - govet
+    - ineffassign
+  settings:
+    gocyclo:
+      min-complexity: 20
+
+issues:
+  exclude-rules:
+    - text: "is deprecated"

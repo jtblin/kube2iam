@@ -25,11 +25,17 @@ const (
 	maxSessNameLength = 64
 )
 
+// STSClient represents the subset of sts.Client methods used by the iam package.
+type STSClient interface {
+	AssumeRole(ctx context.Context, params *sts.AssumeRoleInput, optFns ...func(*sts.Options)) (*sts.AssumeRoleOutput, error)
+}
+
 // Client represents an IAM client.
 type Client struct {
 	BaseARN             string
 	Endpoint            string
 	UseRegionalEndpoint bool
+	STS                 STSClient
 }
 
 // Credentials represent the security Credentials response.
@@ -202,14 +208,18 @@ func (iam *Client) AssumeRole(roleARN, externalID string, remoteIP string, sessi
 			return aws.Endpoint{}, &aws.EndpointNotFoundError{} //nolint:staticcheck
 		})
 
-		cfg, err := config.LoadDefaultConfig(
-			context.TODO(),
-			config.WithEndpointResolverWithOptions(customSTSResolver), //nolint:staticcheck
-		)
-		if err != nil {
-			return nil, err
+		svc := iam.STS
+		if svc == nil {
+			cfg, err := config.LoadDefaultConfig(
+				context.TODO(),
+				config.WithEndpointResolverWithOptions(customSTSResolver), //nolint:staticcheck
+			)
+			if err != nil {
+				return nil, err
+			}
+			svc = sts.NewFromConfig(cfg)
 		}
-		svc := sts.NewFromConfig(cfg)
+
 		assumeRoleInput := sts.AssumeRoleInput{
 			DurationSeconds: aws.Int32(int32(sessionTTL.Seconds() * 2)),
 			RoleArn:         aws.String(roleARN),

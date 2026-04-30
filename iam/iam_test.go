@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	ststypes "github.com/aws/aws-sdk-go-v2/service/sts/types"
+	"github.com/karlseguin/ccache"
 )
 
 func stringPointer(str string) *string {
@@ -63,11 +64,22 @@ func (m *MockSTSClient) AssumeRole(ctx context.Context, params *sts.AssumeRoleIn
 	return m.AssumeRoleFunc(ctx, params, optFns...)
 }
 
-func TestAssumeRole(t *testing.T) {
-	// Pre-populate regions cache to avoid AWS calls
-	cache.Set("awsRegions", &validEc2Regions, time.Hour)
+type MockRegionClient struct {
+	DescribeRegionsFunc func(ctx context.Context, params *ec2.DescribeRegionsInput, optFns ...func(*ec2.Options)) (*ec2.DescribeRegionsOutput, error)
+}
 
+func (m *MockRegionClient) DescribeRegions(ctx context.Context, params *ec2.DescribeRegionsInput, optFns ...func(*ec2.Options)) (*ec2.DescribeRegionsOutput, error) {
+	return m.DescribeRegionsFunc(ctx, params, optFns...)
+}
+
+func TestAssumeRole(t *testing.T) {
 	iamClient := &Client{
+		Cache: ccache.New(ccache.Configure()),
+		Region: &MockRegionClient{
+			DescribeRegionsFunc: func(ctx context.Context, params *ec2.DescribeRegionsInput, optFns ...func(*ec2.Options)) (*ec2.DescribeRegionsOutput, error) {
+				return &validEc2Regions, nil
+			},
+		},
 		STS: &MockSTSClient{
 			AssumeRoleFunc: func(ctx context.Context, params *sts.AssumeRoleInput, optFns ...func(*sts.Options)) (*sts.AssumeRoleOutput, error) {
 				return &sts.AssumeRoleOutput{

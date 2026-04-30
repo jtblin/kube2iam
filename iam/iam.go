@@ -30,12 +30,19 @@ type STSClient interface {
 	AssumeRole(ctx context.Context, params *sts.AssumeRoleInput, optFns ...func(*sts.Options)) (*sts.AssumeRoleOutput, error)
 }
 
+// RegionClient represents the subset of ec2.Client methods used by the iam package.
+type RegionClient interface {
+	DescribeRegions(ctx context.Context, params *ec2.DescribeRegionsInput, optFns ...func(*ec2.Options)) (*ec2.DescribeRegionsOutput, error)
+}
+
 // Client represents an IAM client.
 type Client struct {
 	BaseARN             string
 	Endpoint            string
 	UseRegionalEndpoint bool
 	STS                 STSClient
+	Region              RegionClient
+	Cache               *ccache.Cache
 }
 
 // Credentials represent the security Credentials response.
@@ -151,17 +158,27 @@ func IsValidRegion(promisedLand string, regions *ec2.DescribeRegionsOutput) bool
 	return false
 }
 
+func (iam *Client) getCache() *ccache.Cache {
+	if iam.Cache != nil {
+		return iam.Cache
+	}
+	return cache
+}
+
 // Regions list to validate input region name
 //
 // https://stackoverflow.com/a/69935735/3945261
-func loadRegions() (*ec2.DescribeRegionsOutput, error) {
-	regionsCache, err := cache.Fetch("awsRegions", time.Hour*24*30, func() (interface{}, error) {
-		cfg, err := config.LoadDefaultConfig(context.TODO())
-		if err != nil {
-			return nil, err
+func (iam *Client) getRegions() (*ec2.DescribeRegionsOutput, error) {
+	regionsCache, err := iam.getCache().Fetch("awsRegions", time.Hour*24*30, func() (interface{}, error) {
+		svc := iam.Region
+		if svc == nil {
+			cfg, err := config.LoadDefaultConfig(context.TODO())
+			if err != nil {
+				return nil, err
+			}
+			svc = ec2.NewFromConfig(cfg)
 		}
-		ec2Client := ec2.NewFromConfig(cfg)
-		r, err := ec2Client.DescribeRegions(context.TODO(), &ec2.DescribeRegionsInput{})
+		r, err := svc.DescribeRegions(context.TODO(), &ec2.DescribeRegionsInput{})
 		if err != nil {
 			return nil, err
 		}
@@ -179,7 +196,7 @@ func loadRegions() (*ec2.DescribeRegionsOutput, error) {
 // AssumeRole returns an IAM role Credentials using AWS STS.
 func (iam *Client) AssumeRole(roleARN, externalID string, remoteIP string, sessionTTL time.Duration) (*Credentials, error) {
 	hitCache := true
-	item, err := cache.Fetch(roleARN, sessionTTL, func() (interface{}, error) {
+	item, err := iam.getCache().Fetch(roleARN, sessionTTL, func() (interface{}, error) {
 		hitCache = false
 
 		// Set up a prometheus timer to track the AWS request duration. It stores the timer value when
@@ -191,7 +208,7 @@ func (iam *Client) AssumeRole(roleARN, externalID string, remoteIP string, sessi
 		timer := metrics.NewFunctionTimer(metrics.IamRequestSec, lvsProducer, nil)
 		defer timer.ObserveDuration()
 
-		regions, err := loadRegions()
+		regions, err := iam.getRegions()
 		if err != nil {
 			return nil, err
 		}

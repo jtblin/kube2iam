@@ -28,5 +28,7 @@ _testmain.go
 
 /build/
 coverage.out
+coverage-integration.out
+coverage-merged.out
 /vendor/
 test-report.xml

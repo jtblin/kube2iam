@@ -14,10 +14,8 @@ CPU_ARCH ?= arm64
 IMAGE_NAME := $(DOCKER_REPO)/$(BINARY_NAME)-$(CPU_ARCH)
 MANIFEST_NAME := $(DOCKER_REPO)/$(BINARY_NAME)
 ARCH ?= darwin
-GOLANGCI_LINT_VERSION ?= v2.11.4
+GOLANGCI_LINT_VERSION ?= v2.12.1
 GOIMPORTS_VERSION ?= v0.44.0
-GO_JUNIT_REPORT_VERSION ?= v2.1.0
-GOVERALLS_VERSION ?= v0.0.12
 GOLANGCI_LINT_CONCURRENCY ?= 4
 GOLANGCI_LINT_DEADLINE ?= 180
 PLATFORMS ?= linux/arm/v7,linux/arm64/v8,linux/amd64
@@ -29,14 +27,10 @@ GOPATH := $(shell go env GOPATH)
 BIN_DIR := $(GOPATH)/bin
 GOLANGCI_LINT := $(BIN_DIR)/golangci-lint
 GOIMPORTS := $(BIN_DIR)/goimports
-GO_JUNIT_REPORT := $(BIN_DIR)/go-junit-report
-GOVERALLS := $(BIN_DIR)/goveralls
 
 setup:
 	go install golang.org/x/tools/cmd/goimports@$(GOIMPORTS_VERSION)
 	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
-	go install github.com/jstemmer/go-junit-report/v2@$(GO_JUNIT_REPORT_VERSION)
-	go install github.com/mattn/goveralls@$(GOVERALLS_VERSION)
 
 build: *.go fmt
 	go build -o build/bin/$(ARCH)/$(BINARY_NAME) $(GOBUILD_VERSION_ARGS) github.com/jtblin/$(BINARY_NAME)/cmd
@@ -75,25 +69,34 @@ bench:
 bench-race:
 	go test -race -bench=. ./...
 
-cover:
-	./cover.sh
-	go tool cover -func=coverage.out
-	go tool cover -html=coverage.out
+test-all:
+	@echo "Running unit and integration tests..."
+	go test -coverprofile=coverage.out -covermode=atomic ./...
+	go test -tags=integration -coverprofile=coverage-integration.out -covermode=atomic ./...
+	@echo "Merging coverage profiles..."
+	cat coverage.out > coverage-merged.out
+	grep -v "^mode:" coverage-integration.out >> coverage-merged.out
+	@echo "Coverage Summary:"
+	go tool cover -func=coverage-merged.out
+	@echo "Checking threshold..."
+	@COVERAGE=$$(go tool cover -func=coverage-merged.out | grep total | awk '{print $$3}' | tr -d '%'); \
+	echo "Total coverage: $$COVERAGE%"; \
+	if [ $$(echo "$$COVERAGE < 50" | bc -l) -eq 1 ]; then \
+		echo "❌ Coverage $$COVERAGE% is below the 50% threshold"; \
+		exit 1; \
+	fi; \
+	echo "✅ Coverage $$COVERAGE% meets the threshold"
 
-coveralls:
-	./cover.sh
-	$(GOVERALLS) -coverprofile=coverage.out -service=circle-ci -repotoken=$(COVERALLS_TOKEN)
+cover: test-all
+	go tool cover -html=coverage-merged.out
 
 junit-test:
-	go test -v ./... | $(GO_JUNIT_REPORT) > test-report.xml
+	go test -v ./...
 
 check:
 	go install ./cmd
 	$(GOLANGCI_LINT) run --concurrency=$(GOLANGCI_LINT_CONCURRENCY) --timeout=$(GOLANGCI_LINT_DEADLINE)s
 
-check-all:
-	go install ./cmd
-	$(GOLANGCI_LINT) run --enable=gocyclo --concurrency=$(GOLANGCI_LINT_CONCURRENCY) --deadline=600s
 
 docker:
 	docker build -t $(IMAGE_NAME):$(GIT_HASH) . $(DOCKER_BUILD_FLAGS)

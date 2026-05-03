@@ -10,7 +10,7 @@ linters:
   settings:
     gocyclo:
       min-complexity: 20
-
-issues:
-  exclude-rules:
-    - text: "is deprecated"
+  exclusions:
+    rules:
+      - text: "is deprecated"
+        linters: [all]

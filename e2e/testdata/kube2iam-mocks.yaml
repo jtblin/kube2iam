@@ -1,0 +1,85 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kube2iam-mocks-config
+  namespace: kube2iam-e2e
+data:
+  nginx.conf: |
+    events {}
+    http {
+        # AWS API Mock (EC2 + STS) on Port 8080
+        server {
+            listen 8080;
+            location /ec2/ {
+                if ($arg_Action = "DescribeRegions") {
+                    return 200 '<?xml version="1.0" encoding="UTF-8"?>
+    <DescribeRegionsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+        <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+        <regionInfo/>
+    </DescribeRegionsResponse>';
+                }
+                return 200;
+            }
+            location ~ ^/sts {
+                default_type application/xml;
+                return 200 '<AssumeRoleResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/"><AssumeRoleResult><Credentials><AccessKeyId>ASIA_MOCK_KEY</AccessKeyId><SecretAccessKey>mock-secret</SecretAccessKey><SessionToken>mock-token</SessionToken><Expiration>2030-01-01T00:00:00Z</Expiration></Credentials><AssumedRoleUser><Arn>arn:aws:sts::123456789012:assumed-role/mock-role/mock-session</Arn><AssumedRoleId>AROA_MOCK_ID:mock-session</AssumedRoleId></AssumedRoleUser></AssumeRoleResult><ResponseMetadata><RequestId>mock-request-id</RequestId></ResponseMetadata></AssumeRoleResponse>';
+            }
+        }
+    }
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: kube2iam-mocks
+  namespace: kube2iam-e2e
+spec:
+  selector:
+    matchLabels:
+      app: kube2iam-mocks
+  template:
+    metadata:
+      labels:
+        app: kube2iam-mocks
+    spec:
+      hostNetwork: true
+      containers:
+        - name: aemm
+          image: public.ecr.aws/aws-ec2/amazon-ec2-metadata-mock:v1.13.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 1338
+              hostPort: 1338
+          env:
+            - name: AEMM_SERVER_PORT
+              value: "1338"
+            - name: AEMM_IMDSV2_REQUIRED
+              value: "false"
+        - name: aws-mock
+          image: nginx:alpine
+          ports:
+            - containerPort: 8080
+              hostPort: 8080
+          volumeMounts:
+            - name: config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+      volumes:
+        - name: config
+          configMap:
+            name: kube2iam-mocks-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kube2iam-mocks
+  namespace: kube2iam-e2e
+spec:
+  ports:
+    - name: metadata
+      port: 1338
+      targetPort: 1338
+    - name: aws-api
+      port: 8080
+      targetPort: 8080
+  selector:
+    app: kube2iam-mocks

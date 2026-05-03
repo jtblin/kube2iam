@@ -1,0 +1,5 @@
+# E2E test client image — minimal Alpine with curl.
+# Used exclusively by E2E test pods; never shipped as part of the kube2iam release.
+FROM alpine:3.23.4
+RUN apk --no-cache add curl
+# No ENTRYPOINT — the pod spec provides the command (sleep 3600).

@@ -1,0 +1,128 @@
+# kube2iam DaemonSet for E2E testing.
+#
+# Key differences from production:
+#   - Image is loaded from local Docker via `kind load docker-image`
+#   - --metadata-addr points to the AEMM service in the test namespace
+#   - --base-role-arn uses a placeholder ARN (AEMM serves fake credentials)
+#   - NET_ADMIN capability is required for iptables manipulation
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kube2iam
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kube2iam
+rules:
+  - apiGroups: [""]
+    resources: ["namespaces", "pods"]
+    verbs: ["get", "watch", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kube2iam
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kube2iam
+subjects:
+  - kind: ServiceAccount
+    name: kube2iam
+    namespace: kube-system
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: kube2iam
+  namespace: kube-system
+  labels:
+    app: kube2iam
+spec:
+  selector:
+    matchLabels:
+      app: kube2iam
+  template:
+    metadata:
+      labels:
+        app: kube2iam
+    spec:
+      hostNetwork: true
+      hostPID: true
+      dnsPolicy: ClusterFirstWithHostNet
+      serviceAccountName: kube2iam
+      initContainers:
+        - name: iptables
+          image: kube2iam:e2e-test
+          imagePullPolicy: Never
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              # Enable routing to localnet for DNAT to 127.0.0.1
+              sysctl -w net.ipv4.conf.all.route_localnet=1
+              # Redirect pod traffic reaching the node to kube2iam
+              iptables -t nat -I PREROUTING -p tcp -d 169.254.169.254 --dport 80 -j DNAT --to-destination 127.0.0.1:8181 || true
+          securityContext:
+            privileged: true
+            capabilities:
+              add: ["NET_ADMIN"]
+      containers:
+        - name: kube2iam
+          image: kube2iam:e2e-test
+          imagePullPolicy: Never
+          args:
+            - "--app-port=8181"
+            - "--iptables=false"
+            - "--metadata-addr=127.0.0.1:1338"
+            - "--base-role-arn=arn:aws:iam::123456789012:role/"
+            - "--iam-role-key=iam.amazonaws.com/role"
+            - "--host-ip=$(HOST_IP)"
+            - "--node=$(NODE_NAME)"
+            - "--host-interface=eth+"
+            - "--log-level=debug"
+          env:
+            - name: HOST_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: AWS_EC2_METADATA_SERVICE_ENDPOINT
+              value: "http://127.0.0.1:1338"
+            - name: AWS_ENDPOINT_URL_EC2
+              value: "http://127.0.0.1:8080/ec2/"
+            - name: AWS_ENDPOINT_URL_STS
+              value: "http://127.0.0.1:8080/sts/"
+            - name: AWS_STS_REGIONAL_ENDPOINTS
+              value: "regional"
+            - name: AWS_REGION
+              value: "us-east-1"
+            - name: AWS_ACCESS_KEY_ID
+              value: "mock-key"
+            - name: AWS_SECRET_ACCESS_KEY
+              value: "mock-secret"
+          ports:
+            - name: http
+              containerPort: 8181
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8181
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+          securityContext:
+            privileged: true
+            capabilities:
+              add: ["NET_ADMIN"]
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          effect: NoSchedule

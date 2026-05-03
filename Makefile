@@ -54,6 +54,18 @@ fmt:
 test:
 	go test ./...
 
+test-integration:
+	go test -tags=integration ./...
+
+test-e2e: build-e2e-image build-e2e-client
+	go test -v -tags=e2e ./e2e/... -timeout=15m
+
+build-e2e-image:
+	docker build -t kube2iam:e2e-test .
+
+build-e2e-client:
+	docker build -t kube2iam-e2e-client:latest -f e2e/Dockerfile.testclient e2e/
+
 test-race:
 	go test -race ./...
 

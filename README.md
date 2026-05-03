@@ -2,7 +2,7 @@
 [![codecov](https://codecov.io/gh/jtblin/kube2iam/branch/main/graph/badge.svg)](https://codecov.io/gh/jtblin/kube2iam)
 [![Docker Pulls](https://img.shields.io/docker/pulls/jtblin/kube2iam.svg)](https://hub.docker.com/r/jtblin/kube2iam/)
 [![Go Report Card](https://goreportcard.com/badge/github.com/jtblin/kube2iam)](https://goreportcard.com/report/github.com/jtblin/kube2iam)
-[![license](https://img.shields.io/github/license/jtblin/kube2iam.svg)](https://github.com/jtblin/kube2iam/blob/master/LICENSE)
+[![license](https://img.shields.io/github/license/jtblin/kube2iam.svg)](https://github.com/jtblin/kube2iam/blob/main/LICENSE)
 
 # kube2iam
 

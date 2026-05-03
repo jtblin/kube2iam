@@ -32,3 +32,4 @@ coverage-integration.out
 coverage-merged.out
 /vendor/
 test-report.xml
+graphify-out/cache/

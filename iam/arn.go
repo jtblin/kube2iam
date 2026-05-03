@@ -6,7 +6,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/ec2/imds"
 )
 
@@ -29,14 +28,23 @@ func (iam *Client) RoleARN(role string) string {
 	return fmt.Sprintf("%s%s", iam.BaseARN, role)
 }
 
-// GetBaseArn get the base ARN from metadata service.
+// GetBaseArn gets the base ARN from the metadata service.
+// If client is nil, a default IMDS client is created.
 func GetBaseArn() (string, error) {
-	cfg, err := config.LoadDefaultConfig(context.TODO())
-	if err != nil {
-		return "", err
+	return GetBaseArnWithClient(nil)
+}
+
+// GetBaseArnWithClient gets the base ARN using the provided IMDSClient.
+// This allows injection of a mock for testing.
+func GetBaseArnWithClient(client IMDSClient) (string, error) {
+	if client == nil {
+		var err error
+		client, err = newIMDSClient()
+		if err != nil {
+			return "", err
+		}
 	}
 
-	client := imds.NewFromConfig(cfg)
 	iamInfo, err := client.GetIAMInfo(context.TODO(), &imds.GetIAMInfoInput{})
 	if err != nil {
 		return "", err

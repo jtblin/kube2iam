@@ -383,18 +383,52 @@ func TestCheckRoleForNamespace(t *testing.T) {
 type storeMock struct {
 	namespace   string
 	annotations map[string]string
+
+	// Extended fields for GetRoleMapping / GetExternalIDMapping tests.
+	pods   map[string]*v1.Pod
+	podErr error
+	nsList []string
+	nsMap  map[string]*v1.Namespace
 }
 
 func (k *storeMock) ListPodIPs() []string {
+	if k.pods != nil {
+		ips := make([]string, 0, len(k.pods))
+		for ip := range k.pods {
+			ips = append(ips, ip)
+		}
+		return ips
+	}
 	return nil
 }
-func (k *storeMock) PodByIP(string) (*v1.Pod, error) {
+
+func (k *storeMock) PodByIP(ip string) (*v1.Pod, error) {
+	if k.podErr != nil {
+		return nil, k.podErr
+	}
+	if k.pods != nil {
+		if pod, ok := k.pods[ip]; ok {
+			return pod, nil
+		}
+		return nil, fmt.Errorf("pod with specified IP not found")
+	}
 	return nil, nil
 }
+
 func (k *storeMock) ListNamespaces() []string {
+	if k.nsList != nil {
+		return k.nsList
+	}
 	return nil
 }
+
 func (k *storeMock) NamespaceByName(ns string) (*v1.Namespace, error) {
+	if k.nsMap != nil {
+		if n, ok := k.nsMap[ns]; ok {
+			return n, nil
+		}
+		return nil, fmt.Errorf("namespace isn't present")
+	}
 	if ns == k.namespace {
 		nns := &v1.Namespace{}
 		nns.Name = k.namespace
@@ -402,4 +436,116 @@ func (k *storeMock) NamespaceByName(ns string) (*v1.Namespace, error) {
 		return nns, nil
 	}
 	return nil, fmt.Errorf("namespace isn't present")
+}
+
+// ---- GetRoleMapping tests ---------------------------------------------------
+
+func TestGetRoleMappingNoAnnotationNoDefault(t *testing.T) {
+	pod := &v1.Pod{}
+	pod.Status.PodIP = "10.0.0.1"
+	store := &storeMock{pods: map[string]*v1.Pod{"10.0.0.1": pod}}
+
+	// No defaultRole, and BaseARN is also empty — so RoleARN("") == "" and extractRoleARN errors.
+	rp := NewRoleMapper(roleKey, externalIDKey, "", false, namespaceKey, &iam.Client{BaseARN: ""}, store, "glob")
+	_, err := rp.GetRoleMapping("10.0.0.1")
+	if err == nil {
+		t.Error("expected error when no annotation and no default role, got nil")
+	}
+}
+
+func TestGetRoleMappingWithDefault(t *testing.T) {
+	pod := &v1.Pod{}
+	pod.Status.PodIP = "10.0.0.2"
+	store := &storeMock{pods: map[string]*v1.Pod{"10.0.0.2": pod}}
+
+	const defaultRole = "default-role"
+	rp := NewRoleMapper(roleKey, externalIDKey, defaultRole, false, namespaceKey, &iam.Client{BaseARN: defaultBaseRole}, store, "glob")
+	result, err := rp.GetRoleMapping("10.0.0.2")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expectedARN := defaultBaseRole + defaultRole
+	if result.Role != expectedARN {
+		t.Errorf("expected role %q, got %q", expectedARN, result.Role)
+	}
+}
+
+func TestGetRoleMappingPodNotFound(t *testing.T) {
+	store := &storeMock{podErr: fmt.Errorf("pod not found")}
+	rp := NewRoleMapper(roleKey, externalIDKey, "", false, namespaceKey, &iam.Client{BaseARN: defaultBaseRole}, store, "glob")
+	_, err := rp.GetRoleMapping("10.99.99.99")
+	if err == nil {
+		t.Error("expected error when pod not found, got nil")
+	}
+}
+
+// ---- GetExternalIDMapping tests ---------------------------------------------
+
+func TestGetExternalIDMappingWithAnnotation(t *testing.T) {
+	const externalID = "my-external-id"
+	pod := &v1.Pod{}
+	pod.Status.PodIP = "10.0.0.3"
+	pod.Annotations = map[string]string{externalIDKey: externalID}
+	store := &storeMock{pods: map[string]*v1.Pod{"10.0.0.3": pod}}
+
+	rp := NewRoleMapper(roleKey, externalIDKey, "", false, namespaceKey, &iam.Client{BaseARN: defaultBaseRole}, store, "glob")
+	got, err := rp.GetExternalIDMapping("10.0.0.3")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got != externalID {
+		t.Errorf("expected external ID %q, got %q", externalID, got)
+	}
+}
+
+func TestGetExternalIDMappingWithoutAnnotation(t *testing.T) {
+	pod := &v1.Pod{}
+	pod.Status.PodIP = "10.0.0.4"
+	store := &storeMock{pods: map[string]*v1.Pod{"10.0.0.4": pod}}
+
+	rp := NewRoleMapper(roleKey, externalIDKey, "", false, namespaceKey, &iam.Client{BaseARN: defaultBaseRole}, store, "glob")
+	got, err := rp.GetExternalIDMapping("10.0.0.4")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got != "" {
+		t.Errorf("expected empty external ID when annotation absent, got %q", got)
+	}
+}
+
+// ---- DumpDebugInfo tests ----------------------------------------------------
+
+func TestDumpDebugInfo(t *testing.T) {
+	pod := &v1.Pod{}
+	pod.Status.PodIP = "10.0.0.5"
+	pod.Annotations = map[string]string{roleKey: "debug-role"}
+	pod.Namespace = "default"
+
+	ns := &v1.Namespace{}
+	ns.Name = "default"
+	ns.Annotations = map[string]string{namespaceKey: `["debug-role"]`}
+
+	store := &storeMock{
+		pods:   map[string]*v1.Pod{"10.0.0.5": pod},
+		nsList: []string{"default"},
+		nsMap:  map[string]*v1.Namespace{"default": ns},
+	}
+
+	rp := NewRoleMapper(roleKey, externalIDKey, "", false, namespaceKey, &iam.Client{BaseARN: defaultBaseRole}, store, "glob")
+	result := rp.DumpDebugInfo()
+
+	if _, ok := result["rolesByIP"]; !ok {
+		t.Error("expected 'rolesByIP' key in DumpDebugInfo output")
+	}
+	if _, ok := result["namespaceByIP"]; !ok {
+		t.Error("expected 'namespaceByIP' key in DumpDebugInfo output")
+	}
+	if _, ok := result["rolesByNamespace"]; !ok {
+		t.Error("expected 'rolesByNamespace' key in DumpDebugInfo output")
+	}
+
+	rolesByIP := result["rolesByIP"].(map[string]string)
+	if rolesByIP["10.0.0.5"] != "debug-role" {
+		t.Errorf("expected role 'debug-role' for IP 10.0.0.5, got %q", rolesByIP["10.0.0.5"])
+	}
 }

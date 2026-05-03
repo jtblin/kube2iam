@@ -35,6 +35,12 @@ type RegionClient interface {
 	DescribeRegions(ctx context.Context, params *ec2.DescribeRegionsInput, optFns ...func(*ec2.Options)) (*ec2.DescribeRegionsOutput, error)
 }
 
+// IMDSClient represents the subset of imds.Client methods used by the iam package.
+type IMDSClient interface {
+	GetMetadata(ctx context.Context, params *imds.GetMetadataInput, optFns ...func(*imds.Options)) (*imds.GetMetadataOutput, error)
+	GetIAMInfo(ctx context.Context, params *imds.GetIAMInfoInput, optFns ...func(*imds.Options)) (*imds.GetIAMInfoOutput, error)
+}
+
 // Client represents an IAM client.
 type Client struct {
 	BaseARN             string
@@ -42,6 +48,7 @@ type Client struct {
 	UseRegionalEndpoint bool
 	STS                 STSClient
 	Region              RegionClient
+	IMDS                IMDSClient
 	Cache               *ccache.Cache
 }
 
@@ -65,13 +72,17 @@ func getHash(text string) string {
 	return fmt.Sprintf("%x", h.Sum32())
 }
 
-func getInstanceMetadata(path string) (string, error) {
+// newIMDSClient returns a default imds.Client from the AWS config.
+func newIMDSClient() (IMDSClient, error) {
 	cfg, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {
-		return "", err
+		return nil, err
 	}
+	return imds.NewFromConfig(cfg), nil
+}
 
-	client := imds.NewFromConfig(cfg)
+// getMetadataPath retrieves a path from the IMDS using the given client.
+func getMetadataPath(client IMDSClient, path string) (string, error) {
 	metadataResult, err := client.GetMetadata(context.TODO(), &imds.GetMetadataInput{
 		Path: path,
 	})
@@ -85,36 +96,37 @@ func getInstanceMetadata(path string) (string, error) {
 		}
 	}()
 
-	instanceId, err := io.ReadAll(metadataResult.Content)
-
+	value, err := io.ReadAll(metadataResult.Content)
 	if err != nil {
 		return "", fmt.Errorf("expect to read content [%s] from bytes, got %v", err, path)
 	}
 
-	if string(instanceId) == "" {
+	if string(value) == "" {
 		return "", fmt.Errorf("EC2 Metadata didn't returned [%s], got empty string", path)
 	}
-	return string(instanceId), nil
+	return string(value), nil
 }
 
 // GetInstanceIAMRole get instance IAM role from metadata service.
 func GetInstanceIAMRole() (string, error) {
-	iamRole, err := getInstanceMetadata("iam/security-credentials/")
-
+	client, err := newIMDSClient()
 	if err != nil {
 		return "", err
 	}
-	return string(iamRole), nil
+	return getMetadataPath(client, "iam/security-credentials/")
 }
 
-// Get InstanceId for healthcheck
+// GetInstanceId gets the EC2 instance ID for the healthcheck.
 func (iam *Client) GetInstanceId() (string, error) {
-	instanceId, err := getInstanceMetadata("instance-id")
-
-	if err != nil {
-		return "", err
+	client := iam.IMDS
+	if client == nil {
+		var err error
+		client, err = newIMDSClient()
+		if err != nil {
+			return "", err
+		}
 	}
-	return string(instanceId), nil
+	return getMetadataPath(client, "instance-id")
 }
 
 func sessionName(roleARN, remoteIP string) string {

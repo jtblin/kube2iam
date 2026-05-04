@@ -134,7 +134,7 @@ spec:
 `kube2iam` can also be installed via a Helm chart:
 
 ```bash
-helm install kube2iam oci://ghcr.io/jtblin/kube2iam --version 3.2.0
+helm install kube2iam oci://ghcr.io/jtblin/kube2iam-chart --version [VERSION]
 ```
 
 For more details on chart configuration, see the [chart documentation](charts/kube2iam/README.md).

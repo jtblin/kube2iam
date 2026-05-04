@@ -1,7 +1,8 @@
 apiVersion: v2
-name: kube2iam
-version: 3.2.0
-appVersion: 0.13.0
+name: kube2iam-chart
+# version and appVersion are automatically updated by CI during release
+version: 0.0.0
+appVersion: 0.0.0
 description: Provide IAM credentials to pods based on annotations.
 keywords:
 - kube2iam

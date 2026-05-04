@@ -1,7 +1,5 @@
 # kube2iam
 
-![Version: 3.2.0](https://img.shields.io/badge/Version-3.2.0-informational?style=flat-square) ![AppVersion: 0.13.0](https://img.shields.io/badge/AppVersion-0.13.0-informational?style=flat-square)
-
 Provide IAM credentials to pods based on annotations.
 
 **Homepage:** <https://github.com/jtblin/kube2iam>
@@ -20,29 +18,16 @@ This chart bootstraps a [kube2iam](https://github.com/jtblin/kube2iam) deploymen
 
 *   Kubernetes 1.29+ (or a version supported by the deployed kube2iam)
 
-## Installing the Chart
-
 To install the chart with the release name `my-release`:
 
 ```console
-# Add the chart repository (if you are using a repository)
-$ helm repo add kube2iam https://jtblin.github.io/kube2iam/ # Replace with your actual repository URL if different
+$ helm install my-release oci://ghcr.io/jtblin/kube2iam-chart --version [VERSION]
 ```
-
-# Update your Helm repositories
-`$ helm repo update`
-
-# Install the chart
-`$ helm install my-release kube2iam/kube2iam # If installing from a repository`
 
 Alternatively, if you have the chart files locally:
 
 ```console
-# Change to the directory containing the chart
-$ cd charts/kube2iam
-
-# Install the chart
-$ helm install my-release ./
+$ helm install my-release ./charts/kube2iam
 ```
 
 The command deploys kube2iam on the Kubernetes cluster in the default configuration. The [configuration](#configuration) section lists the parameters that can be configured during installation.

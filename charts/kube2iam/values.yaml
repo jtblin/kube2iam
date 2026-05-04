@@ -45,8 +45,8 @@ prometheus:
 image:
   # -- Image repository
   repository: jtblin/kube2iam
-  # -- Image tag
-  tag: 0.13.0
+  # -- Image tag (automatically updated by CI during release)
+  tag: 0.0.0
   # -- Image pull policy
   pullPolicy: IfNotPresent
   # Optionally specify an array of imagePullSecrets.

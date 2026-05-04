@@ -760,9 +760,9 @@ Usage of kube2iam:
 
 # Author
 
-Jerome Touffe-Blin, [@jtblin](https://twitter.com/jtblin), [About me](http://about.me/jtblin)
+[Jerome Touffe-Blin](https://github.com/jtblin)
 
 # License
 
-kube2iam is copyright 2020 Jerome Touffe-Blin and contributors.
-It is licensed under the BSD license. See the included LICENSE file for details.
+kube2iam is copyright 2016-2026 [Jerome Touffe-Blin](https://github.com/jtblin) and contributors.
+It is licensed under the BSD license. See the included [LICENSE](LICENSE) file for details.

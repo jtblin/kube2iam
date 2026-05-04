@@ -221,7 +221,8 @@ func TestGetIAMCode(t *testing.T) {
 
 func newTestIAMClient() *Client {
 	return &Client{
-		Cache: ccache.New(ccache.Configure()),
+		Cache:      ccache.New(ccache.Configure()),
+		ErrorCache: ccache.New(ccache.Configure()),
 		Region: &MockRegionClient{
 			DescribeRegionsFunc: func(ctx context.Context, params *ec2.DescribeRegionsInput, optFns ...func(*ec2.Options)) (*ec2.DescribeRegionsOutput, error) {
 				return &validEc2Regions, nil
@@ -245,7 +246,7 @@ func TestAssumeRole(t *testing.T) {
 		},
 	}
 
-	creds, err := iamClient.AssumeRole("arn:aws:iam::123456789012:role/role", "", "1.2.3.4", time.Minute)
+	creds, err := iamClient.AssumeRole("arn:aws:iam::123456789012:role/role", "", "1.2.3.4", time.Minute, time.Minute)
 	if err != nil {
 		t.Fatalf("AssumeRole failed: %v", err)
 	}
@@ -274,7 +275,7 @@ func TestAssumeRoleWithExternalID(t *testing.T) {
 		},
 	}
 
-	_, err := iamClient.AssumeRole("arn:aws:iam::123456789012:role/role", "my-external-id", "1.2.3.4", time.Minute)
+	_, err := iamClient.AssumeRole("arn:aws:iam::123456789012:role/role", "my-external-id", "1.2.3.4", time.Minute, time.Minute)
 	if err != nil {
 		t.Fatalf("AssumeRole failed: %v", err)
 	}
@@ -300,7 +301,7 @@ func TestAssumeRoleWithoutExternalIDNotSet(t *testing.T) {
 		},
 	}
 
-	_, err := iamClient.AssumeRole("arn:aws:iam::123456789012:role/role", "", "1.2.3.4", time.Minute)
+	_, err := iamClient.AssumeRole("arn:aws:iam::123456789012:role/role", "", "1.2.3.4", time.Minute, time.Minute)
 	if err != nil {
 		t.Fatalf("AssumeRole failed: %v", err)
 	}
@@ -317,7 +318,7 @@ func TestAssumeRoleError(t *testing.T) {
 		},
 	}
 
-	_, err := iamClient.AssumeRole("arn:aws:iam::123456789012:role/role", "", "1.2.3.4", time.Minute)
+	_, err := iamClient.AssumeRole("arn:aws:iam::123456789012:role/role", "", "1.2.3.4", time.Minute, time.Minute)
 	if err == nil {
 		t.Fatal("expected error from AssumeRole but got nil")
 	}
@@ -342,7 +343,7 @@ func TestAssumeRoleCache(t *testing.T) {
 
 	roleARN := "arn:aws:iam::123456789012:role/cached-role"
 	for i := 0; i < 3; i++ {
-		_, err := iamClient.AssumeRole(roleARN, "", "1.2.3.4", time.Hour)
+		_, err := iamClient.AssumeRole(roleARN, "", "1.2.3.4", time.Hour, time.Minute)
 		if err != nil {
 			t.Fatalf("AssumeRole call %d failed: %v", i, err)
 		}
@@ -355,7 +356,8 @@ func TestAssumeRoleCache(t *testing.T) {
 
 func TestAssumeRoleRegionError(t *testing.T) {
 	iamClient := &Client{
-		Cache: ccache.New(ccache.Configure()),
+		Cache:      ccache.New(ccache.Configure()),
+		ErrorCache: ccache.New(ccache.Configure()),
 		Region: &MockRegionClient{
 			DescribeRegionsFunc: func(ctx context.Context, params *ec2.DescribeRegionsInput, optFns ...func(*ec2.Options)) (*ec2.DescribeRegionsOutput, error) {
 				return nil, errors.New("describe regions failed")
@@ -368,9 +370,76 @@ func TestAssumeRoleRegionError(t *testing.T) {
 		},
 	}
 
-	_, err := iamClient.AssumeRole("arn:aws:iam::123456789012:role/role", "", "1.2.3.4", time.Minute)
+	_, err := iamClient.AssumeRole("arn:aws:iam::123456789012:role/role", "", "1.2.3.4", time.Minute, time.Minute)
 	if err == nil {
 		t.Fatal("expected error when DescribeRegions fails")
+	}
+}
+
+func TestAssumeRoleErrorCaching(t *testing.T) {
+	callCount := 0
+	iamClient := newTestIAMClient()
+	iamClient.STS = &MockSTSClient{
+		AssumeRoleFunc: func(ctx context.Context, params *sts.AssumeRoleInput, optFns ...func(*sts.Options)) (*sts.AssumeRoleOutput, error) {
+			callCount++
+			return nil, errors.New("sts error")
+		},
+	}
+
+	roleARN := "arn:aws:iam::123456789012:role/role"
+	_, err := iamClient.AssumeRole(roleARN, "", "1.2.3.4", time.Minute, time.Minute)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	if callCount != 1 {
+		t.Errorf("expected 1 call to STS, got %d", callCount)
+	}
+
+	// Second call should be cached
+	_, err = iamClient.AssumeRole(roleARN, "", "1.2.3.4", time.Minute, time.Minute)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	if callCount != 1 {
+		t.Errorf("expected still 1 call to STS (cached), got %d", callCount)
+	}
+}
+
+func TestAssumeRoleErrorCachingTTL(t *testing.T) {
+	callCount := 0
+	iamClient := newTestIAMClient()
+	iamClient.STS = &MockSTSClient{
+		AssumeRoleFunc: func(ctx context.Context, params *sts.AssumeRoleInput, optFns ...func(*sts.Options)) (*sts.AssumeRoleOutput, error) {
+			callCount++
+			return nil, errors.New("sts error")
+		},
+	}
+
+	roleARN := "arn:aws:iam::123456789012:role/role"
+	errorTTL := 100 * time.Millisecond
+
+	_, err := iamClient.AssumeRole(roleARN, "", "1.2.3.4", time.Minute, errorTTL)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	if callCount != 1 {
+		t.Errorf("expected 1 call to STS, got %d", callCount)
+	}
+
+	// Wait for TTL to expire
+	time.Sleep(errorTTL + 10*time.Millisecond)
+
+	// Third call should NOT be cached
+	_, err = iamClient.AssumeRole(roleARN, "", "1.2.3.4", time.Minute, errorTTL)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	if callCount != 2 {
+		t.Errorf("expected 2 calls to STS (expired cache), got %d", callCount)
 	}
 }
 

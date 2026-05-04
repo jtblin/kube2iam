@@ -309,7 +309,8 @@ func TestIntegRoleCredentialCaching(t *testing.T) {
 
 	iamClient := &iam.Client{
 		BaseARN: baseARN,
-		Cache:   ccache.New(ccache.Configure()),
+		Cache:      ccache.New(ccache.Configure()),
+		ErrorCache: ccache.New(ccache.Configure()),
 		STS:     stsClient,
 		Region: &mockRegionClient2{regions: []types.Region{
 			{RegionName: aws.String("us-east-1"), Endpoint: aws.String("ec2.us-east-1.amazonaws.com")},
@@ -320,7 +321,7 @@ func TestIntegRoleCredentialCaching(t *testing.T) {
 
 	// Make 5 AssumeRole calls for the same ARN
 	for i := 0; i < 5; i++ {
-		_, err := iamClient.AssumeRole(roleARN, "", "10.10.0.4", time.Hour)
+		_, err := iamClient.AssumeRole(roleARN, "", "10.10.0.4", time.Hour, time.Minute)
 		if err != nil {
 			t.Fatalf("call %d: AssumeRole failed: %v", i+1, err)
 		}
@@ -341,14 +342,8 @@ func (c *countingSTSClient) AssumeRole(ctx context.Context, params *sts.AssumeRo
 	return c.delegate.AssumeRole(ctx, params, optFns...)
 }
 
-// TestIntegErrorCachingCurrentBehavior documents that the current implementation
-// does NOT cache STS errors — each failing request hits STS again.
-// This is a known gap: error caching would protect against AWS rate limits during
-// transient STS failures. When error caching is implemented, update this test.
-//
-// TODO: Implement error caching with 1-minute TTL and update this test to assert
-// callCount == 1 after the first error is returned.
-func TestIntegErrorCachingCurrentBehavior(t *testing.T) {
+// TestIntegErrorCaching ensures that STS errors are cached.
+func TestIntegErrorCaching(t *testing.T) {
 	const (
 		baseARN  = "arn:aws:iam::123456789012:role/"
 		roleName = "failing-role"
@@ -361,9 +356,10 @@ func TestIntegErrorCachingCurrentBehavior(t *testing.T) {
 	}
 
 	iamClient := &iam.Client{
-		BaseARN: baseARN,
-		Cache:   ccache.New(ccache.Configure()),
-		STS:     stsClient,
+		BaseARN:    baseARN,
+		Cache:      ccache.New(ccache.Configure()),
+		ErrorCache: ccache.New(ccache.Configure()),
+		STS:        stsClient,
 		Region: &mockRegionClient2{regions: []types.Region{
 			{RegionName: aws.String("us-east-1"), Endpoint: aws.String("ec2.us-east-1.amazonaws.com")},
 		}},
@@ -373,18 +369,16 @@ func TestIntegErrorCachingCurrentBehavior(t *testing.T) {
 	const numCalls = 5
 
 	for i := 0; i < numCalls; i++ {
-		_, err := iamClient.AssumeRole(roleARN, "", "10.10.0.5", time.Hour)
+		_, err := iamClient.AssumeRole(roleARN, "", "10.10.0.5", time.Hour, time.Minute)
 		if err == nil {
 			t.Errorf("call %d: expected error, got nil", i+1)
 		}
 	}
 
-	// Document current behavior: errors are not cached, STS is hit on each call.
-	if callCount != numCalls {
-		t.Errorf("current behavior: expected %d STS calls (no error caching), got %d", numCalls, callCount)
+	// Now that error caching is implemented, STS should only be called once.
+	if callCount != 1 {
+		t.Errorf("expected 1 STS call (with error caching), got %d", callCount)
 	}
-	t.Logf("NOTE: Error caching not yet implemented. STS was called %d times for %d requests. "+
-		"Implementing a 1-minute error cache would reduce this to 1.", callCount, numCalls)
 }
 
 // TestIntegHealthcheck verifies the doHealthcheck sets instanceID from IMDS

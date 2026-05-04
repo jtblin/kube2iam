@@ -77,11 +77,11 @@ func TestExtractRoleARN(t *testing.T) {
 
 			resp, err := rp.extractRoleARN(pod)
 			if tt.expectError && err == nil {
-				t.Error("Expected error however didn't recieve one")
+				t.Error("Expected error however didn't receive one")
 				return
 			}
 			if !tt.expectError && err != nil {
-				t.Errorf("Didn't expect error but recieved %s", err)
+				t.Errorf("Didn't expect error but received %s", err)
 				return
 			}
 			if resp != tt.expectedARN {
@@ -374,7 +374,7 @@ func TestCheckRoleForNamespace(t *testing.T) {
 
 			resp := rp.checkRoleForNamespace(tt.roleARN, tt.namespace)
 			if resp != tt.expectedResult {
-				t.Errorf("Expected [%t] for test but recieved [%t]", tt.expectedResult, resp)
+				t.Errorf("Expected [%t] for test but received [%t]", tt.expectedResult, resp)
 			}
 		})
 	}

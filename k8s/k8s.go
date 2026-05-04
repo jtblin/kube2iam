@@ -81,7 +81,7 @@ func (k8s *Client) WatchForNamespaces(nsEventLogger cache.ResourceEventHandler, 
 func (k8s *Client) ListPodIPs() []string {
 	// Decided to simply dump this and leave it up to consumer
 	// as k8s package currently doesn't need to be concerned about what's
-	// a signficant annotation to process, that is left up to store/server
+	// a significant annotation to process, that is left up to store/server
 	return k8s.podIndexer.ListIndexFuncValues(podIPIndexName)
 }
 

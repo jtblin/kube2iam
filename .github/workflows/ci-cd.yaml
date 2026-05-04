@@ -198,7 +198,7 @@ jobs:
   # ── Helm Release ──────────────────────────────────────────────────────────
   helm-release:
     name: Helm Release
-    needs: [changes, helm-test, unit, lint]
+    needs: [changes, helm-test, unit, lint, e2e]
     # Release on tags OR on push to main IF charts were changed
     if: |
       always() && !failure() && !cancelled() &&

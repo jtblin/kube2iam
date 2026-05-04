@@ -1,6 +1,7 @@
 package k8s
 
 import (
+	"os"
 	"testing"
 
 	"github.com/jtblin/kube2iam"
@@ -202,5 +203,60 @@ func TestListNamespaces(t *testing.T) {
 	names := client.ListNamespaces()
 	if len(names) != 2 {
 		t.Errorf("expected 2 namespaces, got %d: %v", len(names), names)
+	}
+}
+
+// ---- NewClient tests --------------------------------------------------------
+
+func TestNewClientKubeconfig(t *testing.T) {
+	tmpFile, err := os.CreateTemp("", "kubeconfig")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = os.Remove(tmpFile.Name()) }()
+
+	content := `
+apiVersion: v1
+clusters:
+- cluster:
+    server: https://1.2.3.4
+  name: test
+contexts:
+- context:
+    cluster: test
+    user: test
+  name: test
+current-context: test
+kind: Config
+preferences: {}
+users:
+- name: test
+  user:
+    token: secret
+`
+	if _, err := tmpFile.Write([]byte(content)); err != nil {
+		t.Fatal(err)
+	}
+	if err := tmpFile.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Test loading valid kubeconfig
+	client, err := NewClient(tmpFile.Name(), "", "", "node", false, false)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if client.Clientset == nil {
+		t.Fatal("expected Clientset to be initialized")
+	}
+	if client.nodeName != "node" {
+		t.Errorf("expected nodeName 'node', got %q", client.nodeName)
+	}
+}
+
+func TestNewClientKubeconfigNotFound(t *testing.T) {
+	_, err := NewClient("/non/existent/path", "", "", "node", false, false)
+	if err == nil {
+		t.Fatal("expected error for non-existent kubeconfig, got nil")
 	}
 }

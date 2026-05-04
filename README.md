@@ -734,6 +734,8 @@ Usage of kube2iam:
       --base-role-arn string                  Base role ARN
       --debug                                 Enable debug features
       --default-role string                   Fallback role to use when annotation is not set
+      --disable-sensitive-metadata            Make some sensitive metadata paths return empty strings
+      --disable-user-data                     Make the user-data endpoint return an empty string instead of the host's user-data
       --host-interface string                 Host interface for proxying AWS metadata (default "docker0")
       --host-ip string                        IP address of host
       --iam-role-error-ttl duration           TTL for caching assume role errors

@@ -129,6 +129,16 @@ spec:
               name: http
 ```
 
+#### Helm
+
+`kube2iam` can also be installed via a Helm chart:
+
+```bash
+helm install kube2iam oci://ghcr.io/jtblin/kube2iam --version 3.2.0
+```
+
+For more details on chart configuration, see the [chart documentation](charts/kube2iam/README.md).
+
 ### iptables
 
 To prevent containers from directly accessing the EC2 metadata API and gaining unwanted access to AWS resources,

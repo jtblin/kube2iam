@@ -74,6 +74,7 @@ type Server struct {
 	ResolveDupIPs              bool
 	UseRegionalStsEndpoint     bool
 	AddIPTablesRule            bool
+	BlockEC2Metadata           bool
 	AutoDiscoverBaseArn        bool
 	AutoDiscoverDefaultRole    bool
 	Debug                      bool
@@ -421,8 +422,11 @@ func (s *Server) Run(kubeconfigPath, host, token, nodeName string, insecure bool
 		metrics.StartMetricsServer(s.MetricsPort)
 	}
 
-	// This has to be registered last so that it catches fall-throughs
-	r.Handle("/{path:.*}", newAppHandler("reverseProxyHandler", s.reverseProxyHandler))
+	// Some cluster administrators may not want their tenants to access the ec2 metadata api
+	if !s.BlockEC2Metadata {
+		// This has to be registered last so that it catches fall-throughs
+		r.Handle("/{path:.*}", newAppHandler("reverseProxyHandler", s.reverseProxyHandler))
+	}
 
 	log.Infof("Listening on port %s", s.AppPort)
 	if err := http.ListenAndServe(":"+s.AppPort, r); err != nil {

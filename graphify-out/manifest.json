@@ -1,0 +1,190 @@
+{
+  "/Users/jerome/src/kube2iam/namespace_test.go": {
+    "mtime": 1778231430.4296083,
+    "hash": "8f0a794ca8ab6774122db7c015b8da24"
+  },
+  "/Users/jerome/src/kube2iam/pod.go": {
+    "mtime": 1778231430.4299748,
+    "hash": "8d38babb1727f9258483024426bdef43"
+  },
+  "/Users/jerome/src/kube2iam/namespace.go": {
+    "mtime": 1778231430.4294176,
+    "hash": "d2aebe1108d608ce1cd0deca343d4cfd"
+  },
+  "/Users/jerome/src/kube2iam/metrics/metrics.go": {
+    "mtime": 1778231430.4291704,
+    "hash": "1eccb38b0e4a7fdd6c975390e867c4b5"
+  },
+  "/Users/jerome/src/kube2iam/cmd/main.go": {
+    "mtime": 1778231430.4189088,
+    "hash": "241118797fa9565fce50761358b364ce"
+  },
+  "/Users/jerome/src/kube2iam/k8s/k8s_test.go": {
+    "mtime": 1778231430.4278367,
+    "hash": "2910f076945b38503c746bef7ad5f8cc"
+  },
+  "/Users/jerome/src/kube2iam/k8s/k8s.go": {
+    "mtime": 1778231430.4274364,
+    "hash": "250dcfb8dd6819ecb004128313f730b8"
+  },
+  "/Users/jerome/src/kube2iam/server/server.go": {
+    "mtime": 1778231430.4309714,
+    "hash": "b14f8b019a07e5e77252ca0c1a3fbf93"
+  },
+  "/Users/jerome/src/kube2iam/server/integration_test.go": {
+    "mtime": 1778231430.4303534,
+    "hash": "f3e4a31a213a87224cd0a13242cdd058"
+  },
+  "/Users/jerome/src/kube2iam/server/kubeconfig_integration_test.go": {
+    "mtime": 1778231430.4306443,
+    "hash": "a366df16ee0835d20e8e8ecd7aa62cb9"
+  },
+  "/Users/jerome/src/kube2iam/server/server_test.go": {
+    "mtime": 1778231430.4312809,
+    "hash": "d4bf1ff4546ed6f2c12ed8574a430870"
+  },
+  "/Users/jerome/src/kube2iam/iam/iam.go": {
+    "mtime": 1778231430.426447,
+    "hash": "a94605e06a788a138251c0b30872aacd"
+  },
+  "/Users/jerome/src/kube2iam/iam/iam_test.go": {
+    "mtime": 1778231430.426753,
+    "hash": "b263c189d5eb7a23a20f9ba07723ee57"
+  },
+  "/Users/jerome/src/kube2iam/iam/arn.go": {
+    "mtime": 1778231430.4257119,
+    "hash": "13d35c9f8ee3353d6374acd75c6444a7"
+  },
+  "/Users/jerome/src/kube2iam/iam/arn_test.go": {
+    "mtime": 1778231430.426012,
+    "hash": "2cd440436eaccacd1a3d2116bb0e6723"
+  },
+  "/Users/jerome/src/kube2iam/version/version.go": {
+    "mtime": 1778231430.431465,
+    "hash": "3951ce4705203734d24a621bd6515521"
+  },
+  "/Users/jerome/src/kube2iam/mappings/mapper_test.go": {
+    "mtime": 1778231430.4289763,
+    "hash": "c74ba31b6ab78a04f4df66e8f415f6ce"
+  },
+  "/Users/jerome/src/kube2iam/mappings/mapper.go": {
+    "mtime": 1778231430.428697,
+    "hash": "ae07d61140a56661a2b442e9ffe10bb6"
+  },
+  "/Users/jerome/src/kube2iam/iptables/iptables_test.go": {
+    "mtime": 1778231430.427032,
+    "hash": "6e16b84d7c1614d04750161e84107af8"
+  },
+  "/Users/jerome/src/kube2iam/iptables/iptables.go": {
+    "mtime": 1778231430.4268959,
+    "hash": "3369538406019042efba53c55cef7dee"
+  },
+  "/Users/jerome/src/kube2iam/e2e/daemonset_test.go": {
+    "mtime": 1778231430.420282,
+    "hash": "a6479c488afeea474bf6fad6c1e05bc9"
+  },
+  "/Users/jerome/src/kube2iam/e2e/main_test.go": {
+    "mtime": 1778231430.4209456,
+    "hash": "c90526b8239376337c737cd7c1c4fe69"
+  },
+  "/Users/jerome/src/kube2iam/deployment.yaml": {
+    "mtime": 1778231430.4189823,
+    "hash": "e6014de54f30d84aee14cf8c065687cb"
+  },
+  "/Users/jerome/src/kube2iam/README.md": {
+    "mtime": 1778231430.4159942,
+    "hash": "ab2de3e3633018a94690bcfe525729eb"
+  },
+  "/Users/jerome/src/kube2iam/charts/kube2iam/Chart.yaml": {
+    "mtime": 1778231430.4164197,
+    "hash": "0548fd0fcab80b7e65f0b26fa53d12f0"
+  },
+  "/Users/jerome/src/kube2iam/charts/kube2iam/README.md": {
+    "mtime": 1778231430.4167237,
+    "hash": "93233e495d12d43f056e0061d7b223ad"
+  },
+  "/Users/jerome/src/kube2iam/charts/kube2iam/readme.txt": {
+    "mtime": 1778231430.4170263,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "/Users/jerome/src/kube2iam/charts/kube2iam/values.yaml": {
+    "mtime": 1778231430.4184892,
+    "hash": "e7e118dfdf0bc78936d3d058b7dba578"
+  },
+  "/Users/jerome/src/kube2iam/charts/kube2iam/templates/servicemonitor.yaml": {
+    "mtime": 1778231430.418218,
+    "hash": "22a0287ac62c9127b790bad371dfe5cb"
+  },
+  "/Users/jerome/src/kube2iam/charts/kube2iam/templates/podsecuritypolicy.yaml": {
+    "mtime": 1778231430.4179034,
+    "hash": "3acb5fa813aabed0ae4dd7991e381823"
+  },
+  "/Users/jerome/src/kube2iam/charts/kube2iam/templates/daemonset.yaml": {
+    "mtime": 1778231430.41782,
+    "hash": "f0192e2fe472d67e683d62d2f0956cf3"
+  },
+  "/Users/jerome/src/kube2iam/charts/kube2iam/templates/NOTES.txt": {
+    "mtime": 1778231430.41731,
+    "hash": "b2dc86d510ce7207002fd1b5f8e0bab9"
+  },
+  "/Users/jerome/src/kube2iam/charts/kube2iam/templates/service.yaml": {
+    "mtime": 1778231430.4180408,
+    "hash": "944ae666a0e0b1c7b2c75d18fd1fa3f2"
+  },
+  "/Users/jerome/src/kube2iam/charts/kube2iam/templates/clusterrole.yaml": {
+    "mtime": 1778231430.4174666,
+    "hash": "cbf2448edf45c6b42c629d0756262ad4"
+  },
+  "/Users/jerome/src/kube2iam/charts/kube2iam/templates/serviceaccount.yaml": {
+    "mtime": 1778231430.418128,
+    "hash": "8929d28d39072be917eb8eb446dadc2c"
+  },
+  "/Users/jerome/src/kube2iam/charts/kube2iam/templates/clusterrolebinding.yaml": {
+    "mtime": 1778231430.417547,
+    "hash": "5930b2c97087ed71e89ae88c4c6744eb"
+  },
+  "/Users/jerome/src/kube2iam/examples/eks-example.yml": {
+    "mtime": 1778231430.4218507,
+    "hash": "d1da53cfc77e07aa50c3b67aad5b5f59"
+  },
+  "/Users/jerome/src/kube2iam/kustomize/overlays/psp_calico/podsecuritypolicy.yaml": {
+    "mtime": 1778231430.428547,
+    "hash": "479b0eee00030b640d155f9ce499dbd8"
+  },
+  "/Users/jerome/src/kube2iam/kustomize/overlays/psp_calico/daemonset.yaml": {
+    "mtime": 1778231430.4284008,
+    "hash": "2a9c356c5037bb9fccead21f39612056"
+  },
+  "/Users/jerome/src/kube2iam/kustomize/overlays/psp_calico/kustomization.yaml": {
+    "mtime": 1778231430.4284794,
+    "hash": "c410319a3470a6972a99ee5e8ff58dcd"
+  },
+  "/Users/jerome/src/kube2iam/kustomize/overlays/psp_calico/README.md": {
+    "mtime": 1778231430.428312,
+    "hash": "0518e08da3b516b4d67212929b153d92"
+  },
+  "/Users/jerome/src/kube2iam/kustomize/base/daemonset.yaml": {
+    "mtime": 1778231430.4280057,
+    "hash": "29022bd0340aa42987822b90a8a68a13"
+  },
+  "/Users/jerome/src/kube2iam/kustomize/base/kustomization.yaml": {
+    "mtime": 1778231430.4280717,
+    "hash": "f958314db63d33702a1749de7d5234ef"
+  },
+  "/Users/jerome/src/kube2iam/kustomize/base/rbac.yaml": {
+    "mtime": 1778231430.428144,
+    "hash": "a88e0254fe58eaae728bce29cff8539e"
+  },
+  "/Users/jerome/src/kube2iam/e2e/kind-config.yaml": {
+    "mtime": 1778231430.4205399,
+    "hash": "8521eea7a81d1fb57e523a9b4db488ec"
+  },
+  "/Users/jerome/src/kube2iam/e2e/testdata/kube2iam-mocks.yaml": {
+    "mtime": 1778231430.4214976,
+    "hash": "2213d603ca5c80fa2aa79ea6e87f564f"
+  },
+  "/Users/jerome/src/kube2iam/e2e/testdata/kube2iam-ds.yaml": {
+    "mtime": 1778231430.4212623,
+    "hash": "0cc0e8edf5e062e3c6dc5b13cfef21a3"
+  }
+}

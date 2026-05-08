@@ -1,51 +1,52 @@
-# Graph Report - .  (2026-05-03)
+# Graph Report - kube2iam  (2026-05-08)
 
 ## Corpus Check
-- Corpus is ~22,271 words - fits in a single context window. You may not need a graph.
+- 22 files · ~22,889 words
+- Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 306 nodes · 489 edges · 32 communities detected
-- Extraction: 83% EXTRACTED · 17% INFERRED · 0% AMBIGUOUS · INFERRED: 81 edges (avg confidence: 0.8)
+- 314 nodes · 503 edges · 32 communities detected
+- Extraction: 84% EXTRACTED · 16% INFERRED · 0% AMBIGUOUS · INFERRED: 82 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Community Hubs (Navigation)
-- [[_COMMUNITY_AWS STS Client|AWS STS Client]]
-- [[_COMMUNITY_IAM & ARN Logic|IAM & ARN Logic]]
-- [[_COMMUNITY_Namespace Handlers|Namespace Handlers]]
-- [[_COMMUNITY_Mock STSRegion Clients|Mock STS/Region Clients]]
-- [[_COMMUNITY_IMDS & STS Mocks|IMDS & STS Mocks]]
-- [[_COMMUNITY_CLI & Main Loop|CLI & Main Loop]]
-- [[_COMMUNITY_K8s Client Utilities|K8s Client Utilities]]
-- [[_COMMUNITY_E2E DaemonSet Tests|E2E DaemonSet Tests]]
-- [[_COMMUNITY_Role Mapper Tests|Role Mapper Tests]]
-- [[_COMMUNITY_K8s API Listing|K8s API Listing]]
-- [[_COMMUNITY_IAM Role Mapper|IAM Role Mapper]]
-- [[_COMMUNITY_IPTables Logic|IPTables Logic]]
-- [[_COMMUNITY_Pod Event Handlers|Pod Event Handlers]]
-- [[_COMMUNITY_K8s Store Mocks|K8s Store Mocks]]
-- [[_COMMUNITY_Helm Deployment|Helm Deployment]]
-- [[_COMMUNITY_Kustomize DaemonSet Base|Kustomize DaemonSet Base]]
-- [[_COMMUNITY_Project Documentation|Project Documentation]]
-- [[_COMMUNITY_Kustomize Overlays|Kustomize Overlays]]
-- [[_COMMUNITY_E2E Kind Config|E2E Kind Config]]
-- [[_COMMUNITY_Namespace Logic Tests|Namespace Logic Tests]]
-- [[_COMMUNITY_Pod Data Model|Pod Data Model]]
-- [[_COMMUNITY_Version Metadata|Version Metadata]]
-- [[_COMMUNITY_Helm ServiceMonitor|Helm ServiceMonitor]]
-- [[_COMMUNITY_Helm PSP|Helm PSP]]
-- [[_COMMUNITY_Helm Notes|Helm Notes]]
-- [[_COMMUNITY_Helm Service|Helm Service]]
-- [[_COMMUNITY_Helm RBAC ClusterRole|Helm RBAC ClusterRole]]
-- [[_COMMUNITY_Helm ServiceAccount|Helm ServiceAccount]]
-- [[_COMMUNITY_Helm RBAC Binding|Helm RBAC Binding]]
-- [[_COMMUNITY_Kustomize PSP Overlay|Kustomize PSP Overlay]]
-- [[_COMMUNITY_Kustomize RBAC Base|Kustomize RBAC Base]]
-- [[_COMMUNITY_E2E Test Data|E2E Test Data]]
+- [[_COMMUNITY_Community 0|Community 0]]
+- [[_COMMUNITY_Community 1|Community 1]]
+- [[_COMMUNITY_Community 2|Community 2]]
+- [[_COMMUNITY_Community 3|Community 3]]
+- [[_COMMUNITY_Community 4|Community 4]]
+- [[_COMMUNITY_Community 5|Community 5]]
+- [[_COMMUNITY_Community 6|Community 6]]
+- [[_COMMUNITY_Community 7|Community 7]]
+- [[_COMMUNITY_Community 8|Community 8]]
+- [[_COMMUNITY_Community 9|Community 9]]
+- [[_COMMUNITY_Community 10|Community 10]]
+- [[_COMMUNITY_Community 11|Community 11]]
+- [[_COMMUNITY_Community 12|Community 12]]
+- [[_COMMUNITY_Community 13|Community 13]]
+- [[_COMMUNITY_Community 14|Community 14]]
+- [[_COMMUNITY_Community 15|Community 15]]
+- [[_COMMUNITY_Community 16|Community 16]]
+- [[_COMMUNITY_Community 17|Community 17]]
+- [[_COMMUNITY_Community 18|Community 18]]
+- [[_COMMUNITY_Community 19|Community 19]]
+- [[_COMMUNITY_Community 20|Community 20]]
+- [[_COMMUNITY_Community 21|Community 21]]
+- [[_COMMUNITY_Community 22|Community 22]]
+- [[_COMMUNITY_Community 23|Community 23]]
+- [[_COMMUNITY_Community 24|Community 24]]
+- [[_COMMUNITY_Community 25|Community 25]]
+- [[_COMMUNITY_Community 26|Community 26]]
+- [[_COMMUNITY_Community 27|Community 27]]
+- [[_COMMUNITY_Community 28|Community 28]]
+- [[_COMMUNITY_Community 29|Community 29]]
+- [[_COMMUNITY_Community 30|Community 30]]
+- [[_COMMUNITY_Community 31|Community 31]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `Server` - 15 edges
-2. `newLogger()` - 14 edges
-3. `NewServer()` - 13 edges
+2. `NewServer()` - 14 edges
+3. `newLogger()` - 14 edges
 4. `newPodIndexer()` - 10 edges
 5. `newNamespaceIndexer()` - 10 edges
 6. `newTestClient()` - 10 edges
@@ -75,192 +76,192 @@
 
 ## Communities
 
-### Community 0 - "AWS STS Client"
-Cohesion: 0.08
-Nodes (34): Client, Credentials, GetEndpointFromRegion(), getHash(), getIAMCode(), GetInstanceIAMRole(), getMetadataPath(), IsValidRegion() (+26 more)
+### Community 0 - "Community 0"
+Cohesion: 0.07
+Nodes (36): Client, Credentials, GetEndpointFromRegion(), getHash(), getIAMCode(), GetInstanceIAMRole(), getMetadataPath(), IsValidRegion() (+28 more)
 
-### Community 1 - "IAM & ARN Logic"
+### Community 1 - "Community 1"
 Cohesion: 0.07
 Nodes (22): ARN Parsing Logic, IAM Provider Interface, mockAPIError, IPTables Management, Kubernetes Client Interface, Application Entrypoint, Role Mapper, Prometheus Metrics (+14 more)
 
-### Community 2 - "Namespace Handlers"
-Cohesion: 0.09
-Nodes (29): GetNamespaceRoleAnnotation(), NamespaceIndexFunc(), NewNamespaceHandler(), TestGetNamespaceRoleAnnotation(), TestGetNamespaceRoleAnnotationMissingKey(), TestGetNamespaceRoleAnnotationNilAnnotations(), TestIsPodActive(), TestNamespaceHandlerOnAdd() (+21 more)
+### Community 2 - "Community 2"
+Cohesion: 0.17
+Nodes (25): TestRunKubeconfigError(), mockRegionClient, mockSTSClient, NewServer(), buildServer(), newLogger(), newRoleMapper(), newTestIAMClient() (+17 more)
 
-### Community 3 - "Mock STS/Region Clients"
-Cohesion: 0.19
-Nodes (24): mockRegionClient, mockSTSClient, NewServer(), buildServer(), newLogger(), newRoleMapper(), newTestIAMClient(), setMuxVars() (+16 more)
+### Community 3 - "Community 3"
+Cohesion: 0.13
+Nodes (24): NamespaceIndexFunc(), NewNamespaceHandler(), TestIsPodActive(), TestNamespaceHandlerOnAdd(), TestNamespaceHandlerOnAddWrongType(), TestNamespaceHandlerOnDelete(), TestNamespaceHandlerOnDeleteWrongType(), TestNamespaceHandlerOnUpdate() (+16 more)
 
-### Community 4 - "IMDS & STS Mocks"
+### Community 4 - "Community 4"
 Cohesion: 0.1
-Nodes (14): countingSTSClient, integMockIMDS, integrationIAMClient(), newIntegServer(), TestIntegErrorCachingCurrentBehavior(), TestIntegFullRequestChain(), TestIntegHealthcheck(), TestIntegNamespaceRestrictionAllowed() (+6 more)
+Nodes (15): countingSTSClient, integMockIMDS, integrationIAMClient(), newIntegServer(), TestIntegErrorCaching(), TestIntegErrorCachingCurrentBehavior(), TestIntegFullRequestChain(), TestIntegHealthcheck() (+7 more)
 
-### Community 5 - "CLI & Main Loop"
+### Community 5 - "Community 5"
+Cohesion: 0.15
+Nodes (8): GetNamespaceRoleAnnotation(), TestGetNamespaceRoleAnnotation(), TestGetNamespaceRoleAnnotationMissingKey(), TestGetNamespaceRoleAnnotationNilAnnotations(), NamespaceHandler, RoleMapper, RoleMappingResult, store
+
+### Community 6 - "Community 6"
 Cohesion: 0.17
 Nodes (12): addFlags(), main(), GetBaseArn(), GetBaseArnWithClient(), IsValidBaseARN(), TestGetBaseArnWithClient(), TestGetBaseArnWithClientIMDSError(), TestGetBaseArnWithClientMalformedARN() (+4 more)
 
-### Community 6 - "K8s Client Utilities"
-Cohesion: 0.44
+### Community 7 - "Community 7"
+Cohesion: 0.35
 Nodes (14): newNamespaceIndexer(), newPodIndexer(), newTestClient(), runningPod(), TestListNamespaces(), TestListPodIPs(), TestListPodIPsEmpty(), TestListPodIPsExcludesInactivePods() (+6 more)
 
-### Community 7 - "E2E DaemonSet Tests"
+### Community 8 - "Community 8"
 Cohesion: 0.2
 Nodes (11): TestDaemonSetScheduledOnAllNodes(), TestIPTablesRulesInstalled(), buildKubeClient(), dumpDebugInfo(), execInPod(), getDaemonSet(), kubectlApply(), loadImageIntoKind() (+3 more)
 
-### Community 8 - "Role Mapper Tests"
+### Community 9 - "Community 9"
 Cohesion: 0.14
 Nodes (1): storeMock
 
-### Community 9 - "K8s API Listing"
+### Community 10 - "Community 10"
 Cohesion: 0.21
 Nodes (2): Client, resolveDuplicatedIP()
 
-### Community 10 - "IAM Role Mapper"
-Cohesion: 0.28
-Nodes (3): RoleMapper, RoleMappingResult, store
-
-### Community 11 - "IPTables Logic"
+### Community 11 - "Community 11"
 Cohesion: 0.36
 Nodes (5): AddRule(), checkInterfaceExists(), TestCheckInterfaceExistsFailsWithBogusInterface(), TestCheckInterfaceExistsPassesWithPlus(), TestCheckInterfaceExistsPassesWithValidInterface()
 
-### Community 12 - "Pod Event Handlers"
+### Community 12 - "Community 12"
 Cohesion: 0.7
 Nodes (1): PodHandler
 
-### Community 13 - "K8s Store Mocks"
+### Community 13 - "Community 13"
 Cohesion: 0.4
 Nodes (1): mockStore
 
-### Community 14 - "Helm Deployment"
+### Community 14 - "Community 14"
 Cohesion: 0.4
 Nodes (5): Kube2iam Helm Chart, DaemonSet Template, EKS Configuration Example, Helm Chart Documentation, Helm Chart Values
 
-### Community 15 - "Kustomize DaemonSet Base"
+### Community 15 - "Community 15"
 Cohesion: 0.67
 Nodes (3): Kustomize Base DaemonSet, PSP Calico Overlay DaemonSet, PSP Calico Overlay README
 
-### Community 16 - "Project Documentation"
+### Community 16 - "Community 16"
 Cohesion: 1.0
 Nodes (2): Kubernetes Deployment Manifest, Project Documentation
 
-### Community 17 - "Kustomize Overlays"
+### Community 17 - "Community 17"
 Cohesion: 1.0
 Nodes (2): Kustomize Base Configuration, PSP Calico Kustomization
 
-### Community 18 - "E2E Kind Config"
+### Community 18 - "Community 18"
 Cohesion: 1.0
 Nodes (2): Kind Cluster E2E Config, IAM Mocks for E2E Tests
 
-### Community 19 - "Namespace Logic Tests"
+### Community 19 - "Community 19"
 Cohesion: 1.0
 Nodes (1): Namespace Tests
 
-### Community 20 - "Pod Data Model"
+### Community 20 - "Community 20"
 Cohesion: 1.0
 Nodes (1): Pod Structure
 
-### Community 21 - "Version Metadata"
+### Community 21 - "Community 21"
 Cohesion: 1.0
 Nodes (1): Version Information
 
-### Community 22 - "Helm ServiceMonitor"
+### Community 22 - "Community 22"
 Cohesion: 1.0
 Nodes (1): ServiceMonitor Template
 
-### Community 23 - "Helm PSP"
+### Community 23 - "Community 23"
 Cohesion: 1.0
 Nodes (1): PodSecurityPolicy Template
 
-### Community 24 - "Helm Notes"
+### Community 24 - "Community 24"
 Cohesion: 1.0
 Nodes (1): Helm Installation Notes
 
-### Community 25 - "Helm Service"
+### Community 25 - "Community 25"
 Cohesion: 1.0
 Nodes (1): Service Template
 
-### Community 26 - "Helm RBAC ClusterRole"
+### Community 26 - "Community 26"
 Cohesion: 1.0
 Nodes (1): ClusterRole Template
 
-### Community 27 - "Helm ServiceAccount"
+### Community 27 - "Community 27"
 Cohesion: 1.0
 Nodes (1): ServiceAccount Template
 
-### Community 28 - "Helm RBAC Binding"
+### Community 28 - "Community 28"
 Cohesion: 1.0
 Nodes (1): ClusterRoleBinding Template
 
-### Community 29 - "Kustomize PSP Overlay"
+### Community 29 - "Community 29"
 Cohesion: 1.0
 Nodes (1): PSP Calico Overlay PodSecurityPolicy
 
-### Community 30 - "Kustomize RBAC Base"
+### Community 30 - "Community 30"
 Cohesion: 1.0
 Nodes (1): Kustomize Base RBAC
 
-### Community 31 - "E2E Test Data"
+### Community 31 - "Community 31"
 Cohesion: 1.0
 Nodes (1): E2E DaemonSet Test Data
 
 ## Knowledge Gaps
 - **37 isolated node(s):** `appHandlerFunc`, `HealthResponse`, `STSClient`, `RegionClient`, `IMDSClient` (+32 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **Thin community `Role Mapper Tests`** (14 nodes): `mapper_test.go`, `TestCheckRoleForNamespace()`, `TestDumpDebugInfo()`, `TestExtractRoleARN()`, `TestGetExternalIDMappingWithAnnotation()`, `TestGetExternalIDMappingWithoutAnnotation()`, `TestGetRoleMappingNoAnnotationNoDefault()`, `TestGetRoleMappingPodNotFound()`, `TestGetRoleMappingWithDefault()`, `storeMock`, `.ListNamespaces()`, `.ListPodIPs()`, `.NamespaceByName()`, `.PodByIP()`
+- **Thin community `Community 9`** (14 nodes): `mapper_test.go`, `TestCheckRoleForNamespace()`, `TestDumpDebugInfo()`, `TestExtractRoleARN()`, `TestGetExternalIDMappingWithAnnotation()`, `TestGetExternalIDMappingWithoutAnnotation()`, `TestGetRoleMappingNoAnnotationNoDefault()`, `TestGetRoleMappingPodNotFound()`, `TestGetRoleMappingWithDefault()`, `storeMock`, `.ListNamespaces()`, `.ListPodIPs()`, `.NamespaceByName()`, `.PodByIP()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `K8s API Listing`** (12 nodes): `Client`, `.createNamespaceLW()`, `.createPodLW()`, `.ListNamespaces()`, `.ListPodIPs()`, `.NamespaceByName()`, `.PodByIP()`, `.WatchForNamespaces()`, `.WatchForPods()`, `k8s.go`, `NewClient()`, `resolveDuplicatedIP()`
+- **Thin community `Community 10`** (12 nodes): `Client`, `.createNamespaceLW()`, `.createPodLW()`, `.ListNamespaces()`, `.ListPodIPs()`, `.NamespaceByName()`, `.PodByIP()`, `.WatchForNamespaces()`, `.WatchForPods()`, `k8s.go`, `NewClient()`, `resolveDuplicatedIP()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Pod Event Handlers`** (5 nodes): `PodHandler`, `.OnAdd()`, `.OnDelete()`, `.OnUpdate()`, `.podFields()`
+- **Thin community `Community 12`** (5 nodes): `PodHandler`, `.OnAdd()`, `.OnDelete()`, `.OnUpdate()`, `.podFields()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `K8s Store Mocks`** (5 nodes): `mockStore`, `.ListNamespaces()`, `.ListPodIPs()`, `.NamespaceByName()`, `.PodByIP()`
+- **Thin community `Community 13`** (5 nodes): `mockStore`, `.ListNamespaces()`, `.ListPodIPs()`, `.NamespaceByName()`, `.PodByIP()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Project Documentation`** (2 nodes): `Kubernetes Deployment Manifest`, `Project Documentation`
+- **Thin community `Community 16`** (2 nodes): `Kubernetes Deployment Manifest`, `Project Documentation`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Kustomize Overlays`** (2 nodes): `Kustomize Base Configuration`, `PSP Calico Kustomization`
+- **Thin community `Community 17`** (2 nodes): `Kustomize Base Configuration`, `PSP Calico Kustomization`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `E2E Kind Config`** (2 nodes): `Kind Cluster E2E Config`, `IAM Mocks for E2E Tests`
+- **Thin community `Community 18`** (2 nodes): `Kind Cluster E2E Config`, `IAM Mocks for E2E Tests`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Namespace Logic Tests`** (1 nodes): `Namespace Tests`
+- **Thin community `Community 19`** (1 nodes): `Namespace Tests`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Pod Data Model`** (1 nodes): `Pod Structure`
+- **Thin community `Community 20`** (1 nodes): `Pod Structure`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Version Metadata`** (1 nodes): `Version Information`
+- **Thin community `Community 21`** (1 nodes): `Version Information`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Helm ServiceMonitor`** (1 nodes): `ServiceMonitor Template`
+- **Thin community `Community 22`** (1 nodes): `ServiceMonitor Template`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Helm PSP`** (1 nodes): `PodSecurityPolicy Template`
+- **Thin community `Community 23`** (1 nodes): `PodSecurityPolicy Template`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Helm Notes`** (1 nodes): `Helm Installation Notes`
+- **Thin community `Community 24`** (1 nodes): `Helm Installation Notes`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Helm Service`** (1 nodes): `Service Template`
+- **Thin community `Community 25`** (1 nodes): `Service Template`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Helm RBAC ClusterRole`** (1 nodes): `ClusterRole Template`
+- **Thin community `Community 26`** (1 nodes): `ClusterRole Template`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Helm ServiceAccount`** (1 nodes): `ServiceAccount Template`
+- **Thin community `Community 27`** (1 nodes): `ServiceAccount Template`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Helm RBAC Binding`** (1 nodes): `ClusterRoleBinding Template`
+- **Thin community `Community 28`** (1 nodes): `ClusterRoleBinding Template`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Kustomize PSP Overlay`** (1 nodes): `PSP Calico Overlay PodSecurityPolicy`
+- **Thin community `Community 29`** (1 nodes): `PSP Calico Overlay PodSecurityPolicy`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Kustomize RBAC Base`** (1 nodes): `Kustomize Base RBAC`
+- **Thin community `Community 30`** (1 nodes): `Kustomize Base RBAC`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `E2E Test Data`** (1 nodes): `E2E DaemonSet Test Data`
+- **Thin community `Community 31`** (1 nodes): `E2E DaemonSet Test Data`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `NewServer()` connect `Mock STS/Region Clients` to `IAM & ARN Logic`, `IMDS & STS Mocks`, `CLI & Main Loop`?**
-  _High betweenness centrality (0.215) - this node is a cross-community bridge._
-- **Why does `NewNamespaceHandler()` connect `Namespace Handlers` to `IAM & ARN Logic`?**
-  _High betweenness centrality (0.109) - this node is a cross-community bridge._
-- **Are the 12 inferred relationships involving `NewServer()` (e.g. with `main()` and `newIntegServer()`) actually correct?**
-  _`NewServer()` has 12 INFERRED edges - model-reasoned connections that need verification._
+- **Why does `NewServer()` connect `Community 2` to `Community 1`, `Community 4`, `Community 6`?**
+  _High betweenness centrality (0.219) - this node is a cross-community bridge._
+- **Why does `main()` connect `Community 6` to `Community 0`, `Community 2`, `Community 11`?**
+  _High betweenness centrality (0.108) - this node is a cross-community bridge._
+- **Are the 13 inferred relationships involving `NewServer()` (e.g. with `main()` and `newIntegServer()`) actually correct?**
+  _`NewServer()` has 13 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `appHandlerFunc`, `HealthResponse`, `STSClient` to the rest of the system?**
   _37 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `AWS STS Client` be split into smaller, more focused modules?**
-  _Cohesion score 0.08 - nodes in this community are weakly interconnected._
-- **Should `IAM & ARN Logic` be split into smaller, more focused modules?**
+- **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.07 - nodes in this community are weakly interconnected._
-- **Should `Namespace Handlers` be split into smaller, more focused modules?**
-  _Cohesion score 0.09 - nodes in this community are weakly interconnected._
+- **Should `Community 1` be split into smaller, more focused modules?**
+  _Cohesion score 0.07 - nodes in this community are weakly interconnected._
+- **Should `Community 3` be split into smaller, more focused modules?**
+  _Cohesion score 0.13 - nodes in this community are weakly interconnected._

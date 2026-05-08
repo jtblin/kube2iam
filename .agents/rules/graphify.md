@@ -1,4 +1,8 @@
-## graphify
+---
+trigger: always_on
+---
+
+# graphify
 
 This project has a graphify knowledge graph at graphify-out/.
 
